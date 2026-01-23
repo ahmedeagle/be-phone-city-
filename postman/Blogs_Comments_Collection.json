@@ -1,0 +1,451 @@
+{
+    "info": {
+        "_postman_id": "blogs-comments-collection-001",
+        "name": "Blogs & Comments API",
+        "description": "Postman collection for Blogs and Comments API endpoints. Includes public endpoints (view blogs/comments) and protected endpoints (create, update, delete comments).",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Blogs",
+            "item": [
+                {
+                    "name": "Public Endpoints",
+                    "item": [
+                        {
+                            "name": "Get All Blogs",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/blogs?search=&is_published=1&sort_by=published_at&sort_order=desc&page=1&per_page=15",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "blogs"],
+                                    "query": [
+                                        {
+                                            "key": "search",
+                                            "value": "",
+                                            "description": "Search in title, description, and content (optional)",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "is_published",
+                                            "value": "1",
+                                            "description": "Filter by published status (0 or 1) (optional)"
+                                        },
+                                        {
+                                            "key": "slug",
+                                            "value": "",
+                                            "description": "Filter by slug (exact match) (optional)",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "admin_id",
+                                            "value": "",
+                                            "description": "Filter by author/admin ID (optional)",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "sort_by",
+                                            "value": "published_at",
+                                            "description": "Sort by: published_at, created_at, updated_at, views_count, title_en, title_ar (default: published_at)"
+                                        },
+                                        {
+                                            "key": "sort_order",
+                                            "value": "desc",
+                                            "description": "Sort order: asc or desc (default: desc)"
+                                        },
+                                        {
+                                            "key": "page",
+                                            "value": "1",
+                                            "description": "Page number for pagination"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "15",
+                                            "description": "Items per page"
+                                        }
+                                    ]
+                                },
+                                "description": "Get all published blog posts with optional filters. Supports search, filtering, sorting, and pagination. Only published blogs are returned by default."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Get Blog by ID or Slug",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/blogs/1?include_comments=true",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "blogs", "1"],
+                                    "query": [
+                                        {
+                                            "key": "include_comments",
+                                            "value": "true",
+                                            "description": "Include comments with replies (optional)",
+                                            "disabled": true
+                                        }
+                                    ]
+                                },
+                                "description": "Get a single blog post by ID or slug. Automatically increments the views count. Can optionally include comments.\n\n**Note:** You can use either the blog ID (numeric) or slug (string) as the identifier."
+                            },
+                            "response": []
+                        }
+                    ],
+                    "description": "Public blog endpoints that don't require authentication"
+                }
+            ],
+            "description": "Blog endpoints for viewing articles"
+        },
+        {
+            "name": "Comments",
+            "item": [
+                {
+                    "name": "Public Endpoints",
+                    "item": [
+                        {
+                            "name": "Get All Comments",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/comments?blog_id=1&include_replies=false&sort_by=created_at&sort_order=desc&page=1&per_page=15",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "comments"],
+                                    "query": [
+                                        {
+                                            "key": "blog_id",
+                                            "value": "1",
+                                            "description": "Filter by blog ID (required)"
+                                        },
+                                        {
+                                            "key": "user_id",
+                                            "value": "",
+                                            "description": "Filter by user ID (optional)",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "parent_id",
+                                            "value": "",
+                                            "description": "Filter by parent comment ID (to get replies) (optional)",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "include_replies",
+                                            "value": "false",
+                                            "description": "Include reply comments (optional)",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "include_pending",
+                                            "value": "",
+                                            "description": "Include pending/unapproved comments (optional, admin only)",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "sort_by",
+                                            "value": "created_at",
+                                            "description": "Sort by: created_at, updated_at (default: created_at)"
+                                        },
+                                        {
+                                            "key": "sort_order",
+                                            "value": "desc",
+                                            "description": "Sort order: asc or desc (default: desc)"
+                                        },
+                                        {
+                                            "key": "page",
+                                            "value": "1",
+                                            "description": "Page number for pagination"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "15",
+                                            "description": "Items per page"
+                                        }
+                                    ]
+                                },
+                                "description": "Get all approved comments for a blog post. Requires blog_id. Only approved top-level comments are returned by default."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Get Comment by ID",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/comments/1",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "comments", "1"]
+                                },
+                                "description": "Get a single comment by its ID. Returns comment details including user, blog, parent comment, and replies."
+                            },
+                            "response": []
+                        }
+                    ],
+                    "description": "Public comment endpoints that don't require authentication"
+                },
+                {
+                    "name": "Protected Endpoints",
+                    "item": [
+                        {
+                            "name": "Create Comment (Authenticated)",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"blog_id\": 1,\n    \"content\": \"Great article! Very informative and well-written.\",\n    \"parent_id\": null\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/comments",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "comments"]
+                                },
+                                "description": "Create a new comment on a blog post. Requires authentication. Comments require moderation and will be visible after approval.\n\n**Required Fields (Authenticated):**\n- `blog_id` (integer, required): The ID of the blog post\n- `content` (string, required, max 5000 characters): Comment text\n\n**Optional Fields:**\n- `parent_id` (integer, optional): ID of parent comment if this is a reply"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Create Comment (Guest)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"blog_id\": 1,\n    \"content\": \"Great article! Very informative and well-written.\",\n    \"guest_name\": \"John Doe\",\n    \"guest_email\": \"john@example.com\",\n    \"parent_id\": null\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/comments",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "comments"]
+                                },
+                                "description": "Create a new comment as a guest (without authentication). Comments require moderation and will be visible after approval.\n\n**Required Fields (Guest):**\n- `blog_id` (integer, required): The ID of the blog post\n- `content` (string, required, max 5000 characters): Comment text\n- `guest_name` (string, required, max 255): Guest's name\n- `guest_email` (email, required, max 255): Guest's email\n\n**Optional Fields:**\n- `parent_id` (integer, optional): ID of parent comment if this is a reply"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Update Comment",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"content\": \"Updated comment text. Still think this is a great article!\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/comments/1",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "comments", "1"]
+                                },
+                                "description": "Update your own comment. Only the comment owner can update it. Requires authentication. The comment will need re-approval after update.\n\n**Optional Fields:**\n- `content` (string, optional, max 5000 characters): Updated comment text"
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Delete Comment",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/comments/1",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "comments", "1"]
+                                },
+                                "description": "Delete your own comment. Only the comment owner can delete it. Requires authentication."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Get My Comments",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/comments/my-comments?page=1&per_page=15",
+                                    "host": ["{{base_url}}"],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "comments",
+                                        "my-comments"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "page",
+                                            "value": "1",
+                                            "description": "Page number for pagination"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "15",
+                                            "description": "Items per page"
+                                        }
+                                    ]
+                                },
+                                "description": "Get all comments created by the authenticated user. Returns paginated list of your comments with blog information."
+                            },
+                            "response": []
+                        }
+                    ],
+                    "description": "Protected comment endpoints that require authentication (Bearer token) or allow guest comments"
+                }
+            ],
+            "description": "Comment endpoints for blog post comments"
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [""]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [""]
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8000",
+            "type": "string"
+        },
+        {
+            "key": "auth_token",
+            "value": "",
+            "type": "string"
+        }
+    ]
+}

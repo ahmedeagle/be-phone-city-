@@ -1,0 +1,537 @@
+{
+    "info": {
+        "_postman_id": "cities-points-preview-collection-001",
+        "name": "Cities, Points & Preview Order API",
+        "description": "Postman collection for Cities, Points, and Preview Order API endpoints. Cities endpoint is public, Points and Preview Order require authentication.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Cities",
+            "item": [
+                {
+                    "name": "Get All Cities",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "en",
+                                "type": "text",
+                                "description": "Language code: en or ar (optional, defaults to en)"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/cities?status=&per_page=15",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "cities"],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "description": "Filter by status: true for active, false for inactive (optional, defaults to active only)",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "description": "Number of items per page (optional, default: 15)",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Get all cities with pagination. By default, only active cities are returned.\n\n**Authentication:** Not required (public endpoint)\n\n**Query Parameters (all optional):**\n- `status`: Filter by status (true/false). If not provided, only active cities are returned\n- `per_page`: Number of items per page (default: 15)\n\n**Response includes:**\n- Paginated list of cities\n- Each city includes: id, slug, name (translated), name_en, name_ar, status, shipping_fee, order, timestamps"
+                    },
+                    "response": [
+                        {
+                            "name": "Success Response",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/cities",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "cities"]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Cities fetched successfully\",\n    \"data\": [\n        {\n            \"id\": 1,\n            \"slug\": \"riyadh\",\n            \"name\": \"Riyadh\",\n            \"name_en\": \"Riyadh\",\n            \"name_ar\": \"الرياض\",\n            \"status\": true,\n            \"shipping_fee\": \"25.00\",\n            \"order\": 1,\n            \"created_at\": \"2025-12-11T23:00:00.000000Z\",\n            \"updated_at\": \"2025-12-11T23:00:00.000000Z\"\n        },\n        {\n            \"id\": 2,\n            \"slug\": \"jeddah\",\n            \"name\": \"Jeddah\",\n            \"name_en\": \"Jeddah\",\n            \"name_ar\": \"جدة\",\n            \"status\": true,\n            \"shipping_fee\": \"30.00\",\n            \"order\": 2,\n            \"created_at\": \"2025-12-11T23:00:00.000000Z\",\n            \"updated_at\": \"2025-12-11T23:00:00.000000Z\"\n        }\n    ],\n    \"pagination\": {\n        \"current_page\": 1,\n        \"per_page\": 15,\n        \"total\": 2,\n        \"last_page\": 1,\n        \"from\": 1,\n        \"to\": 2\n    }\n}"
+                        }
+                    ]
+                }
+            ],
+            "description": "Cities endpoints - Public access, no authentication required"
+        },
+        {
+            "name": "Points",
+            "item": [
+                {
+                    "name": "Get All Points",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text",
+                                "description": "Bearer token for authentication"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/points?status=&order_id=&product_id=&date_from=&date_to=&expired_only=&expiring_within_days=&per_page=15",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "points"],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "description": "Filter by status: 'available', 'used', 'expired' (optional)",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "order_id",
+                                    "value": "",
+                                    "description": "Filter by order ID (optional)",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "product_id",
+                                    "value": "",
+                                    "description": "Filter by product ID (optional)",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "date_from",
+                                    "value": "",
+                                    "description": "Filter from date (YYYY-MM-DD format, optional)",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "",
+                                    "description": "Filter to date (YYYY-MM-DD format, optional)",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "expired_only",
+                                    "value": "",
+                                    "description": "Show only expired points (true/false, optional)",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "expiring_within_days",
+                                    "value": "",
+                                    "description": "Show points expiring within X days (optional)",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "description": "Number of items per page (optional, default: 15)",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Get all points for the authenticated user with various filters.\n\n**Authentication:** Required (Bearer token)\n\n**Query Parameters (all optional):**\n- `status`: Filter by status (available/used/expired)\n- `order_id`: Filter by order ID\n- `product_id`: Filter by product ID\n- `date_from`: Filter from date (YYYY-MM-DD)\n- `date_to`: Filter to date (YYYY-MM-DD)\n- `expired_only`: Show only expired points\n- `expiring_within_days`: Show points expiring within X days\n- `per_page`: Number of items per page (default: 15)\n\n**Response includes:**\n- Paginated list of points\n- Each point includes: id, points_count, status, expire_at, used_at, description, order info, product info, timestamps"
+                    },
+                    "response": [
+                        {
+                            "name": "Success Response",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/points",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "points"]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Points fetched successfully\",\n    \"data\": [\n        {\n            \"id\": 1,\n            \"points_count\": 100,\n            \"status\": \"available\",\n            \"expire_at\": \"2026-12-12T00:00:00.000000Z\",\n            \"used_at\": null,\n            \"description\": \"Points earned from order #ORD-ABC12345-20251206 - Product: iPhone 15 Pro\",\n            \"order\": {\n                \"id\": 1,\n                \"order_number\": \"ORD-ABC12345-20251206\"\n            },\n            \"product\": {\n                \"id\": 1,\n                \"slug\": \"iphone-15-pro\",\n                \"name\": \"iPhone 15 Pro\"\n            },\n            \"created_at\": \"2025-12-12T00:00:00.000000Z\",\n            \"updated_at\": \"2025-12-12T00:00:00.000000Z\"\n        }\n    ],\n    \"pagination\": {\n        \"current_page\": 1,\n        \"per_page\": 15,\n        \"total\": 1,\n        \"last_page\": 1,\n        \"from\": 1,\n        \"to\": 1\n    }\n}"
+                        },
+                        {
+                            "name": "Unauthenticated",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/points",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "points"]
+                                }
+                            },
+                            "status": "Unauthorized",
+                            "code": 401,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"message\": \"Unauthenticated.\"\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Points Summary",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text",
+                                "description": "Bearer token for authentication"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/points/summary",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "points", "summary"]
+                        },
+                        "description": "Get points summary for the authenticated user including totals, available points value, and expiring dates.\n\n**Authentication:** Required (Bearer token)\n\n**Response includes:**\n- Summary: total_points, available_points, available_points_value, used_points, expired_points, expiring_soon_points, point_value\n- Expiring dates: List of upcoming expiration dates with points amounts"
+                    },
+                    "response": [
+                        {
+                            "name": "Success Response",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/points/summary",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "points", "summary"]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Points summary fetched successfully\",\n    \"data\": {\n        \"summary\": {\n            \"total_points\": 500,\n            \"available_points\": 300,\n            \"available_points_value\": \"300.00\",\n            \"used_points\": 100,\n            \"expired_points\": 100,\n            \"expiring_soon_points\": 50,\n            \"point_value\": \"1.00\"\n        },\n        \"expiring_dates\": [\n            {\n                \"date\": \"2026-01-15T00:00:00.000000Z\",\n                \"points\": 50\n            },\n            {\n                \"date\": \"2026-02-20T00:00:00.000000Z\",\n                \"points\": 100\n            }\n        ]\n    }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Single Point",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text",
+                                "description": "Bearer token for authentication"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/points/1",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "points", "1"]
+                        },
+                        "description": "Get a single point by ID for the authenticated user.\n\n**Authentication:** Required (Bearer token)\n\n**Path Parameters:**\n- `id`: Point ID\n\n**Response includes:**\n- Point details: id, points_count, status, expire_at, used_at, description, order info, product info, timestamps"
+                    },
+                    "response": [
+                        {
+                            "name": "Success Response",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/points/1",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "points", "1"]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Point fetched successfully\",\n    \"data\": {\n        \"id\": 1,\n        \"points_count\": 100,\n        \"status\": \"available\",\n        \"expire_at\": \"2026-12-12T00:00:00.000000Z\",\n        \"used_at\": null,\n        \"description\": \"Points earned from order #ORD-ABC12345-20251206 - Product: iPhone 15 Pro\",\n        \"order\": {\n            \"id\": 1,\n            \"order_number\": \"ORD-ABC12345-20251206\"\n        },\n        \"product\": {\n            \"id\": 1,\n            \"slug\": \"iphone-15-pro\",\n            \"name\": \"iPhone 15 Pro\"\n        },\n        \"created_at\": \"2025-12-12T00:00:00.000000Z\",\n        \"updated_at\": \"2025-12-12T00:00:00.000000Z\"\n    }\n}"
+                        }
+                    ]
+                }
+            ],
+            "description": "Points endpoints - Requires authentication (Bearer token)"
+        },
+        {
+            "name": "Preview Order",
+            "item": [
+                {
+                    "name": "Preview Order Calculation",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text",
+                                "description": "Bearer token for authentication"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"payment_method_id\": 1,\n    \"delivery_method\": \"home_delivery\",\n    \"location_id\": 1,\n    \"discount_code\": \"FIRST10\",\n    \"use_point\": true\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/orders/preview",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "orders", "preview"]
+                        },
+                        "description": "Preview order calculation before creating the actual order. This endpoint calculates all costs, discounts, shipping, tax, and points discount based on cart items.\n\n**Authentication:** Required (Bearer token)\n\n**Request Body:**\n- `payment_method_id` (required): Payment method ID\n- `delivery_method` (required): Delivery method - 'home_delivery' or 'store_pickup'\n- `location_id` (required if delivery_method is 'home_delivery'): Location/address ID\n- `discount_code` (optional): Discount code to apply\n- `use_point` (optional): Boolean - true to use available points for discount\n\n**Response includes:**\n- Items: Cart items with product details\n- Summary: subtotal, discount, shipping, tax, payment method fee, points discount, total\n- Shipping info: City details, location, free shipping threshold\n- Payment method details\n- Points info: Available points, points to use, discount amount\n- Warnings: Stock issues, inactive payment methods\n- Settings: Tax percentage, free shipping threshold, point value"
+                    },
+                    "response": [
+                        {
+                            "name": "Success Response",
+                            "originalRequest": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"payment_method_id\": 1,\n    \"delivery_method\": \"home_delivery\",\n    \"location_id\": 1,\n    \"discount_code\": \"FIRST10\",\n    \"use_point\": true\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/orders/preview",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "orders", "preview"]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Order preview calculated successfully\",\n    \"data\": {\n        \"items\": [\n            {\n                \"id\": 1,\n                \"product\": {\n                    \"id\": 1,\n                    \"slug\": \"iphone-15-pro\",\n                    \"name\": \"iPhone 15 Pro\",\n                    \"name_en\": \"iPhone 15 Pro\",\n                    \"name_ar\": \"آيفون 15 برو\",\n                    \"main_image\": \"http://localhost:8000/storage/products/iphone15pro.jpg\",\n                    \"stock_status\": \"in_stock\",\n                    \"quantity_available\": 10\n                },\n                \"product_option\": null,\n                \"price\": \"500.00\",\n                \"quantity\": 1,\n                \"total\": \"500.00\"\n            }\n        ],\n        \"summary\": {\n            \"subtotal\": \"500.00\",\n            \"discount\": \"50.00\",\n            \"discount_code\": \"FIRST10\",\n            \"discount_info\": {\n                \"id\": 1,\n                \"code\": \"FIRST10\",\n                \"type\": \"percentage\",\n                \"value\": 10.0,\n                \"discount_amount\": \"50.00\"\n            },\n            \"shipping\": \"25.00\",\n            \"shipping_info\": {\n                \"city\": {\n                    \"id\": 1,\n                    \"slug\": \"riyadh\",\n                    \"name\": \"Riyadh\",\n                    \"name_en\": \"Riyadh\",\n                    \"name_ar\": \"الرياض\",\n                    \"shipping_fee\": \"25.00\"\n                },\n                \"location\": {\n                    \"id\": 1,\n                    \"first_name\": \"John\",\n                    \"last_name\": \"Doe\",\n                    \"country\": \"Saudi Arabia\",\n                    \"city\": \"Riyadh\",\n                    \"street_address\": \"123 Main St\",\n                    \"phone\": \"+966501234567\",\n                    \"email\": \"john@example.com\",\n                    \"label\": \"Home\"\n                }\n            },\n            \"qualifies_for_free_shipping\": false,\n            \"free_shipping_threshold\": \"500.00\",\n            \"amount_needed_for_free_shipping\": \"0.00\",\n            \"tax\": \"75.00\",\n            \"tax_percentage\": \"15.00\",\n            \"payment_method_fee\": \"12.50\",\n            \"payment_method\": {\n                \"id\": 1,\n                \"name\": \"Credit Card\",\n                \"name_en\": \"Credit Card\",\n                \"name_ar\": \"بطاقة ائتمان\",\n                \"image\": \"http://localhost:8000/storage/payment_methods/cc.png\",\n                \"processing_fee_percentage\": \"2.50\",\n                \"status\": \"active\"\n            },\n            \"points_discount\": \"100.00\",\n            \"points_info\": {\n                \"points_available\": 500,\n                \"points_to_use\": 100,\n                \"point_value\": \"1.00\",\n                \"discount_amount\": \"100.00\"\n            },\n            \"total\": \"462.50\"\n        },\n        \"delivery_method\": \"home_delivery\",\n        \"location\": {\n            \"id\": 1,\n            \"first_name\": \"John\",\n            \"last_name\": \"Doe\",\n            \"country\": \"Saudi Arabia\",\n            \"city\": \"Riyadh\",\n            \"street_address\": \"123 Main St\",\n            \"phone\": \"+966501234567\",\n            \"email\": \"john@example.com\",\n            \"label\": \"Home\"\n        },\n        \"settings\": {\n            \"tax_percentage\": \"15.00\",\n            \"free_shipping_threshold\": \"500.00\",\n            \"point_value\": \"1.00\"\n        },\n        \"warnings\": [],\n        \"stock_issues\": []\n    }\n}"
+                        },
+                        {
+                            "name": "Validation Error",
+                            "originalRequest": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"payment_method_id\": 1\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/orders/preview",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "orders", "preview"]
+                                }
+                            },
+                            "status": "Unprocessable Entity",
+                            "code": 422,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"Validation failed\",\n    \"data\": {\n        \"errors\": [\n            \"Delivery method is required\",\n            \"Location is required for home delivery\"\n        ]\n    }\n}"
+                        },
+                        {
+                            "name": "Empty Cart",
+                            "originalRequest": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"payment_method_id\": 1,\n    \"delivery_method\": \"home_delivery\",\n    \"location_id\": 1\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/orders/preview",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "orders", "preview"]
+                                }
+                            },
+                            "status": "Bad Request",
+                            "code": 400,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"Cart is empty\",\n    \"data\": null\n}"
+                        }
+                    ]
+                }
+            ],
+            "description": "Preview Order endpoint - Requires authentication (Bearer token). Calculates order totals before actual order creation."
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8000",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "",
+            "type": "string",
+            "description": "Bearer token for authentication (get from login endpoint)"
+        }
+    ]
+}
+

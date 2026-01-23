@@ -1,0 +1,160 @@
+{
+    "info": {
+        "_postman_id": "notifications-collection-001",
+        "name": "Notifications API",
+        "description": "Postman/Apidog collection for Notifications API endpoints. All endpoints require authentication (auth:sanctum).",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Get All Notifications",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    },
+                    {
+                        "key": "Accept-Language",
+                        "value": "en",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/notifications?unread_only=false&per_page=15",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "v1", "notifications"],
+                    "query": [
+                        {
+                            "key": "unread_only",
+                            "value": "false",
+                            "description": "Filter by unread notifications only (true/false)"
+                        },
+                        {
+                            "key": "per_page",
+                            "value": "15",
+                            "description": "Number of items per page"
+                        }
+                    ]
+                },
+                "description": "Get all notifications for the authenticated user."
+            }
+        },
+        {
+            "name": "Get Unread Count",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/notifications/unread-count",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "v1", "notifications", "unread-count"]
+                },
+                "description": "Get the count of unread notifications for the user."
+            }
+        },
+        {
+            "name": "Mark as Read",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/notifications/:id/read",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "v1", "notifications", ":id", "read"],
+                    "variable": [
+                        {
+                            "key": "id",
+                            "value": "uuid-here"
+                        }
+                    ]
+                },
+                "description": "Mark a specific notification as read by its ID (UUID)."
+            }
+        },
+        {
+            "name": "Mark All as Read",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/notifications/read-all",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "v1", "notifications", "read-all"]
+                },
+                "description": "Mark all unread notifications as read for the user."
+            }
+        },
+        {
+            "name": "Delete Notification",
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/notifications/:id",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "v1", "notifications", ":id"],
+                    "variable": [
+                        {
+                            "key": "id",
+                            "value": "uuid-here"
+                        }
+                    ]
+                },
+                "description": "Delete a specific notification by its ID."
+            }
+        },
+        {
+            "name": "Clear All Notifications",
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/notifications/clear-all",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "v1", "notifications", "clear-all"]
+                },
+                "description": "Delete all notifications for the user."
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8000",
+            "type": "string"
+        }
+    ]
+}

@@ -1,0 +1,175 @@
+{
+    "info": {
+        "_postman_id": "certificates-collection-001",
+        "name": "Certificates API",
+        "description": "Postman/Apidog collection for Certificates API endpoints. All endpoints are public (no authentication required).",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Get All Certificates",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    },
+                    {
+                        "key": "Accept-Language",
+                        "value": "en",
+                        "type": "text",
+                        "description": "Language code: en or ar (optional, defaults to en)"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/certificates?per_page=15",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "v1", "certificates"],
+                    "query": [
+                        {
+                            "key": "per_page",
+                            "value": "15",
+                            "description": "Number of items per page (optional, default: 15)",
+                            "disabled": true
+                        }
+                    ]
+                },
+                "description": "Get all certificates.\n\n**Authentication:** Not required (public endpoint)\n\n**Query Parameters (all optional):**\n- `per_page`: Number of items per page (default: 15)\n\n**Response includes:**\n- Paginated list of certificates\n- Each certificate includes: id, name (translated), name_en, name_ar, image, main_image, timestamps"
+            },
+            "response": [
+                {
+                    "name": "Success Response",
+                    "originalRequest": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/certificates",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "certificates"]
+                        }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "cookie": [],
+                    "body": "{\n    \"success\": true,\n    \"message\": \"Certificates fetched successfully\",\n    \"data\": [\n        {\n            \"id\": 1,\n            \"name\": \"ISO 9001:2015\",\n            \"name_en\": \"ISO 9001:2015\",\n            \"name_ar\": \"ISO 9001:2015\",\n            \"image\": \"http://localhost:8000/storage/assets/images/certificates/iso-9001.svg\",\n            \"main_image\": \"http://localhost:8000/storage/assets/images/certificates/iso-9001-main.jpg\",\n            \"created_at\": \"2025-12-08T11:36:50.000000Z\",\n            \"updated_at\": \"2025-12-08T11:36:50.000000Z\"\n        },\n        {\n            \"id\": 2,\n            \"name\": \"Quality Management Certificate\",\n            \"name_en\": \"Quality Management Certificate\",\n            \"name_ar\": \"شهادة إدارة الجودة\",\n            \"image\": \"http://localhost:8000/storage/assets/images/certificates/quality-management.svg\",\n            \"main_image\": \"http://localhost:8000/storage/assets/images/certificates/quality-management-main.jpg\",\n            \"created_at\": \"2025-12-08T11:36:50.000000Z\",\n            \"updated_at\": \"2025-12-08T11:36:50.000000Z\"\n        }\n    ],\n    \"pagination\": {\n        \"current_page\": 1,\n        \"per_page\": 15,\n        \"total\": 4,\n        \"last_page\": 1,\n        \"from\": 1,\n        \"to\": 4\n    }\n}"
+                }
+            ]
+        },
+        {
+            "name": "Get Single Certificate",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    },
+                    {
+                        "key": "Accept-Language",
+                        "value": "en",
+                        "type": "text",
+                        "description": "Language code: en or ar (optional, defaults to en)"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/certificates/1",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "v1", "certificates", "1"]
+                },
+                "description": "Get a single certificate by ID.\n\n**Authentication:** Not required (public endpoint)\n\n**Path Parameters:**\n- `id` (integer, required): The certificate ID\n\n**Response includes:**\n- Certificate details: id, name (translated), name_en, name_ar, image, main_image, timestamps"
+            },
+            "response": [
+                {
+                    "name": "Success Response",
+                    "originalRequest": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/certificates/1",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "certificates", "1"]
+                        }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "cookie": [],
+                    "body": "{\n    \"success\": true,\n    \"message\": \"Certificate fetched successfully\",\n    \"data\": {\n        \"id\": 1,\n        \"name\": \"ISO 9001:2015\",\n        \"name_en\": \"ISO 9001:2015\",\n        \"name_ar\": \"ISO 9001:2015\",\n        \"image\": \"http://localhost:8000/storage/assets/images/certificates/iso-9001.svg\",\n        \"main_image\": \"http://localhost:8000/storage/assets/images/certificates/iso-9001-main.jpg\",\n        \"created_at\": \"2025-12-08T11:36:50.000000Z\",\n        \"updated_at\": \"2025-12-08T11:36:50.000000Z\"\n    }\n}"
+                },
+                {
+                    "name": "Not Found",
+                    "originalRequest": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/certificates/999",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "certificates", "999"]
+                        }
+                    },
+                    "status": "Not Found",
+                    "code": 404,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "cookie": [],
+                    "body": "{\n    \"success\": false,\n    \"message\": \"Certificate not found\",\n    \"data\": null\n}"
+                }
+            ]
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [""]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [""]
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8000",
+            "type": "string"
+        }
+    ]
+}
+

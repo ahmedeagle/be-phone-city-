@@ -1,0 +1,235 @@
+{
+    "info": {
+        "_postman_id": "tickets-collection-001",
+        "name": "Tickets API",
+        "description": "Postman collection for Support Tickets API endpoints. Includes endpoints for customers to submit tickets and for support team to manage them.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Public Endpoints",
+            "item": [
+                {
+                    "name": "Create Guest Ticket",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"أحمد محمد\",\n    \"email\": \"ahmed@example.com\",\n    \"phone\": \"0123456789\",\n    \"message\": \"أريد الاستفسار عن منتج معين وأحتاج إلى معلومات إضافية حول المواصفات والأسعار.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/tickets",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "tickets"]
+                        },
+                        "description": "إنشاء تذكرة جديدة من زائر غير مسجل (بدون مصادقة).\n\n**الحقول المطلوبة:**\n- `name` (string, required, max 255): اسم المرسل\n- `email` (email, required, max 255): البريد الإلكتروني\n- `phone` (string, required, max 20): رقم الهاتف\n- `message` (string, required, max 5000): نص الرسالة\n\n**ملاحظات:**\n- لا يحتاج إلى مصادقة (Bearer token)\n- يتم إنشاء رقم التذكرة تلقائياً\n- يتم إنشاء الموضوع (subject) تلقائياً من أول 50 حرف من الرسالة"
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Public ticket endpoints that don't require authentication"
+        },
+        {
+            "name": "Protected Endpoints",
+            "item": [
+                {
+                    "name": "Get My Tickets",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/tickets?status=&priority=&type=&search=&sort_by=created_at&sort_order=desc&page=1&per_page=15",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "tickets"],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "description": "Filter by status: pending, in_progress, resolved, closed (optional)",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "priority",
+                                    "value": "",
+                                    "description": "Filter by priority: low, medium, high, urgent (optional)",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "type",
+                                    "value": "",
+                                    "description": "Filter by type: support, complaint, inquiry, technical, billing, other (optional)",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "search",
+                                    "value": "",
+                                    "description": "Search by ticket number or subject (optional)",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "sort_by",
+                                    "value": "created_at",
+                                    "description": "Sort by: created_at, updated_at, status, priority (default: created_at)"
+                                },
+                                {
+                                    "key": "sort_order",
+                                    "value": "desc",
+                                    "description": "Sort order: asc or desc (default: desc)"
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Page number for pagination"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "description": "Items per page"
+                                }
+                            ]
+                        },
+                        "description": "Get authenticated user's tickets only. Requires authentication. Returns only tickets created by the logged-in user with optional filters."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Ticket by ID",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/tickets/1",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "tickets", "1"]
+                        },
+                        "description": "Get a single ticket by its ID. Requires authentication. Users can only view their own tickets."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Ticket",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"subject\": \"Updated subject\",\n    \"description\": \"Updated description\",\n    \"status\": \"in_progress\",\n    \"admin_id\": 1,\n    \"priority\": \"urgent\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/tickets/1",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "tickets", "1"]
+                        },
+                        "description": "Update a ticket. Users can only update their own tickets (subject/description only). Status, priority, type, and assignment are managed by admins through the admin panel.\n\n**Fields (Optional):**\n- `subject` (string, optional): Updated subject\n- `description` (string, optional): Updated description"
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Protected ticket endpoints that require authentication (Bearer token)"
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [""]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [""]
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8000",
+            "type": "string"
+        },
+        {
+            "key": "auth_token",
+            "value": "",
+            "type": "string"
+        }
+    ]
+}
+

@@ -1,0 +1,289 @@
+{
+    "info": {
+        "_postman_id": "reviews-collection-001",
+        "name": "Reviews API",
+        "description": "Postman collection for Reviews API endpoints. Includes public endpoints (view reviews) and protected endpoints (create, update, delete reviews).",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Public Endpoints",
+            "item": [
+                {
+                    "name": "Get All Reviews",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/reviews?product_id=1&rating=5&sort_by=created_at&sort_order=desc&page=1&per_page=15",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "reviews"],
+                            "query": [
+                                {
+                                    "key": "product_id",
+                                    "value": "1",
+                                    "description": "Filter by product ID (optional)"
+                                },
+                                {
+                                    "key": "user_id",
+                                    "value": "",
+                                    "description": "Filter by user ID (optional)",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "rating",
+                                    "value": "5",
+                                    "description": "Filter by rating (1-5) (optional)",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "sort_by",
+                                    "value": "created_at",
+                                    "description": "Sort by: created_at, rating, updated_at (default: created_at)"
+                                },
+                                {
+                                    "key": "sort_order",
+                                    "value": "desc",
+                                    "description": "Sort order: asc or desc (default: desc)"
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Page number for pagination"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "description": "Items per page"
+                                }
+                            ]
+                        },
+                        "description": "Get all reviews with optional filters. Can filter by product_id, user_id, and rating. Supports pagination and sorting."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Review by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/reviews/1",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "reviews", "1"]
+                        },
+                        "description": "Get a single review by its ID. Returns review details including user and product information."
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Public endpoints that don't require authentication"
+        },
+        {
+            "name": "Protected Endpoints",
+            "item": [
+                {
+                    "name": "Create Review",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"product_id\": 1,\n    \"comment\": \"Great product! Very satisfied with the quality and delivery.\",\n    \"rating\": 5\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/reviews",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "reviews"]
+                        },
+                        "description": "Create a new review for a product. Requires authentication. Each user can only review a product once.\n\n**Required Fields:**\n- `product_id` (integer, required): The ID of the product being reviewed\n- `rating` (integer, required): Rating from 1 to 5\n\n**Optional Fields:**\n- `comment` (string, optional, max 1000 characters): Review text/comment"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Review",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"comment\": \"Updated review comment. Still very happy with the product!\",\n    \"rating\": 5\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/reviews/1",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "reviews", "1"]
+                        },
+                        "description": "Update your own review. Only the review owner can update it. You can update comment and/or rating.\n\n**Optional Fields:**\n- `comment` (string, optional, max 1000 characters): Updated review text\n- `rating` (integer, optional, 1-5): Updated rating"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Review",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/reviews/1",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "reviews", "1"]
+                        },
+                        "description": "Delete your own review. Only the review owner can delete it."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get My Reviews",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/reviews/my-reviews?page=1&per_page=15",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "reviews", "my-reviews"],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Page number for pagination"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "description": "Items per page"
+                                }
+                            ]
+                        },
+                        "description": "Get all reviews created by the authenticated user. Returns paginated list of your reviews with product information."
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Protected endpoints that require authentication (Bearer token)"
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [""]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [""]
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8000",
+            "type": "string"
+        },
+        {
+            "key": "auth_token",
+            "value": "",
+            "type": "string"
+        }
+    ]
+}

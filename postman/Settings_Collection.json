@@ -1,0 +1,407 @@
+{
+    "info": {
+        "_postman_id": "settings-collection-001",
+        "name": "Settings API",
+        "description": "Postman collection for Settings API endpoints. All endpoints are public and don't require authentication. Settings are managed as a singleton (single record with id=1).",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Get All Settings",
+            "item": [
+                {
+                    "name": "Get All Settings",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "en",
+                                "type": "text",
+                                "description": "Language code: en or ar (optional, defaults to en)"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/settings",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "settings"]
+                        },
+                        "description": "Get all settings including website information, shipping/tax settings, points settings, bank account details, and product sections settings.\n\n**Response includes:**\n- Website information (title, logo)\n- Shipping and tax settings\n- Points/rewards settings\n- Bank account details\n- Product sections settings (new arrivals, featured)"
+                    },
+                    "response": [
+                        {
+                            "name": "Success Response",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/settings",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "settings"]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Settings fetched successfully\",\n    \"data\": {\n        \"website_title_en\": \"City Phone\",\n        \"website_title_ar\": \"سيتي فون\",\n        \"logo\": \"http://localhost:8000/storage/settings/logo.png\",\n        \"free_shipping_threshold\": 100.00,\n        \"tax_percentage\": 15.00,\n        \"points_days_expired\": 365,\n        \"point_value\": 1.00,\n        \"bank_name\": \"Al Rajhi Bank\",\n        \"account_holder\": \"City Phone Company\",\n        \"account_number\": \"1234567890\",\n        \"iban\": \"SA1234567890123456789012\",\n        \"swift_code\": \"RJHISARI\",\n        \"branch\": \"Main Branch\",\n        \"bank_instructions\": \"Please include order number in transfer notes\",\n        \"show_new_arrivals_section\": true,\n        \"show_featured_section\": true,\n        \"new_arrivals_count\": 10,\n        \"featured_count\": 10\n    }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Specific Setting by Key",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/settings/website_title_en",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "settings", "website_title_en"]
+                        },
+                        "description": "Get a specific setting value by its key.\n\n**Available keys:**\n- `website_title_en`, `website_title_ar`\n- `free_shipping_threshold`, `tax_percentage`\n- `points_days_expired`, `point_value`\n- `bank_name`, `account_holder`, `account_number`, `iban`, `swift_code`, `branch`, `bank_instructions`\n- `show_new_arrivals_section`, `show_featured_section`, `new_arrivals_count`, `featured_count`\n\n**Example keys:**\n- `website_title_en`\n- `tax_percentage`\n- `point_value`"
+                    },
+                    "response": [
+                        {
+                            "name": "Success Response",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/settings/website_title_en",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "settings", "website_title_en"]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Setting fetched successfully\",\n    \"data\": {\n        \"key\": \"website_title_en\",\n        \"value\": \"City Phone\"\n    }\n}"
+                        },
+                        {
+                            "name": "Not Found",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/settings/invalid_key",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "settings", "invalid_key"]
+                                }
+                            },
+                            "status": "Not Found",
+                            "code": 404,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": false,\n    \"message\": \"Setting not found\",\n    \"data\": null\n}"
+                        }
+                    ]
+                }
+            ],
+            "description": "Get all settings or a specific setting by key"
+        },
+        {
+            "name": "Website Information",
+            "item": [
+                {
+                    "name": "Get Website Information",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/settings/website/info",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "settings", "website", "info"]
+                        },
+                        "description": "Get website information including title (English and Arabic) and logo URL.\n\n**Response includes:**\n- `website_title_en`: Website title in English\n- `website_title_ar`: Website title in Arabic\n- `logo`: Full URL to the logo image"
+                    },
+                    "response": [
+                        {
+                            "name": "Success Response",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/settings/website/info",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "settings", "website", "info"]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Website information fetched successfully\",\n    \"data\": {\n        \"website_title_en\": \"City Phone\",\n        \"website_title_ar\": \"سيتي فون\",\n        \"logo\": \"http://localhost:8000/storage/settings/logo.png\"\n    }\n}"
+                        }
+                    ]
+                }
+            ],
+            "description": "Get website information settings"
+        },
+        {
+            "name": "Shipping & Tax",
+            "item": [
+                {
+                    "name": "Get Shipping and Tax Settings",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/settings/shipping/tax",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "settings", "shipping", "tax"]
+                        },
+                        "description": "Get shipping and tax settings.\n\n**Response includes:**\n- `free_shipping_threshold`: Minimum order amount for free shipping (decimal)\n- `tax_percentage`: Tax percentage (decimal)"
+                    },
+                    "response": [
+                        {
+                            "name": "Success Response",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/settings/shipping/tax",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "settings", "shipping", "tax"]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Shipping and tax settings fetched successfully\",\n    \"data\": {\n        \"free_shipping_threshold\": 100.00,\n        \"tax_percentage\": 15.00\n    }\n}"
+                        }
+                    ]
+                }
+            ],
+            "description": "Get shipping and tax settings"
+        },
+        {
+            "name": "Points Settings",
+            "item": [
+                {
+                    "name": "Get Points Settings",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/settings/points",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "settings", "points"]
+                        },
+                        "description": "Get points/rewards system settings.\n\n**Response includes:**\n- `points_days_expired`: Number of days before points expire (integer)\n- `point_value`: Value of one point in currency (decimal)"
+                    },
+                    "response": [
+                        {
+                            "name": "Success Response",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/settings/points",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "settings", "points"]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Points settings fetched successfully\",\n    \"data\": {\n        \"points_days_expired\": 365,\n        \"point_value\": 1.00\n    }\n}"
+                        }
+                    ]
+                }
+            ],
+            "description": "Get points/rewards system settings"
+        },
+        {
+            "name": "Bank Account Details",
+            "item": [
+                {
+                    "name": "Get Bank Account Details",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/settings/bank/details",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "settings", "bank", "details"]
+                        },
+                        "description": "Get bank account details for bank transfer payment method.\n\n**Response includes:**\n- `bank_name`: Name of the bank\n- `account_holder`: Account holder name\n- `account_number`: Bank account number\n- `iban`: IBAN number\n- `swift_code`: SWIFT/BIC code\n- `branch`: Bank branch name\n- `bank_instructions`: Additional instructions for bank transfer"
+                    },
+                    "response": [
+                        {
+                            "name": "Success Response",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/settings/bank/details",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "settings", "bank", "details"]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Bank account details fetched successfully\",\n    \"data\": {\n        \"bank_name\": \"Al Rajhi Bank\",\n        \"account_holder\": \"City Phone Company\",\n        \"account_number\": \"1234567890\",\n        \"iban\": \"SA1234567890123456789012\",\n        \"swift_code\": \"RJHISARI\",\n        \"branch\": \"Main Branch\",\n        \"bank_instructions\": \"Please include order number in transfer notes\"\n    }\n}"
+                        }
+                    ]
+                }
+            ],
+            "description": "Get bank account details for bank transfer payments"
+        },
+        {
+            "name": "Product Sections",
+            "item": [
+                {
+                    "name": "Get Product Sections Settings",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/settings/products/sections",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "settings", "products", "sections"]
+                        },
+                        "description": "Get product sections settings for new arrivals and featured products.\n\n**Response includes:**\n- `show_new_arrivals_section`: Whether to show new arrivals section (boolean)\n- `show_featured_section`: Whether to show featured section (boolean)\n- `new_arrivals_count`: Number of new arrival products to display (integer)\n- `featured_count`: Number of featured products to display (integer)"
+                    },
+                    "response": [
+                        {
+                            "name": "Success Response",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/settings/products/sections",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "v1", "settings", "products", "sections"]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "body": "{\n    \"success\": true,\n    \"message\": \"Product sections settings fetched successfully\",\n    \"data\": {\n        \"show_new_arrivals_section\": true,\n        \"show_featured_section\": true,\n        \"new_arrivals_count\": 10,\n        \"featured_count\": 10\n    }\n}"
+                        }
+                    ]
+                }
+            ],
+            "description": "Get product sections settings (new arrivals and featured)"
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [""]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [""]
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8000",
+            "type": "string"
+        }
+    ]
+}
+

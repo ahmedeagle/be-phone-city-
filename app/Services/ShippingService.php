@@ -1,0 +1,106 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Location;
+use App\Models\Order;
+use Illuminate\Support\Facades\Auth;
+
+/**
+ * Service class for handling shipping calculations and validation
+ */
+class ShippingService
+{
+    /**
+     * Validate location for home delivery
+     *
+     * @param int $locationId Location ID to validate
+     * @param int|null $userId User ID (defaults to authenticated user)
+     * @return array ['valid' => bool, 'location' => Location|null, 'error' => string|null]
+     */
+    public function validateLocation(int $locationId, ?int $userId = null): array
+    {
+        $userId = $userId ?? Auth::id();
+
+        $location = Location::with('city')
+            ->where('id', $locationId)
+            ->where('user_id', $userId)
+            ->first();
+
+        if (!$location) {
+            return [
+                'valid' => false,
+                'location' => null,
+                'error' => __('Invalid location'),
+            ];
+        }
+
+        if (!$location->city_id || !$location->city) {
+            return [
+                'valid' => false,
+                'location' => $location,
+                'error' => __('Location must have a valid city'),
+            ];
+        }
+
+        if (!$location->city->status) {
+            return [
+                'valid' => false,
+                'location' => $location,
+                'error' => __('Selected city is not available for delivery'),
+            ];
+        }
+
+        return [
+            'valid' => true,
+            'location' => $location,
+            'error' => null,
+        ];
+    }
+
+    /**
+     * Calculate shipping cost based on delivery method and location
+     *
+     * @param string $deliveryMethod Delivery method (home/pickup)
+     * @param Location|null $location Location model with city relation loaded
+     * @param float $subtotal Order subtotal for free shipping calculation
+     * @param float $freeShippingThreshold Minimum amount for free shipping
+     * @return array ['amount' => float, 'qualifies_for_free' => bool]
+     */
+    public function calculateShipping(
+        string $deliveryMethod,
+        ?Location $location,
+        float $subtotal,
+        float $freeShippingThreshold = 0
+    ): array {
+        // Store pickup - no shipping
+        if ($deliveryMethod !== Order::DELIVERY_HOME) {
+            return [
+                'amount' => 0,
+                'qualifies_for_free' => false,
+            ];
+        }
+
+        // Home delivery without valid location
+        if (!$location || !$location->city) {
+            return [
+                'amount' => 0,
+                'qualifies_for_free' => false,
+            ];
+        }
+
+        // Check for free shipping threshold
+        if ($freeShippingThreshold > 0 && $subtotal >= $freeShippingThreshold) {
+            return [
+                'amount' => 0,
+                'qualifies_for_free' => true,
+            ];
+        }
+
+        // Apply city shipping fee
+        return [
+            'amount' => $location->city->shipping_fee ?? 0,
+            'qualifies_for_free' => false,
+        ];
+    }
+}
