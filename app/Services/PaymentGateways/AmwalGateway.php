@@ -108,7 +108,7 @@ class AmwalGateway extends AbstractPaymentGateway
                 'client_last_name' => $lastName,
                 'client_email' => $user->email ?? 'customer@example.com',
                 // 'client_phone_number' => $phone,
-                'callback_url' => $this->getWebhookUrl(),
+                'callback_url' => route('payment.callback', ['order' => $order->id]),
                 'metadata' => [
                     'order_id' => $order->id,
                     'order_number' => $order->order_number,
@@ -467,17 +467,6 @@ class AmwalGateway extends AbstractPaymentGateway
     public function isEnabled(): bool
     {
         $enabled = $this->config['enabled'] ?? false;
-
-        // Debug logging
-        Log::info('AmwalGateway isEnabled check', [
-            'enabled' => $enabled,
-            'config_enabled' => $this->config['enabled'] ?? 'NOT SET',
-            'config_array' => [
-                'enabled' => $this->config['enabled'] ?? null,
-                'merchant_id_set' => !empty($this->config['merchant_id']),
-                'api_key_set' => !empty($this->config['api_key']),
-            ],
-        ]);
 
         return $enabled;
     }
