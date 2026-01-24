@@ -77,6 +77,9 @@ return [
             'api_url' => env('AMWAL_API_URL', 'https://backend.sa.amwal.tech'),
             'merchant_id' => env('AMWAL_MERCHANT_ID'),
             'api_key' => env('AMWAL_API_KEY'),
+            'amwal_key' => env('AMWAL_KEY'), // Optional: for environment identification (sandbox-amwal-xxx or prod-amwal-xxx)
+            'webhook_secret' => env('AMWAL_WEBHOOK_SECRET'), // Optional: for webhook signature validation
+            'webhook_url' => env('AMWAL_WEBHOOK_URL'), // Optional: custom HTTPS webhook URL (required for production)
             'timeout' => 30,
         ],
 

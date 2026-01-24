@@ -30,8 +30,8 @@ class PaymentController extends Controller
     {
         try {
             // Moyasar uses 'id', Tabby uses 'payment_id', some others might use 'transaction_id'
-            $transactionId = $request->input('id') ?? 
-                             $request->input('transaction_id') ?? 
+            $transactionId = $request->input('id') ??
+                             $request->input('transaction_id') ??
                              $request->input('payment_id');
 
             if (!$transactionId) {
@@ -39,7 +39,7 @@ class PaymentController extends Controller
                 $transactionId = $request->query('id') ?? $request->query('payment_id');
             }
 
-            // If it's a browser redirect and we don't have a transaction ID, 
+            // If it's a browser redirect and we don't have a transaction ID,
             // but we have a status (like cancel/failure), we should still redirect to frontend
             if (!$transactionId && ($request->query('status') === 'cancel' || $request->query('status') === 'failure')) {
                 return $this->redirectToFrontend($order, null);
@@ -50,7 +50,7 @@ class PaymentController extends Controller
                     'order_id' => $order->id,
                     'request_data' => $request->all(),
                 ]);
-                
+
                 if (!$request->expectsJson()) {
                     return $this->redirectToFrontend($order, null);
                 }
@@ -214,6 +214,7 @@ class PaymentController extends Controller
      */
     public function retry(Request $request, Order $order)
     {
+        
         try {
             // Check if user owns the order
             if ($order->user_id !== Auth::id()) {
