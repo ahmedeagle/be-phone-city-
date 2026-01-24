@@ -16,6 +16,18 @@ class AmwalGateway extends AbstractPaymentGateway
 {
     protected string $gateway = 'amwal';
 
+    public function __construct()
+    {
+        parent::__construct();
+
+        // Debug: Log config loading
+        Log::info('AmwalGateway config loaded', [
+            'enabled' => $this->config['enabled'] ?? 'NOT SET',
+            'merchant_id' => !empty($this->config['merchant_id']) ? 'SET' : 'NOT SET',
+            'api_key' => !empty($this->config['api_key']) ? 'SET' : 'NOT SET',
+        ]);
+    }
+
     /**
      * Create a payment session for the order
      *
@@ -445,6 +457,29 @@ class AmwalGateway extends AbstractPaymentGateway
         // Validate signature (implement based on Amwal's signature algorithm)
         // This is a placeholder - update with actual validation logic
         return true;
+    }
+
+    /**
+     * Override isEnabled to add debug logging
+     *
+     * @return bool
+     */
+    public function isEnabled(): bool
+    {
+        $enabled = $this->config['enabled'] ?? false;
+
+        // Debug logging
+        Log::info('AmwalGateway isEnabled check', [
+            'enabled' => $enabled,
+            'config_enabled' => $this->config['enabled'] ?? 'NOT SET',
+            'config_array' => [
+                'enabled' => $this->config['enabled'] ?? null,
+                'merchant_id_set' => !empty($this->config['merchant_id']),
+                'api_key_set' => !empty($this->config['api_key']),
+            ],
+        ]);
+
+        return $enabled;
     }
 
     /**
