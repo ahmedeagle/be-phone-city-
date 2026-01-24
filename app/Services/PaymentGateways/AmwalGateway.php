@@ -108,7 +108,7 @@ class AmwalGateway extends AbstractPaymentGateway
                 'client_last_name' => $lastName,
                 'client_email' => $user->email ?? 'customer@example.com',
                 // 'client_phone_number' => $phone,
-                'callback_url' => route('payment.callback', ['order' => $order->id]),
+                'callback_url' => $this->getCallbackUrl($order),
                 'metadata' => [
                     'order_id' => $order->id,
                     'order_number' => $order->order_number,
@@ -341,7 +341,8 @@ class AmwalGateway extends AbstractPaymentGateway
                 $headers['X-Amwal-Key'] = $amwalKey;
             }
 
-            $response = $this->httpPost(
+            // Use GET request to fetch payment link details
+            $response = $this->httpGet(
                 $baseUrl . '/payment_links/' . $transactionId . '/details',
                 [],
                 $headers
@@ -356,7 +357,33 @@ class AmwalGateway extends AbstractPaymentGateway
             }
 
             $paymentData = $response['data'];
-            $status = $this->mapAmwalStatus($paymentData['status'] ?? 'unknown');
+
+            // Extract status from payment_link or transactions array
+            // Amwal API returns: { payment_link: { status: "Paid" }, transactions: [{ status: "success" }] }
+            $amwalStatus = 'unknown';
+
+            // Check payment_link status first
+            if (isset($paymentData['payment_link']['status'])) {
+                $amwalStatus = $paymentData['payment_link']['status'];
+            }
+            // If not found, check first transaction status
+            elseif (isset($paymentData['transactions'][0]['status'])) {
+                $amwalStatus = $paymentData['transactions'][0]['status'];
+            }
+            // Fallback to root status if exists
+            elseif (isset($paymentData['status'])) {
+                $amwalStatus = $paymentData['status'];
+            }
+
+            $status = $this->mapAmwalStatus($amwalStatus);
+
+            Log::info('Amwal status extracted', [
+                'transaction_id' => $transactionId,
+                'amwal_status' => $amwalStatus,
+                'mapped_status' => $status,
+                'payment_link_status' => $paymentData['payment_link']['status'] ?? null,
+                'transaction_status' => $paymentData['transactions'][0]['status'] ?? null,
+            ]);
 
             return [
                 'success' => true,
@@ -387,14 +414,32 @@ class AmwalGateway extends AbstractPaymentGateway
     public function handleWebhook(array $payload): array
     {
         try {
-            $status = $this->mapAmwalStatus($payload['status'] ?? 'unknown');
-            $paymentLinkId = $payload['payment_link_id'] ?? $payload['id'] ?? null;
+            Log::info('Amwal webhook received', ['payload' => $payload]);
+
+            // Extract status - Amwal may send 'Paid', 'success', or transaction status
+            $amwalStatus = $payload['status'] ??
+                          $payload['payment_link']['status'] ??
+                          $payload['transactions'][0]['status'] ??
+                          'unknown';
+
+            $status = $this->mapAmwalStatus($amwalStatus);
+            $paymentLinkId = $payload['payment_link_id'] ??
+                            $payload['payment_link']['id'] ??
+                            $payload['id'] ??
+                            null;
 
             // Get order from metadata
             $orderId = $payload['metadata']['order_id'] ?? null;
             $orderNumber = $payload['metadata']['order_number'] ?? null;
 
+            // If metadata not in root, check payment_link.metadata
+            if (!$orderId && !$orderNumber && isset($payload['payment_link']['metadata'])) {
+                $orderId = $payload['payment_link']['metadata']['order_id'] ?? null;
+                $orderNumber = $payload['payment_link']['metadata']['order_number'] ?? null;
+            }
+
             if (!$orderId && !$orderNumber) {
+                Log::warning('Amwal webhook: Order reference not found', ['payload' => $payload]);
                 return [
                     'success' => false,
                     'order_id' => null,
@@ -410,9 +455,29 @@ class AmwalGateway extends AbstractPaymentGateway
                 $order = Order::where('order_number', $orderNumber)->first();
             }
 
+            if (!$order) {
+                Log::warning('Amwal webhook: Order not found', [
+                    'order_id' => $orderId,
+                    'order_number' => $orderNumber,
+                ]);
+                return [
+                    'success' => false,
+                    'order_id' => null,
+                    'status' => $status,
+                    'message' => __('Order not found'),
+                ];
+            }
+
+            Log::info('Amwal webhook: Order found', [
+                'order_id' => $order->id,
+                'payment_link_id' => $paymentLinkId,
+                'amwal_status' => $amwalStatus,
+                'mapped_status' => $status,
+            ]);
+
             return [
                 'success' => true,
-                'order_id' => $order?->id,
+                'order_id' => $order->id,
                 'status' => $status,
                 'transaction_id' => $paymentLinkId,
             ];
@@ -472,17 +537,78 @@ class AmwalGateway extends AbstractPaymentGateway
     }
 
     /**
-     * Get webhook URL with HTTPS
+     * Get callback URL for user redirect (after payment success/failure)
+     * Amwal redirects users here and sends payment data
      * Amwal requires HTTPS for callback URLs
+     *
+     * @param Order $order
+     * @return string
+     */
+    protected function getCallbackUrl(Order $order): string
+    {
+        // Check for custom callback URL in config
+        $customCallbackUrl = $this->getConfig('callback_url');
+        if ($customCallbackUrl) {
+            // Replace {order_id} placeholder if exists
+            return str_replace('{order_id}', $order->id, $customCallbackUrl);
+        }
+
+        // For local development: Check if ngrok is being used
+        $ngrokUrl = env('NGROK_URL');
+        if ($ngrokUrl) {
+            $url = route('payment.callback', ['order' => $order->id], false);
+            return rtrim($ngrokUrl, '/') . $url;
+        }
+
+        // Generate URL from route
+        $url = route('payment.callback', ['order' => $order->id], false);
+
+        // Get the base URL from config
+        $baseUrl = config('app.url');
+
+        // Check if we're in local development (localhost or 127.0.0.1)
+        $isLocal = strpos($baseUrl, '127.0.0.1') !== false
+                || strpos($baseUrl, 'localhost') !== false
+                || strpos($baseUrl, 'http://') === 0;
+
+        if ($isLocal) {
+            // For local development, NGROK_URL or AMWAL_CALLBACK_URL must be set
+            Log::warning('Amwal callback URL: Local development detected but no NGROK_URL or AMWAL_CALLBACK_URL set. Please set NGROK_URL in .env with your ngrok HTTPS URL.');
+
+            // Still try to convert to HTTPS (won't work but at least shows the issue)
+            $baseUrl = str_replace('http://', 'https://', $baseUrl);
+        } else {
+            // Ensure HTTPS (Amwal requires HTTPS)
+            if (strpos($baseUrl, 'http://') === 0) {
+                $baseUrl = str_replace('http://', 'https://', $baseUrl);
+            } elseif (strpos($baseUrl, 'https://') !== 0) {
+                $baseUrl = 'https://' . $baseUrl;
+            }
+        }
+
+        return rtrim($baseUrl, '/') . $url;
+    }
+
+    /**
+     * Get webhook URL with HTTPS (for server-to-server notifications)
+     * Amwal requires HTTPS for webhook URLs
      *
      * @return string
      */
     protected function getWebhookUrl(): string
     {
-        // Check for custom webhook URL in config (for production)
+        // Check for custom webhook URL in config (for production or local development with ngrok)
         $customWebhookUrl = $this->getConfig('webhook_url');
         if ($customWebhookUrl) {
             return $customWebhookUrl;
+        }
+
+        // For local development: Check if ngrok is being used
+        // You can set NGROK_URL in .env for automatic detection
+        $ngrokUrl = env('NGROK_URL');
+        if ($ngrokUrl) {
+            $url = route('payment.webhook', ['gateway' => 'amwal'], false);
+            return rtrim($ngrokUrl, '/') . $url;
         }
 
         // Generate URL from route
@@ -491,11 +617,24 @@ class AmwalGateway extends AbstractPaymentGateway
         // Get the base URL from config
         $baseUrl = config('app.url');
 
-        // Ensure HTTPS (Amwal requires HTTPS)
-        if (strpos($baseUrl, 'http://') === 0) {
+        // Check if we're in local development (localhost or 127.0.0.1)
+        $isLocal = strpos($baseUrl, '127.0.0.1') !== false
+                || strpos($baseUrl, 'localhost') !== false
+                || strpos($baseUrl, 'http://') === 0;
+
+        if ($isLocal) {
+            // For local development, AMWAL_WEBHOOK_URL or NGROK_URL must be set
+            Log::warning('Amwal webhook URL: Local development detected but no AMWAL_WEBHOOK_URL or NGROK_URL set. Please set AMWAL_WEBHOOK_URL in .env with your ngrok HTTPS URL.');
+
+            // Still try to convert to HTTPS (won't work but at least shows the issue)
             $baseUrl = str_replace('http://', 'https://', $baseUrl);
-        } elseif (strpos($baseUrl, 'https://') !== 0) {
-            $baseUrl = 'https://' . $baseUrl;
+        } else {
+            // Ensure HTTPS (Amwal requires HTTPS)
+            if (strpos($baseUrl, 'http://') === 0) {
+                $baseUrl = str_replace('http://', 'https://', $baseUrl);
+            } elseif (strpos($baseUrl, 'https://') !== 0) {
+                $baseUrl = 'https://' . $baseUrl;
+            }
         }
 
         return rtrim($baseUrl, '/') . $url;

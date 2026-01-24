@@ -155,11 +155,27 @@ class PaymentService
             $gateway = PaymentGatewayFactory::make($transaction->gateway);
 
             // Get payment status from gateway
+            Log::info('Payment callback: Checking payment status from gateway', [
+                'order_id' => $order->id,
+                'transaction_id' => $transactionId,
+                'gateway' => $transaction->gateway,
+            ]);
+
             $statusResponse = $gateway->getPaymentStatus($transactionId);
+
+            if (!$statusResponse['success']) {
+                Log::warning('Payment callback: Failed to get payment status from gateway', [
+                    'order_id' => $order->id,
+                    'transaction_id' => $transactionId,
+                    'error' => $statusResponse['message'] ?? 'Unknown error',
+                ]);
+            }
+
+            $newStatus = $this->mapGatewayStatusToTransactionStatus($statusResponse['status'] ?? 'unknown');
 
             // Update transaction
             $transaction->update([
-                'status' => $this->mapGatewayStatusToTransactionStatus($statusResponse['status'] ?? 'unknown'),
+                'status' => $newStatus,
                 'response_payload' => array_merge(
                     $transaction->response_payload ?? [],
                     [
@@ -171,7 +187,17 @@ class PaymentService
             ]);
 
             // Update order payment status
+            $oldPaymentStatus = $order->payment_status;
             $this->updateOrderPaymentStatus($order, $transaction);
+            $order->refresh();
+
+            Log::info('Payment callback: Order updated successfully', [
+                'order_id' => $order->id,
+                'transaction_id' => $transactionId,
+                'transaction_status' => $newStatus,
+                'old_payment_status' => $oldPaymentStatus,
+                'new_payment_status' => $order->payment_status,
+            ]);
 
             DB::commit();
 
@@ -214,9 +240,22 @@ class PaymentService
                     $transaction = $order->getLatestPaymentTransaction();
 
                     if ($transaction) {
+                        // Update transaction ID if webhook provides a different one (for Amwal)
+                        if (!empty($webhookResponse['transaction_id']) &&
+                            $webhookResponse['transaction_id'] !== $transaction->transaction_id) {
+                            Log::info('Webhook: Updating transaction ID', [
+                                'order_id' => $order->id,
+                                'old_id' => $transaction->transaction_id,
+                                'new_id' => $webhookResponse['transaction_id'],
+                            ]);
+                            $transaction->transaction_id = $webhookResponse['transaction_id'];
+                        }
+
                         // Update transaction status
+                        $newStatus = $this->mapGatewayStatusToTransactionStatus($webhookResponse['status'] ?? 'unknown');
                         $transaction->update([
-                            'status' => $this->mapGatewayStatusToTransactionStatus($webhookResponse['status'] ?? 'unknown'),
+                            'status' => $newStatus,
+                            'transaction_id' => $transaction->transaction_id, // Save updated ID if changed
                             'response_payload' => array_merge(
                                 $transaction->response_payload ?? [],
                                 [
@@ -228,8 +267,30 @@ class PaymentService
 
                         // Update order payment status
                         $this->updateOrderPaymentStatus($order, $transaction);
+
+                        Log::info('Webhook processed successfully', [
+                            'order_id' => $order->id,
+                            'transaction_id' => $transaction->transaction_id,
+                            'status' => $newStatus,
+                            'payment_status' => $order->payment_status,
+                        ]);
+                    } else {
+                        Log::warning('Webhook: No transaction found for order', [
+                            'order_id' => $order->id,
+                            'gateway' => $gateway,
+                        ]);
                     }
+                } else {
+                    Log::warning('Webhook: Order not found', [
+                        'order_id' => $webhookResponse['order_id'],
+                        'gateway' => $gateway,
+                    ]);
                 }
+            } else {
+                Log::warning('Webhook: Invalid response', [
+                    'gateway' => $gateway,
+                    'response' => $webhookResponse,
+                ]);
             }
 
             return $webhookResponse;

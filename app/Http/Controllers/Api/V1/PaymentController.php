@@ -29,14 +29,44 @@ class PaymentController extends Controller
     public function callback(Request $request, Order $order)
     {
         try {
-            // Moyasar uses 'id', Tabby uses 'payment_id', some others might use 'transaction_id'
-            $transactionId = $request->input('id') ??
+            Log::info('Payment callback received', [
+                'order_id' => $order->id,
+                'gateway' => $order->paymentMethod?->gateway,
+                'request_method' => $request->method(),
+                'request_data' => $request->all(),
+                'query_params' => $request->query(),
+            ]);
+
+            // Different gateways use different field names:
+            // Moyasar: 'id'
+            // Tabby: 'payment_id'
+            // Amwal: 'payment_link_id' or 'id' (might not be in callback, get from transaction)
+            // Tamara: 'order_id'
+            // Generic: 'transaction_id'
+            $transactionId = $request->input('payment_link_id') ??  // Amwal
+                             $request->input('id') ??
                              $request->input('transaction_id') ??
-                             $request->input('payment_id');
+                             $request->input('payment_id') ??
+                             $request->input('order_id');  // Tamara
 
             if (!$transactionId) {
-                // For Moyasar, it might be in the query string as 'id'
-                $transactionId = $request->query('id') ?? $request->query('payment_id');
+                // Check query string as well
+                $transactionId = $request->query('payment_link_id') ??  // Amwal
+                                 $request->query('id') ?? 
+                                 $request->query('payment_id') ??
+                                 $request->query('transaction_id');
+            }
+
+            // For Amwal: If no transaction ID in callback, get it from the order's latest transaction
+            if (!$transactionId && $order->paymentMethod?->gateway === 'amwal') {
+                $latestTransaction = $order->getLatestPaymentTransaction();
+                if ($latestTransaction && $latestTransaction->transaction_id) {
+                    $transactionId = $latestTransaction->transaction_id;
+                    Log::info('Amwal callback: Using transaction ID from order', [
+                        'order_id' => $order->id,
+                        'transaction_id' => $transactionId,
+                    ]);
+                }
             }
 
             // If it's a browser redirect and we don't have a transaction ID,
@@ -48,18 +78,39 @@ class PaymentController extends Controller
             if (!$transactionId) {
                 Log::warning('Payment callback: No transaction ID found in request', [
                     'order_id' => $order->id,
+                    'gateway' => $order->paymentMethod?->gateway,
                     'request_data' => $request->all(),
                 ]);
 
-                if (!$request->expectsJson()) {
-                    return $this->redirectToFrontend($order, null);
+                // For Amwal, try to process anyway using order's transaction
+                if ($order->paymentMethod?->gateway === 'amwal') {
+                    $latestTransaction = $order->getLatestPaymentTransaction();
+                    if ($latestTransaction) {
+                        $transactionId = $latestTransaction->transaction_id;
+                        Log::info('Amwal callback: Processing with transaction from order', [
+                            'order_id' => $order->id,
+                            'transaction_id' => $transactionId,
+                        ]);
+                    } else {
+                        if (!$request->expectsJson()) {
+                            return $this->redirectToFrontend($order, null);
+                        }
+                        return Response::error(
+                            __('No payment transaction found for this order'),
+                            null,
+                            400
+                        );
+                    }
+                } else {
+                    if (!$request->expectsJson()) {
+                        return $this->redirectToFrontend($order, null);
+                    }
+                    return Response::error(
+                        __('Transaction ID is required'),
+                        null,
+                        400
+                    );
                 }
-
-                return Response::error(
-                    __('Transaction ID is required'),
-                    null,
-                    400
-                );
             }
 
             // Process callback
