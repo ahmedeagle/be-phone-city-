@@ -656,7 +656,8 @@ class PaymentService
                     'review_notes' => $notes,
                 ]);
 
-                $order->markPaymentAsPaid($transaction);
+                // Use updateOrderPaymentStatus to trigger automatic shipping
+                $this->updateOrderPaymentStatus($order, $transaction);
 
                 Log::info('Payment proof approved', [
                     'order_id' => $order->id,
@@ -802,6 +803,8 @@ class PaymentService
      */
     protected function updateOrderPaymentStatus(Order $order, PaymentTransaction $transaction): void
     {
+        $oldPaymentStatus = $order->payment_status;
+
         $orderStatus = match($transaction->status) {
             PaymentTransaction::STATUS_SUCCESS => Order::PAYMENT_STATUS_PAID,
             PaymentTransaction::STATUS_FAILED => Order::PAYMENT_STATUS_FAILED,
@@ -814,9 +817,162 @@ class PaymentService
             default => $order->payment_status, // Keep current status
         };
 
+        Log::info('PaymentService: Updating order payment status', [
+            'order_id' => $order->id,
+            'order_number' => $order->order_number,
+            'old_payment_status' => $oldPaymentStatus,
+            'new_payment_status' => $orderStatus,
+            'transaction_status' => $transaction->status,
+            'delivery_method' => $order->delivery_method,
+            'has_active_shipment' => $order->hasActiveShipment(),
+            'oto_order_id' => $order->oto_order_id,
+        ]);
+
         $order->update([
             'payment_status' => $orderStatus,
             'payment_transaction_id' => $transaction->id,
         ]);
+
+        // Automatically create OTO shipment when payment becomes paid
+        $shouldCreateShipping = $orderStatus === Order::PAYMENT_STATUS_PAID
+            && $oldPaymentStatus !== Order::PAYMENT_STATUS_PAID
+            && $order->delivery_method === Order::DELIVERY_HOME
+            && !$order->hasActiveShipment()
+            && empty($order->oto_order_id);
+
+        Log::info('PaymentService: Checking if should create automatic OTO shipping', [
+            'order_id' => $order->id,
+            'should_create' => $shouldCreateShipping,
+            'payment_status_paid' => $orderStatus === Order::PAYMENT_STATUS_PAID,
+            'was_not_paid_before' => $oldPaymentStatus !== Order::PAYMENT_STATUS_PAID,
+            'is_home_delivery' => $order->delivery_method === Order::DELIVERY_HOME,
+            'no_active_shipment' => !$order->hasActiveShipment(),
+            'no_oto_order_id' => empty($order->oto_order_id),
+        ]);
+
+        if ($shouldCreateShipping) {
+            Log::info('PaymentService: Triggering automatic OTO shipping', [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+            ]);
+            $this->handleAutomaticOtoShipping($order);
+        } else {
+            Log::debug('PaymentService: Skipping automatic OTO shipping', [
+                'order_id' => $order->id,
+                'reason' => [
+                    'payment_not_paid' => $orderStatus !== Order::PAYMENT_STATUS_PAID,
+                    'was_already_paid' => $oldPaymentStatus === Order::PAYMENT_STATUS_PAID,
+                    'not_home_delivery' => $order->delivery_method !== Order::DELIVERY_HOME,
+                    'has_active_shipment' => $order->hasActiveShipment(),
+                    'has_oto_order_id' => !empty($order->oto_order_id),
+                ],
+            ]);
+        }
+    }
+
+    /**
+     * Handle automatic OTO shipping when order is paid
+     *
+     * @param Order $order
+     * @return void
+     */
+    protected function handleAutomaticOtoShipping(Order $order): void
+    {
+        Log::info('PaymentService: Starting automatic OTO shipping process', [
+            'order_id' => $order->id,
+            'order_number' => $order->order_number,
+            'payment_status' => $order->payment_status,
+            'order_status' => $order->status,
+            'delivery_method' => $order->delivery_method,
+        ]);
+
+        try {
+            // Refresh order to get latest state
+            $order->refresh();
+
+            Log::debug('PaymentService: Order refreshed', [
+                'order_id' => $order->id,
+                'status' => $order->status,
+                'payment_status' => $order->payment_status,
+            ]);
+
+            // Update order status to processing if it's still pending/confirmed
+            if (in_array($order->status, [Order::STATUS_PENDING, Order::STATUS_CONFIRMED])) {
+                Log::info('PaymentService: Updating order status to PROCESSING', [
+                    'order_id' => $order->id,
+                    'old_status' => $order->status,
+                ]);
+                $order->update(['status' => Order::STATUS_PROCESSING]);
+                $order->refresh();
+            }
+
+            // Load required relationships
+            $order->load(['location.city', 'items.product', 'items.productOption', 'user']);
+
+            Log::debug('PaymentService: Relationships loaded', [
+                'order_id' => $order->id,
+                'has_location' => (bool) $order->location,
+                'has_items' => $order->items->isNotEmpty(),
+                'location_city' => $order->location?->city?->name ?? 'N/A',
+            ]);
+
+            // Check if order is eligible for shipment
+            if (!$order->location || $order->delivery_method !== Order::DELIVERY_HOME) {
+                Log::warning('PaymentService: Order not eligible for automatic OTO shipping', [
+                    'order_id' => $order->id,
+                    'delivery_method' => $order->delivery_method,
+                    'has_location' => (bool) $order->location,
+                    'location_id' => $order->location_id,
+                ]);
+                return;
+            }
+
+            Log::info('PaymentService: Attempting automatic OTO shipping for paid order', [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'status' => $order->status,
+                'payment_status' => $order->payment_status,
+                'location_id' => $order->location_id,
+            ]);
+
+            $shippingService = app(\App\Services\Shipping\OtoShippingService::class);
+            $shipmentDto = $shippingService->createOrderAndShipment($order);
+
+            // Refresh to get updated tracking info
+            $order->refresh();
+
+            Log::info('PaymentService: Automatic OTO shipping completed successfully', [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'tracking_number' => $order->tracking_number,
+                'oto_order_id' => $order->oto_order_id,
+                'shipping_reference' => $order->shipping_reference,
+                'tracking_url' => $order->tracking_url,
+            ]);
+
+        } catch (\App\Services\Shipping\Oto\Exceptions\OtoValidationException $e) {
+            Log::warning('PaymentService: Order not eligible for automatic OTO shipping (validation)', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            // Don't throw - order is paid, just shipping couldn't be created automatically
+        } catch (\App\Services\Shipping\Oto\Exceptions\OtoApiException $e) {
+            Log::error('PaymentService: Failed to create automatic OTO shipment (API error)', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            // Don't throw - order is paid, admin can create shipment manually
+        } catch (\Exception $e) {
+            Log::error('PaymentService: Unexpected error during automatic OTO shipping', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            // Don't throw - order is paid, admin can create shipment manually
+        }
     }
 }

@@ -5,6 +5,7 @@ namespace App\Services\Shipping;
 use App\Models\Order;
 use App\Services\Shipping\Oto\Dto\OtoShipmentDto;
 use App\Services\Shipping\Oto\Dto\OtoShipmentStatusDto;
+use App\Services\Shipping\Oto\Exceptions\OtoApiException;
 use App\Services\Shipping\Oto\Exceptions\OtoConfigurationException;
 use App\Services\Shipping\Oto\Exceptions\OtoValidationException;
 use App\Services\Shipping\Oto\OtoHttpClient;
@@ -36,7 +37,7 @@ class OtoShippingService
         $this->validateOrderForShipment($order);
 
         // Load required relationships
-        $order->load(['location', 'items.product', 'items.productOption', 'user']);
+        $order->load(['location.city', 'items.product', 'items.productOption', 'user']);
 
         return DB::transaction(function () use ($order, $notes) {
             // Step 1: Create order in OTO
@@ -106,6 +107,114 @@ class OtoShippingService
                $response['options'] ??
                $response['shipments'] ??
                [];
+    }
+
+    /**
+     * Create order and shipment in OTO automatically (one-step process)
+     * This is used when order is paid and should be shipped automatically
+     *
+     * @throws OtoValidationException
+     * @throws OtoConfigurationException
+     */
+    public function createOrderAndShipment(Order $order, ?string $notes = null, ?int $deliveryOptionId = null): OtoShipmentDto
+    {
+        // Validate order eligibility
+        $this->validateOrderForShipment($order);
+
+        // Load required relationships
+        $order->load(['location.city', 'items.product', 'items.productOption', 'user']);
+
+        return DB::transaction(function () use ($order, $notes, $deliveryOptionId) {
+            // Step 1: Create order in OTO with auto-shipment enabled
+            $orderPayload = $this->buildOrderPayload($order, $notes);
+            $orderPayload['createShipment'] = true; // Enable auto-shipment
+
+            Log::info('Creating OTO order with automatic shipment', [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+            ]);
+
+            $orderResponse = $this->client->createOrder($orderPayload);
+
+            Log::info('OTO order API response', [
+                'response' => $orderResponse,
+                'order_id' => $order->id,
+            ]);
+
+            // Extract OTO order ID
+            $otoOrderId = $orderResponse['otoId'] ??
+                         $orderResponse['data']['otoId'] ??
+                         $orderResponse['id'] ??
+                         $orderResponse['orderId'] ??
+                         $orderResponse['order_id'] ??
+                         $orderResponse['data']['id'] ??
+                         null;
+
+            if (!$otoOrderId) {
+                Log::error('No order ID in OTO response', ['full_response' => $orderResponse]);
+                throw new \RuntimeException('Failed to get order ID from OTO API response. Check logs for details.');
+            }
+
+            // Store OTO order ID
+            $order->update(['oto_order_id' => $otoOrderId]);
+
+            // Step 2: Check if shipment was created automatically or needs to be created manually
+            $shipmentDto = null;
+
+            // Try to extract shipment info from order response
+            if (isset($orderResponse['shipment']) || isset($orderResponse['data']['shipment'])) {
+                $shipmentData = $orderResponse['shipment'] ?? $orderResponse['data']['shipment'];
+                $shipmentDto = OtoShipmentDto::fromApiResponse($shipmentData);
+            } elseif (isset($orderResponse['trackingNumber']) || isset($orderResponse['data']['trackingNumber'])) {
+                // Shipment info might be at root level
+                $shipmentDto = OtoShipmentDto::fromApiResponse($orderResponse);
+            }
+
+            // If no shipment in response, create it manually
+            if (!$shipmentDto || !$shipmentDto->isValid()) {
+                Log::info('No shipment in order response, creating shipment manually', [
+                    'order_id' => $order->id,
+                    'oto_order_id' => $otoOrderId,
+                ]);
+
+                $shipmentPayload = [
+                    'orderId' => $order->order_number,
+                ];
+
+                if ($deliveryOptionId) {
+                    $shipmentPayload['deliveryOptionId'] = $deliveryOptionId;
+                }
+
+                $shipmentResponse = $this->client->createShipment($shipmentPayload);
+                $shipmentDto = OtoShipmentDto::fromApiResponse($shipmentResponse);
+            }
+
+            if (!$shipmentDto->isValid()) {
+                Log::error('Invalid OTO shipment response', [
+                    'order_id' => $order->id,
+                    'response' => $orderResponse,
+                ]);
+                throw new \RuntimeException('Invalid shipment response from OTO API');
+            }
+
+            // Update order with shipment data
+            $this->updateOrderWithShipment($order, $shipmentDto);
+
+            $logData = [
+                'order_id' => $order->id,
+                'oto_order_id' => $otoOrderId,
+            ];
+
+            if ($shipmentDto->hasTrackingInfo()) {
+                $logData['tracking_number'] = $shipmentDto->trackingNumber;
+                $logData['shipment_reference'] = $shipmentDto->shipmentReference;
+                Log::info('OTO order and shipment created successfully', $logData);
+            } else {
+                Log::info('OTO order created, shipment request received (tracking pending)', $logData);
+            }
+
+            return $shipmentDto;
+        });
     }
 
     /**
@@ -249,6 +358,113 @@ class OtoShippingService
     {
         $statusDto = $this->getShipmentStatus($order);
         $this->updateShipmentStatus($order, $statusDto);
+    }
+
+    /**
+     * Cancel a shipment
+     *
+     * @throws \InvalidArgumentException
+     * @throws OtoApiException
+     */
+    public function cancelShipment(Order $order, ?string $reason = null): array
+    {
+        if (empty($order->tracking_number)) {
+            throw new \InvalidArgumentException(
+                "Order #{$order->order_number} does not have a tracking number to cancel"
+            );
+        }
+
+        Log::info('Cancelling OTO shipment', [
+            'order_id' => $order->id,
+            'tracking_number' => $order->tracking_number,
+            'reason' => $reason,
+        ]);
+
+        $response = $this->client->cancelShipment($order->tracking_number, $reason);
+
+        // Update order status
+        $order->update([
+            'status' => Order::STATUS_CANCELLED,
+            'tracking_status' => 'cancelled',
+            'shipping_status_updated_at' => now(),
+        ]);
+
+        Log::info('OTO shipment cancelled successfully', [
+            'order_id' => $order->id,
+            'tracking_number' => $order->tracking_number,
+        ]);
+
+        return $response;
+    }
+
+    /**
+     * Cancel order in OTO
+     *
+     * @throws \InvalidArgumentException
+     * @throws OtoApiException
+     */
+    public function cancelOrder(Order $order, ?string $reason = null): array
+    {
+        if (empty($order->oto_order_id)) {
+            throw new \InvalidArgumentException(
+                "Order #{$order->order_number} does not have an OTO order ID to cancel"
+            );
+        }
+
+        Log::info('Cancelling OTO order', [
+            'order_id' => $order->id,
+            'oto_order_id' => $order->oto_order_id,
+            'reason' => $reason,
+        ]);
+
+        try {
+            $response = $this->client->cancelOrder($order->oto_order_id, $reason);
+
+            // Update order status
+            $order->update([
+                'status' => Order::STATUS_CANCELLED,
+                'shipping_status_updated_at' => now(),
+            ]);
+
+            Log::info('OTO order cancelled successfully', [
+                'order_id' => $order->id,
+                'oto_order_id' => $order->oto_order_id,
+            ]);
+
+            return $response;
+        } catch (OtoApiException $e) {
+            $statusCode = $e->getCode();
+
+            // If cancellation fails due to permissions (403) or not found (404),
+            // log warning but still update local status
+            if ($statusCode === 403 || $statusCode === 404) {
+                Log::warning('OTO order cancellation failed - API endpoint not available or permission denied', [
+                    'order_id' => $order->id,
+                    'oto_order_id' => $order->oto_order_id,
+                    'status_code' => $statusCode,
+                    'error' => $e->getMessage(),
+                ]);
+
+                // Still update local status to cancelled
+                $order->update([
+                    'status' => Order::STATUS_CANCELLED,
+                    'shipping_status_updated_at' => now(),
+                ]);
+
+                // Re-throw with helpful message
+                $helpMessage = $statusCode === 403
+                    ? 'Your OTO account does not have permission to cancel orders via API. Please cancel the order manually in OTO dashboard (https://app.tryoto.com) or contact OTO support to enable this permission.'
+                    : 'The cancel order endpoint is not available. Please cancel the order manually in OTO dashboard (https://app.tryoto.com).';
+
+                throw new OtoApiException(
+                    "Order cancellation failed: {$helpMessage}",
+                    $statusCode
+                );
+            }
+
+            // For other errors, re-throw as-is
+            throw $e;
+        }
     }
 
     /**

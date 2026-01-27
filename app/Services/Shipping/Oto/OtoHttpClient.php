@@ -253,11 +253,11 @@ class OtoHttpClient
      */
     public function getShipmentStatus(string $trackingNumber): array
     {
-        $endpoint = "/shipments/{$trackingNumber}";
+        $endpoint = "/orderStatus/{$trackingNumber}";
         $this->logRequest('GET', $endpoint);
 
         try {
-            $response = $this->client()->get($endpoint);
+            $response = $this->client()->post($endpoint, ['orderId' => $trackingNumber]);
 
             $this->logResponse('GET', $endpoint, $response);
 
@@ -332,6 +332,87 @@ class OtoHttpClient
             ]);
             throw OtoApiException::connectionFailed($e);
         }
+    }
+
+    /**
+     * Cancel order in OTO
+     *
+     * Note: This endpoint may require special permissions in OTO account.
+     * If you get 403 error, contact OTO support to enable order cancellation permissions.
+     */
+    public function cancelOrder(string $otoOrderId, ?string $reason = null): array
+    {
+        // Try multiple possible endpoints
+        $endpoints = [
+            config('services.oto.endpoints.cancel_order', '/orders/{id}/cancelOrder'),
+            "/orders/{$otoOrderId}/cancel",
+            "/createOrder/{$otoOrderId}/cancel",
+            "/order/{$otoOrderId}/cancel",
+        ];
+
+        $payload = $reason ? ['reason' => $reason] : [];
+
+        $lastException = null;
+
+        foreach ($endpoints as $endpointTemplate) {
+            $endpoint = str_replace('{id}', $otoOrderId, $endpointTemplate);
+
+            $this->logRequest('POST', $endpoint, $payload);
+
+            try {
+                $response = $this->client()->post($endpoint, $payload);
+
+                $this->logResponse('POST', $endpoint, $response);
+
+                if ($response->successful()) {
+                    Log::info('OTO order cancellation successful', [
+                        'endpoint' => $endpoint,
+                        'oto_order_id' => $otoOrderId,
+                    ]);
+                    return $response->json();
+                }
+
+                // If 403, try next endpoint
+                if ($response->status() === 403) {
+                    Log::warning('OTO order cancellation endpoint returned 403, trying next endpoint', [
+                        'endpoint' => $endpoint,
+                        'oto_order_id' => $otoOrderId,
+                    ]);
+                    $lastException = OtoApiException::fromResponse($response, 'cancel order');
+                    continue;
+                }
+
+                // For other errors, throw immediately
+                throw OtoApiException::fromResponse($response, 'cancel order');
+
+            } catch (\Illuminate\Http\Client\ConnectionException $e) {
+                Log::error('OTO API connection failed', [
+                    'endpoint' => $endpoint,
+                    'oto_order_id' => $otoOrderId,
+                    'error' => $e->getMessage(),
+                ]);
+                $lastException = OtoApiException::connectionFailed($e);
+                continue;
+            } catch (OtoApiException $e) {
+                // If it's not a 403, throw immediately
+                if ($e->getCode() !== 403) {
+                    throw $e;
+                }
+                $lastException = $e;
+                continue;
+            }
+        }
+
+        // If all endpoints failed, throw the last exception
+        if ($lastException) {
+            Log::error('All OTO cancel order endpoints failed', [
+                'oto_order_id' => $otoOrderId,
+                'tried_endpoints' => $endpoints,
+            ]);
+            throw $lastException;
+        }
+
+        throw new \RuntimeException('Failed to cancel order: No valid endpoint found');
     }
 
     /**

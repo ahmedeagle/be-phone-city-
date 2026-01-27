@@ -27,6 +27,23 @@ class ViewOrder extends ViewRecord
         // Load relationships for infolist
         $this->record->load(['user', 'location', 'paymentMethod', 'discountCode', 'items.product', 'items.productOption', 'invoice']);
 
+        // Automatically sync status from OTO if order has tracking or OTO order ID
+        if ((!empty($this->record->tracking_number) || !empty($this->record->oto_order_id))
+            && $this->record->status !== Order::STATUS_CANCELLED) {
+            try {
+                $shippingService = app(OtoShippingService::class);
+                if (!empty($this->record->tracking_number)) {
+                    $shippingService->syncShipmentStatus($this->record);
+                }
+            } catch (\Exception $e) {
+                // Silently fail - don't interrupt page load
+                Log::debug('Auto-sync OTO status failed on page load', [
+                    'order_id' => $this->record->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         return $data;
     }
 
@@ -181,6 +198,14 @@ class ViewOrder extends ViewRecord
                     && auth()->user()->can('orders.update')
                 ),
 
+            Action::make('view_tracking')
+                ->label('عرض التتبع')
+                ->icon('heroicon-o-map-pin')
+                ->color('info')
+                ->url(fn () => $this->record->tracking_url)
+                ->openUrlInNewTab()
+                ->visible(fn () => !empty($this->record->tracking_url)),
+
             Action::make('sync_oto_status')
                 ->label('تحديث من OTO')
                 ->icon('heroicon-o-arrow-path')
@@ -206,117 +231,67 @@ class ViewOrder extends ViewRecord
                 })
                 ->visible(fn () => !empty($this->record->tracking_number) || !empty($this->record->oto_order_id)),
 
-            \Filament\Actions\ActionGroup::make([
-                Action::make('mark_pending')
-                    ->label('قيد الانتظار')
-                    ->icon('heroicon-o-clock')
-                    ->color('gray')
-                    ->requiresConfirmation()
-                    ->action(function () {
-                        $this->record->update(['status' => Order::STATUS_PENDING]);
+            Action::make('cancel_order_oto')
+                ->label('إلغاء الطلب في OTO')
+                ->icon('heroicon-o-x-circle')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('تأكيد إلغاء الطلب في OTO')
+                ->modalDescription(fn () => 'سيتم إلغاء الطلب في نظام OTO. هل أنت متأكد؟')
+                ->form([
+                    \Filament\Forms\Components\Textarea::make('reason')
+                        ->label('سبب الإلغاء (اختياري)')
+                        ->rows(3)
+                        ->maxLength(500),
+                ])
+                ->action(function (array $data) {
+                    try {
+                        $shippingService = app(OtoShippingService::class);
+                        $reason = $data['reason'] ?? null;
+
+                        // Cancel shipment if exists, otherwise cancel order
+                        if (!empty($this->record->tracking_number)) {
+                            $shippingService->cancelShipment($this->record, $reason);
+                            $message = 'تم إلغاء الشحنة في OTO بنجاح';
+                        } elseif (!empty($this->record->oto_order_id)) {
+                            $shippingService->cancelOrder($this->record, $reason);
+                            $message = 'تم إلغاء الطلب في OTO بنجاح';
+                        } else {
+                            throw new \Exception('لا يوجد طلب أو شحنة في OTO لإلغائها');
+                        }
+
                         Notification::make()
-                            ->title('تم تحديث حالة الطلب')
+                            ->title($message)
                             ->success()
                             ->send();
-                    })
-                    ->visible(fn () => $this->record->status !== Order::STATUS_PENDING),
-                Action::make('mark_confirmed')
-                    ->label('تأكيد')
-                    ->icon('heroicon-o-check')
-                    ->color('info')
-                    ->requiresConfirmation()
-                    ->action(function () {
-                        $this->record->update(['status' => Order::STATUS_CONFIRMED]);
+
+                        $this->record->refresh();
+                    } catch (\App\Services\Shipping\Oto\Exceptions\OtoApiException $e) {
                         Notification::make()
-                            ->title('تم تحديث حالة الطلب')
-                            ->success()
+                            ->title('فشل الإلغاء في OTO')
+                            ->danger()
+                            ->body($e->getMessage())
+                            ->persistent()
                             ->send();
-                    })
-                    ->visible(fn () => $this->record->status !== Order::STATUS_CONFIRMED),
-                Action::make('mark_processing')
-                    ->label('قيد المعالجة')
-                    ->icon('heroicon-o-cog-6-tooth')
-                    ->color('primary')
-                    ->requiresConfirmation()
-                    ->action(function () {
-                        $this->record->update(['status' => Order::STATUS_PROCESSING]);
+                    } catch (\Exception $e) {
+                        Log::error('Failed to cancel OTO order/shipment', [
+                            'order_id' => $this->record->id,
+                            'error' => $e->getMessage(),
+                        ]);
+
                         Notification::make()
-                            ->title('تم تحديث حالة الطلب')
-                            ->success()
+                            ->title('حدث خطأ')
+                            ->danger()
+                            ->body('فشل الإلغاء: ' . $e->getMessage())
+                            ->persistent()
                             ->send();
-                    })
-                    ->visible(fn () => $this->record->status !== Order::STATUS_PROCESSING),
-                Action::make('mark_shipped')
-                    ->label('تم الشحن')
-                    ->icon('heroicon-o-truck')
-                    ->color('warning')
-                    ->requiresConfirmation()
-                    ->action(function () {
-                        $this->record->update(['status' => Order::STATUS_SHIPPED]);
-                        Notification::make()
-                            ->title('تم تحديث حالة الطلب')
-                            ->success()
-                            ->send();
-                    })
-                    ->visible(fn () => $this->record->status !== Order::STATUS_SHIPPED),
-                Action::make('mark_in_progress')
-                    ->label('قيد التوصيل')
-                    ->icon('heroicon-o-truck')
-                    ->color('warning')
-                    ->requiresConfirmation()
-                    ->action(function () {
-                        $this->record->update(['status' => Order::STATUS_IN_PROGRESS]);
-                        Notification::make()
-                            ->title('تم تحديث حالة الطلب')
-                            ->success()
-                            ->send();
-                    })
-                    ->visible(fn () => $this->record->status !== Order::STATUS_IN_PROGRESS),
-                Action::make('mark_delivered')
-                    ->label('تم التسليم')
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
-                    ->requiresConfirmation()
-                    ->action(function () {
-                        $this->record->update(['status' => Order::STATUS_DELIVERED]);
-                        Notification::make()
-                            ->title('تم تحديث حالة الطلب')
-                            ->success()
-                            ->send();
-                    })
-                    ->visible(fn () => $this->record->status !== Order::STATUS_DELIVERED),
-                Action::make('mark_completed')
-                    ->label('مكتمل')
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
-                    ->requiresConfirmation()
-                    ->action(function () {
-                        $this->record->update(['status' => Order::STATUS_COMPLETED]);
-                        Notification::make()
-                            ->title('تم تحديث حالة الطلب')
-                            ->success()
-                            ->send();
-                    })
-                    ->visible(fn () => $this->record->status !== Order::STATUS_COMPLETED),
-                Action::make('mark_cancelled')
-                    ->label('إلغاء')
-                    ->icon('heroicon-o-x-circle')
-                    ->color('danger')
-                    ->requiresConfirmation()
-                    ->action(function () {
-                        $this->record->update(['status' => Order::STATUS_CANCELLED]);
-                        Notification::make()
-                            ->title('تم إلغاء الطلب')
-                            ->success()
-                            ->send();
-                    })
-                    ->visible(fn () => $this->record->status !== Order::STATUS_CANCELLED),
-            ])
-            ->label('تحديث الحالة')
-            ->icon('heroicon-o-ellipsis-vertical')
-            ->color('gray')
-            ->button()
-            ->visible(fn () => auth()->user()->can('orders.update')),
+                    }
+                })
+                ->visible(fn () =>
+                    (!empty($this->record->tracking_number) || !empty($this->record->oto_order_id))
+                    && $this->record->status !== Order::STATUS_CANCELLED
+                    && auth()->user()->can('orders.update')
+                ),
 
             Action::make('print')
                 ->label('طباعة الطلب')

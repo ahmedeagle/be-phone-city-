@@ -87,6 +87,7 @@ return [
             'create_shipment' => env('OTO_ENDPOINT_CREATE_SHIPMENT', '/createShipment'),
             'check_delivery' => env('OTO_ENDPOINT_CHECK_DELIVERY', '/shipmentTransactions'),
             'get_shipment' => env('OTO_ENDPOINT_GET_SHIPMENT', '/shipments'),
+            'cancel_order' => env('OTO_ENDPOINT_CANCEL_ORDER', '/orders/{id}/cancelOrder'),
         ],
 
         'webhook' => [
