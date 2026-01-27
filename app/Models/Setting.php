@@ -13,6 +13,7 @@ class Setting extends Model
         'website_title_en',
         'website_title_ar',
         'logo',
+        'maintenance_mode',
         'free_shipping_threshold',
         'tax_percentage',
         'points_days_expired',
@@ -33,6 +34,7 @@ class Setting extends Model
     ];
 
     protected $casts = [
+        'maintenance_mode' => 'boolean',
         'free_shipping_threshold' => 'decimal:2',
         'tax_percentage' => 'decimal:2',
         'point_value' => 'decimal:2',

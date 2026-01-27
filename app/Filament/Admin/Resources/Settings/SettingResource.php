@@ -73,6 +73,12 @@ class SettingResource extends Resource
                             ->maxSize(2048)
                             ->helperText('الشعار الرئيسي للموقع')
                             ->nullable(),
+
+                        Toggle::make('maintenance_mode')
+                            ->label('وضع الصيانة')
+                            ->helperText('تفعيل وضع الصيانة لإغلاق المتجر مؤقتاً')
+                            ->default(false)
+                            ->columnSpanFull(),
                     ])
                     ->columns(1),
 
@@ -238,6 +244,13 @@ class SettingResource extends Resource
                             ->label('الشعار')
                             ->size(200)
                             ->extraImgAttributes(['class' => 'rounded-lg shadow-md']),
+
+                        TextEntry::make('maintenance_mode')
+                            ->label('وضع الصيانة')
+                            ->badge()
+                            ->formatStateUsing(fn ($state) => $state ? 'مفعل' : 'معطل')
+                            ->color(fn ($state) => $state ? 'danger' : 'success')
+                            ->columnSpanFull(),
                     ])
                     ->columns(1),
 

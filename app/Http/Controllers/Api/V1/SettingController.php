@@ -134,4 +134,28 @@ class SettingController extends Controller
             ]
         );
     }
+
+    /**
+     * Toggle maintenance mode
+     */
+    public function toggleMaintenanceMode(Request $request)
+    {
+        $request->validate([
+            'enabled' => 'required|boolean',
+        ]);
+
+        $settings = Setting::getSettings();
+        $settings->update([
+            'maintenance_mode' => $request->boolean('enabled'),
+        ]);
+
+        return Response::success(
+            $request->boolean('enabled') 
+                ? __('Maintenance mode enabled successfully')
+                : __('Maintenance mode disabled successfully'),
+            [
+                'maintenance_mode' => (bool) $settings->maintenance_mode,
+            ]
+        );
+    }
 }

@@ -19,6 +19,7 @@ class SettingResource extends JsonResource
             'website_title_en' => $this->website_title_en,
             'website_title_ar' => $this->website_title_ar,
             'logo' => $this->logo_url,
+            'maintenance_mode' => (bool) $this->maintenance_mode,
 
             // Shipping and Tax Settings
             'free_shipping_threshold' => (float) $this->free_shipping_threshold,

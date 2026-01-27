@@ -102,6 +102,7 @@ Route::prefix('v1')->namespace('App\Http\Controllers\Api\V1')->group(function ()
     Route::get('settings/points', [SettingController::class, 'points']);
     Route::get('settings/bank/details', [SettingController::class, 'bankDetails']);
     Route::get('settings/products/sections', [SettingController::class, 'productSections']);
+    Route::post('settings/maintenance/toggle', [SettingController::class, 'toggleMaintenanceMode']);
     Route::get('settings/{key}', [SettingController::class, 'show']);
 
     Route::get('blogs', [BlogController::class, 'index']);
