@@ -22,7 +22,9 @@ use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\ViewEntry;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Placeholder;
 use Filament\Notifications\Notification;
+use Illuminate\Support\HtmlString;
 use Illuminate\Database\Eloquent\Builder;
 
 class PaymentTransactionResource extends Resource
@@ -188,21 +190,45 @@ class PaymentTransactionResource extends Resource
                     ->icon('heroicon-o-check-circle')
                     ->color('warning')
                     ->visible(fn (PaymentTransaction $record) => $record->requiresReview() && auth()->user()->can('payment_transactions.review'))
-                    ->form([
-                        Radio::make('decision')
+                    ->form(function (PaymentTransaction $record) {
+                        $components = [];
+
+                        if ($record->hasPaymentProof()) {
+                            $proofPath = $record->payment_proof_path;
+                            $extension = pathinfo($proofPath, PATHINFO_EXTENSION);
+                            $isPdf = strtolower($extension) === 'pdf';
+                            $isImage = in_array(strtolower($extension), ['jpg', 'jpeg', 'png', 'gif']);
+                            $proofUrl = route('admin.payment-transactions.proof', ['transaction' => $record->id]);
+
+                            $html = view('filament.forms.payment-proof-viewer', [
+                                'record' => $record,
+                                'proofPath' => $proofPath,
+                                'isPdf' => $isPdf,
+                                'isImage' => $isImage,
+                                'proofUrl' => $proofUrl,
+                            ])->render();
+
+                            $components[] = Placeholder::make('payment_proof')
+                                ->label('إثبات الدفع')
+                                ->content(new HtmlString($html));
+                        }
+
+                        $components[] = Radio::make('decision')
                             ->label('القرار')
                             ->options([
                                 'approve' => 'قبول',
                                 'reject' => 'رفض',
                             ])
                             ->required()
-                            ->inline(),
+                            ->inline();
 
-                        Textarea::make('notes')
+                        $components[] = Textarea::make('notes')
                             ->label('ملاحظات')
                             ->rows(3)
-                            ->placeholder('سبب الرفض أو ملاحظات إضافية'),
-                    ])
+                            ->placeholder('سبب الرفض أو ملاحظات إضافية');
+
+                        return $components;
+                    })
                     ->action(function (PaymentTransaction $record, array $data) {
                         try {
                             $approve = $data['decision'] === 'approve';
