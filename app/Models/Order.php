@@ -91,6 +91,11 @@ class Order extends Model
         static::created(function ($order) {
             $order->createInvoice();
         });
+
+        // Automatically delete invoices when an order is deleted
+        static::deleting(function ($order) {
+            $order->invoices()->delete();
+        });
     }
 
     /**
