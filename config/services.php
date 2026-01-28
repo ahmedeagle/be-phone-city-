@@ -111,4 +111,29 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | WhatsApp Service Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for WhatsApp messaging integration.
+    | Supports various WhatsApp providers (Twilio, WhatsApp Business API, etc.)
+    |
+    | Required environment variables:
+    | - WHATSAPP_API_URL: Your WhatsApp API endpoint URL
+    | - WHATSAPP_API_KEY: Your WhatsApp API key (if required)
+    | - WHATSAPP_API_TOKEN: Your WhatsApp API token/bearer token
+    |
+    */
+
+    'whatsapp' => [
+        'api_url' => env('WHATSAPP_API_URL', env('HYPERSENDER_API_URL', 'https://app.hypersender.com')),
+        'api_key' => env('WHATSAPP_API_KEY', env('HYPERSENDER_API_KEY')),
+        'api_token' => env('WHATSAPP_API_TOKEN', env('HYPERSENDER_API_TOKEN')),
+        'instance_id' => env('WHATSAPP_INSTANCE_ID', env('HYPERSENDER_INSTANCE_ID')),
+        'provider' => env('WHATSAPP_PROVIDER', 'hypersender'),
+        'endpoint' => env('WHATSAPP_ENDPOINT', '/api/whatsapp/v2/{instance}/send-text-safe'),
+        'enabled' => env('WHATSAPP_ENABLED', env('HYPERSENDER_ENABLED', false)),
+    ],
+
 ];

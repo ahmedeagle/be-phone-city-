@@ -1,0 +1,401 @@
+{
+  "name": "Abandoned Cart Recovery - CityPhone",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Check Abandoned Carts",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CITYPHONE_API_URL }}/api/v1/cart",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.CITYPHONE_API_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-carts",
+      "name": "Fetch All Carts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filter carts abandoned more than 1 hour ago\nconst carts = $input.item.json.data || [];\nconst oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);\n\nconst abandonedCarts = carts.filter(cart => {\n  const updatedAt = new Date(cart.updated_at);\n  return updatedAt < oneHourAgo && cart.items && cart.items.length > 0;\n});\n\n// Group by user and get latest cart\nconst userCarts = {};\nabandonedCarts.forEach(cart => {\n  if (!userCarts[cart.user_id] || \n      new Date(cart.updated_at) > new Date(userCarts[cart.user_id].updated_at)) {\n    userCarts[cart.user_id] = cart;\n  }\n});\n\nreturn Object.values(userCarts).map(cart => ({\n  json: {\n    user_id: cart.user_id,\n    cart_id: cart.id,\n    items_count: cart.items?.length || 0,\n    total: cart.total || 0,\n    updated_at: cart.updated_at,\n    hours_abandoned: Math.floor((Date.now() - new Date(cart.updated_at)) / (60 * 60 * 1000))\n  }\n}));"
+      },
+      "id": "filter-abandoned",
+      "name": "Filter Abandoned Carts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-hours",
+              "leftValue": "={{ $json.hours_abandoned }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-time",
+      "name": "Check Abandonment Time",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CITYPHONE_API_URL }}/api/v1/profile",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.CITYPHONE_API_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-user",
+      "name": "Get User Details",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.EMAIL_SERVICE_URL }}/send",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "to",
+              "value": "={{ $json.email }}"
+            },
+            {
+              "name": "subject",
+              "value": "Complete Your Purchase - Items Waiting in Your Cart"
+            },
+            {
+              "name": "template",
+              "value": "abandoned_cart_reminder_1"
+            },
+            {
+              "name": "data",
+              "value": "={{ JSON.stringify({ userName: $json.name, itemsCount: $('Filter Abandoned Carts').item.json.items_count, total: $('Filter Abandoned Carts').item.json.total, cartUrl: $env.CITYPHONE_APP_URL + '/cart' }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-email-1",
+      "name": "Send Reminder Email #1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CITYPHONE_API_URL }}/api/v1/profile",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.CITYPHONE_API_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-user-2",
+      "name": "Get User Details (24h)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CITYPHONE_API_URL }}/api/v1/discounts/check-code",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.CITYPHONE_API_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "code",
+              "value": "CART10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "generate-discount",
+      "name": "Generate Discount Code",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1250, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.EMAIL_SERVICE_URL }}/send",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "to",
+              "value": "={{ $json.email }}"
+            },
+            {
+              "name": "subject",
+              "value": "Special Offer: 10% Off Your Cart!"
+            },
+            {
+              "name": "template",
+              "value": "abandoned_cart_reminder_2"
+            },
+            {
+              "name": "data",
+              "value": "={{ JSON.stringify({ userName: $json.name, discountCode: 'CART10', discountPercent: 10, itemsCount: $('Filter Abandoned Carts').item.json.items_count, total: $('Filter Abandoned Carts').item.json.total, cartUrl: $env.CITYPHONE_APP_URL + '/cart' }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-email-2",
+      "name": "Send Reminder Email #2 (with discount)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1450, 400]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CITYPHONE_API_URL }}/api/v1/profile",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.CITYPHONE_API_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-user-3",
+      "name": "Get User Details (48h)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 600]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.EMAIL_SERVICE_URL }}/send",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "to",
+              "value": "={{ $json.email }}"
+            },
+            {
+              "name": "subject",
+              "value": "Last Chance: Complete Your Order"
+            },
+            {
+              "name": "template",
+              "value": "abandoned_cart_reminder_3"
+            },
+            {
+              "name": "data",
+              "value": "={{ JSON.stringify({ userName: $json.name, itemsCount: $('Filter Abandoned Carts').item.json.items_count, total: $('Filter Abandoned Carts').item.json.total, cartUrl: $env.CITYPHONE_APP_URL + '/cart' }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-email-3",
+      "name": "Send Final Reminder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1250, 600]
+    }
+  ],
+  "connections": {
+    "Check Abandoned Carts": {
+      "main": [
+        [
+          {
+            "node": "Fetch All Carts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch All Carts": {
+      "main": [
+        [
+          {
+            "node": "Filter Abandoned Carts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Abandoned Carts": {
+      "main": [
+        [
+          {
+            "node": "Check Abandonment Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Abandonment Time": {
+      "main": [
+        [
+          {
+            "node": "Get User Details",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get User Details (24h)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get User Details (48h)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Details": {
+      "main": [
+        [
+          {
+            "node": "Send Reminder Email #1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Details (24h)": {
+      "main": [
+        [
+          {
+            "node": "Generate Discount Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Discount Code": {
+      "main": [
+        [
+          {
+            "node": "Send Reminder Email #2 (with discount)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Details (48h)": {
+      "main": [
+        [
+          {
+            "node": "Send Final Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2024-01-15T10:00:00.000Z",
+  "versionId": "1"
+}

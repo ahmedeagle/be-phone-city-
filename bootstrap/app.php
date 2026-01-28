@@ -22,6 +22,13 @@ return Application::configure(basePath: dirname(__DIR__))
             ->everyThirtyMinutes()
             ->withoutOverlapping()
             ->runInBackground();
+
+        // Send abandoned product view offers every hour
+        // Checks for views older than 1-2 hours and sends WhatsApp offers
+        $schedule->command('product-views:send-offers --hours=1')
+            ->hourly()
+            ->withoutOverlapping()
+            ->runInBackground();
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->group('api', [

@@ -140,6 +140,11 @@ class Product extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    public function views()
+    {
+        return $this->hasMany(ProductView::class);
+    }
+
 
     /**
      * Get all applicable offers for this product

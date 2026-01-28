@@ -1,0 +1,229 @@
+{
+  "name": "Daily Sales Report - CityPhone",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "cronExpression": "0 9 * * *"
+        }
+      },
+      "id": "daily-trigger",
+      "name": "Daily at 9 AM",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate yesterday's date range\nconst yesterday = new Date();\nyesterday.setDate(yesterday.getDate() - 1);\nyesterday.setHours(0, 0, 0, 0);\n\nconst today = new Date();\ntoday.setHours(0, 0, 0, 0);\n\nreturn {\n  json: {\n    start_date: yesterday.toISOString().split('T')[0],\n    end_date: today.toISOString().split('T')[0],\n    start_datetime: yesterday.toISOString(),\n    end_datetime: today.toISOString()\n  }\n};"
+      },
+      "id": "calculate-dates",
+      "name": "Calculate Date Range",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CITYPHONE_API_URL }}/api/v1/orders",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.CITYPHONE_API_TOKEN }}"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "created_from",
+              "value": "={{ $json.start_datetime }}"
+            },
+            {
+              "name": "created_to",
+              "value": "={{ $json.end_datetime }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-orders",
+      "name": "Fetch Yesterday's Orders",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const orders = $input.item.json.data || [];\n\n// Calculate metrics\nconst totalOrders = orders.length;\nconst totalRevenue = orders.reduce((sum, order) => sum + parseFloat(order.total || 0), 0);\nconst paidOrders = orders.filter(o => o.payment_status === 'paid');\nconst pendingOrders = orders.filter(o => o.payment_status === 'pending' || o.payment_status === 'processing');\nconst cancelledOrders = orders.filter(o => o.status === 'cancelled');\n\n// Payment methods breakdown\nconst paymentMethods = {};\norders.forEach(order => {\n  const method = order.payment_method?.name || 'unknown';\n  paymentMethods[method] = (paymentMethods[method] || 0) + 1;\n});\n\n// Status breakdown\nconst statusBreakdown = {};\norders.forEach(order => {\n  const status = order.status || 'unknown';\n  statusBreakdown[status] = (statusBreakdown[status] || 0) + 1;\n});\n\n// Average order value\nconst avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;\n\n// Compare with previous day (would need to fetch previous day data)\nconst report = {\n  date: $('Calculate Date Range').item.json.start_date,\n  total_orders: totalOrders,\n  total_revenue: totalRevenue.toFixed(2),\n  paid_orders: paidOrders.length,\n  pending_orders: pendingOrders.length,\n  cancelled_orders: cancelledOrders.length,\n  average_order_value: avgOrderValue.toFixed(2),\n  payment_methods: paymentMethods,\n  status_breakdown: statusBreakdown,\n  generated_at: new Date().toISOString()\n};\n\nreturn { json: report };"
+      },
+      "id": "calculate-metrics",
+      "name": "Calculate Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.GOOGLE_SHEETS_WEBHOOK_URL }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "date",
+              "value": "={{ $json.date }}"
+            },
+            {
+              "name": "total_orders",
+              "value": "={{ $json.total_orders }}"
+            },
+            {
+              "name": "total_revenue",
+              "value": "={{ $json.total_revenue }}"
+            },
+            {
+              "name": "paid_orders",
+              "value": "={{ $json.paid_orders }}"
+            },
+            {
+              "name": "average_order_value",
+              "value": "={{ $json.average_order_value }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "save-to-sheets",
+      "name": "Save to Google Sheets",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.EMAIL_SERVICE_URL }}/send",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "to",
+              "value": "={{ $env.ADMIN_EMAIL }}"
+            },
+            {
+              "name": "subject",
+              "value": "Daily Sales Report - {{ $json.date }}"
+            },
+            {
+              "name": "template",
+              "value": "daily_sales_report"
+            },
+            {
+              "name": "data",
+              "value": "={{ JSON.stringify($json) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-email-report",
+      "name": "Send Email Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "📊 *Daily Sales Report - {{ $json.date }}*\\n\\n📦 Total Orders: {{ $json.total_orders }}\\n💰 Total Revenue: {{ $json.total_revenue }} SAR\\n✅ Paid Orders: {{ $json.paid_orders }}\\n⏳ Pending Orders: {{ $json.pending_orders }}\\n📉 Cancelled Orders: {{ $json.cancelled_orders }}\\n💵 Average Order Value: {{ $json.average_order_value }} SAR"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-slack-report",
+      "name": "Send Slack Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 600]
+    }
+  ],
+  "connections": {
+    "Daily at 9 AM": {
+      "main": [
+        [
+          {
+            "node": "Calculate Date Range",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Date Range": {
+      "main": [
+        [
+          {
+            "node": "Fetch Yesterday's Orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Yesterday's Orders": {
+      "main": [
+        [
+          {
+            "node": "Calculate Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Metrics": {
+      "main": [
+        [
+          {
+            "node": "Save to Google Sheets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Email Report",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Slack Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2024-01-15T10:00:00.000Z",
+  "versionId": "1"
+}

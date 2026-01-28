@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
+use App\Models\ProductView;
 use App\Services\ProductFilterService;
 use App\Traits\PaginatesResponses;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Response;
 
 class ProductController extends Controller
@@ -38,6 +40,22 @@ class ProductController extends Controller
      */
     public function show(Product $product)
     {
+        // Track product view for authenticated users
+        if (Auth::guard('sanctum')->check()) {
+            $userId = Auth::guard('sanctum')->id();
+
+            // Create or update product view record
+            ProductView::updateOrCreate(
+                [
+                    'user_id' => $userId,
+                    'product_id' => $product->id,
+                ],
+                [
+                    'viewed_at' => now(),
+                ]
+            );
+        }
+
         $product->load([
             'images',
             'options.images',
@@ -61,7 +79,7 @@ class ProductController extends Controller
     public function newArrivals(Request $request)
     {
         $settings = \App\Models\Setting::getSettings();
-        
+
         // Check if new arrivals section is enabled
         if (!$settings->show_new_arrivals_section) {
             return Response::success(
@@ -91,7 +109,7 @@ class ProductController extends Controller
     public function featured(Request $request)
     {
         $settings = \App\Models\Setting::getSettings();
-        
+
         // Check if featured section is enabled
         if (!$settings->show_featured_section) {
             return Response::success(

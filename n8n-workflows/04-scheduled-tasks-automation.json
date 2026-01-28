@@ -1,0 +1,348 @@
+{
+  "name": "Scheduled Tasks Automation - CityPhone",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "oto-sync-trigger",
+      "name": "OTO Sync Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [250, 200]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "expired-payment-trigger",
+      "name": "Expired Payment Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [250, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CITYPHONE_API_URL }}/api/v1/artisan/oto:sync-shipments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.CITYPHONE_API_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "sync-oto-shipments",
+      "name": "Sync OTO Shipments",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 200]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CITYPHONE_API_URL }}/api/v1/orders",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.CITYPHONE_API_TOKEN }}"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "payment_status",
+              "value": "processing"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-pending-payments",
+      "name": "Fetch Pending Payments",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filter payments older than 30 minutes\nconst orders = $input.item.json.data || [];\nconst expirationMinutes = 30;\nconst expirationTime = new Date(Date.now() - expirationMinutes * 60 * 1000);\n\nconst expiredOrders = orders.filter(order => {\n  const createdAt = new Date(order.created_at);\n  return createdAt < expirationTime && \n         order.payment_status === 'processing' &&\n         order.status !== 'cancelled';\n});\n\nreturn expiredOrders.map(order => ({\n  json: {\n    order_id: order.id,\n    order_number: order.order_number,\n    created_at: order.created_at,\n    payment_status: order.payment_status\n  }\n}));"
+      },
+      "id": "filter-expired",
+      "name": "Filter Expired Payments",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "process-expired",
+      "name": "Process Each Expired",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.CITYPHONE_API_URL }}/api/v1/orders/{{ $json.order_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.CITYPHONE_API_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "payment_status",
+              "value": "expired"
+            },
+            {
+              "name": "status",
+              "value": "cancelled"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "mark-expired",
+      "name": "Mark Payment as Expired",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CITYPHONE_API_URL }}/api/v1/notifications",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.CITYPHONE_API_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{ $json.user_id }}"
+            },
+            {
+              "name": "title",
+              "value": "Payment Expired"
+            },
+            {
+              "name": "message",
+              "value": "Your payment for order #{{ $json.order_number }} has expired. Please place a new order."
+            },
+            {
+              "name": "type",
+              "value": "payment_expired"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "notify-customer-expired",
+      "name": "Notify Customer (Expired)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1250, 400]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "create-report",
+              "name": "report",
+              "value": "={{ { timestamp: new Date().toISOString(), oto_sync_status: $('Sync OTO Shipments').item.json, expired_payments_count: $('Filter Expired Payments').all().length } }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "create-report",
+      "name": "Create Report",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "📊 Scheduled Tasks Report\\n\\n✅ OTO Sync: Completed\\n⏰ Expired Payments: {{ $('Filter Expired Payments').all().length }} processed"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-report",
+      "name": "Send Report to Admin",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 200]
+    }
+  ],
+  "connections": {
+    "OTO Sync Trigger": {
+      "main": [
+        [
+          {
+            "node": "Sync OTO Shipments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expired Payment Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Pending Payments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sync OTO Shipments": {
+      "main": [
+        [
+          {
+            "node": "Create Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Pending Payments": {
+      "main": [
+        [
+          {
+            "node": "Filter Expired Payments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Expired Payments": {
+      "main": [
+        [
+          {
+            "node": "Process Each Expired",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Each Expired": {
+      "main": [
+        [
+          {
+            "node": "Mark Payment as Expired",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Payment as Expired": {
+      "main": [
+        [
+          {
+            "node": "Notify Customer (Expired)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Report": {
+      "main": [
+        [
+          {
+            "node": "Send Report to Admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2024-01-15T10:00:00.000Z",
+  "versionId": "1"
+}

@@ -153,4 +153,12 @@ class User extends Authenticatable
     {
         return Point::getAvailablePoints($this->id);
     }
+
+    /**
+     * Get user's product views
+     */
+    public function productViews()
+    {
+        return $this->hasMany(ProductView::class);
+    }
 }
