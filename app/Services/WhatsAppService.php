@@ -124,11 +124,14 @@ class WhatsAppService
      */
     protected function buildOfferMessage(User $user, Product $product, ?Offer $offer = null): string
     {
-        $locale = app()->getLocale();
-        $isArabic = $locale === 'ar';
+        $frontendUrl = config('app.frontend_url', config('app.url'));
+        // Use user's preferred locale or default to app locale
+        $locale = $notifiable->locale ?? app()->getLocale();
+        $isArabic = $locale === 'ar' || str_starts_with($locale, 'ar');
+        $localePrefix = $isArabic ? '/ar' : '/en';
+        $productUrl = rtrim($frontendUrl, '/') . $localePrefix . '/singleproduct/' . $product->slug;
 
         $productName = $isArabic ? $product->name_ar : $product->name_en;
-        $productUrl = config('app.frontend_url', config('app.url')) . '/singleproduct/' . $product->slug;
         $finalPrice = $product->getFinalPrice();
 
         if ($offer) {
