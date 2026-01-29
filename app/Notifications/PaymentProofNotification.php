@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\PaymentTransaction;
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -31,7 +32,19 @@ class PaymentProofNotification extends Notification implements ShouldQueue
     public function toMail($notifiable): MailMessage
     {
         $order = $this->transaction->order;
-        $url = config('app.url') . '/orders/' . $order->id;
+        
+        // Use frontend_url for users, admin URL for admins
+        if ($notifiable instanceof User) {
+            $frontendUrl = config('app.frontend_url', config('app.url'));
+            // Use user's preferred locale or default to app locale
+            $locale = $notifiable->locale ?? app()->getLocale();
+            $isArabic = $locale === 'ar' || str_starts_with($locale, 'ar');
+            $localePrefix = $isArabic ? '/ar' : '/en';
+            $url = rtrim($frontendUrl, '/') . $localePrefix . '/myorder/' . $order->id;
+        } else {
+            // For admins, use admin panel URL or fallback
+            $url = config('app.url') . '/orders/' . $order->id;
+        }
 
         $subject = match($this->type) {
             'uploaded' => __('Payment Proof Uploaded'),
@@ -111,7 +124,7 @@ class PaymentProofNotification extends Notification implements ShouldQueue
             $message = __('Your payment proof for order #') . $order->order_number . ' ' . __('has been rejected. You can upload a new payment proof.');
         }
 
-        return [
+        $data = [
             'transaction_id' => $this->transaction->id,
             'order_id' => $order->id,
             'order_number' => $order->order_number,
@@ -122,5 +135,16 @@ class PaymentProofNotification extends Notification implements ShouldQueue
             'currency' => $this->transaction->currency,
             'notes' => $this->notes,
         ];
+
+        // Add frontend URL for users in database notification (only for user-facing types)
+        if ($notifiable instanceof User && in_array($this->type, ['uploaded', 'approved', 'rejected'])) {
+            $frontendUrl = config('app.frontend_url', config('app.url'));
+            $locale = $notifiable->locale ?? app()->getLocale();
+            $isArabic = $locale === 'ar' || str_starts_with($locale, 'ar');
+            $localePrefix = $isArabic ? '/ar' : '/en';
+            $data['url'] = rtrim($frontendUrl, '/') . $localePrefix . '/myorder/' . $order->id;
+        }
+
+        return $data;
     }
 }
