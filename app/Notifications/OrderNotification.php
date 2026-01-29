@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Order;
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -30,7 +31,19 @@ class OrderNotification extends Notification implements ShouldQueue
     public function toMail($notifiable): MailMessage
     {
         $statusLabel = $this->order->getStatusDisplayName();
-        $url = config('app.url') . '/orders/' . $this->order->id;
+
+        // Use frontend_url for users, admin URL for admins
+        if ($notifiable instanceof User) {
+            $frontendUrl = config('app.frontend_url', config('app.url'));
+            // Use user's preferred locale or default to app locale
+            $locale = $notifiable->locale ?? app()->getLocale();
+            $isArabic = $locale === 'ar' || str_starts_with($locale, 'ar');
+            $localePrefix = $isArabic ? '/ar' : '/en';
+            $url = rtrim($frontendUrl, '/') . $localePrefix . '/myorder/' . $this->order->id;
+        } else {
+            // For admins, use admin panel URL or fallback
+            $url = config('app.url') . '/orders/' . $this->order->id;
+        }
 
         $message = (new MailMessage)
             ->subject(__('Order Update') . ': #' . $this->order->order_number)
@@ -51,7 +64,7 @@ class OrderNotification extends Notification implements ShouldQueue
     public function toDatabase($notifiable): array
     {
         $statusLabel = $this->order->getStatusDisplayName();
-        
+
         if ($this->type === 'created') {
             $title = __('New Order Created');
             $message = __('Order #') . $this->order->order_number . ' ' . __('has been placed successfully.');
@@ -60,7 +73,7 @@ class OrderNotification extends Notification implements ShouldQueue
             $message = __('Order #') . $this->order->order_number . ' ' . __('status is now') . ' ' . $statusLabel;
         }
 
-        return [
+        $data = [
             'order_id' => $this->order->id,
             'order_number' => $this->order->order_number,
             'type' => $this->type,
@@ -68,5 +81,16 @@ class OrderNotification extends Notification implements ShouldQueue
             'message' => $message,
             'status' => $this->order->status,
         ];
+
+        // Add frontend URL for users in database notification
+        if ($notifiable instanceof User) {
+            $frontendUrl = config('app.frontend_url', config('app.url'));
+            $locale = $notifiable->locale ?? app()->getLocale();
+            $isArabic = $locale === 'ar' || str_starts_with($locale, 'ar');
+            $localePrefix = $isArabic ? '/ar' : '/en';
+            $data['url'] = rtrim($frontendUrl, '/') . $localePrefix . '/myorder/' . $this->order->id;
+        }
+
+        return $data;
     }
 }
