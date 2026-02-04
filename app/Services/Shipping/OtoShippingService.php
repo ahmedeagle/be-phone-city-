@@ -127,11 +127,15 @@ class OtoShippingService
         return DB::transaction(function () use ($order, $notes, $deliveryOptionId) {
             // Step 1: Create order in OTO with auto-shipment enabled
             $orderPayload = $this->buildOrderPayload($order, $notes);
-            $orderPayload['createShipment'] = true; // Enable auto-shipment
 
-            Log::info('Creating OTO order with automatic shipment', [
+            // If we have a specific delivery option, we create order first, then shipment
+            // Otherwise, we let OTO handle it automatically in one step
+            $orderPayload['createShipment'] = $deliveryOptionId ? false : true;
+
+            Log::info('OTO: Creating order and requesting auto-shipment', [
                 'order_id' => $order->id,
                 'order_number' => $order->order_number,
+                'auto_ship' => $orderPayload['createShipment']
             ]);
 
             $orderResponse = $this->client->createOrder($orderPayload);
@@ -141,79 +145,57 @@ class OtoShippingService
                 'order_id' => $order->id,
             ]);
 
-            // Extract OTO order ID
+            // Extract OTO order ID (otoId from docs)
             $otoOrderId = $orderResponse['otoId'] ??
-                         $orderResponse['data']['otoId'] ??
                          $orderResponse['id'] ??
-                         $orderResponse['orderId'] ??
-                         $orderResponse['order_id'] ??
-                         $orderResponse['data']['id'] ??
+                         $orderResponse['data']['otoId'] ??
                          null;
 
             if (!$otoOrderId) {
                 Log::error('No order ID in OTO response', ['full_response' => $orderResponse]);
-                throw new \RuntimeException('Failed to get order ID from OTO API response. Check logs for details.');
+                throw new \RuntimeException('Failed to get order ID from OTO API response.');
             }
 
-            // Store OTO order ID
-            $order->update(['oto_order_id' => $otoOrderId]);
-
-            // Step 2: Check if shipment was created automatically or needs to be created manually
-            $shipmentDto = null;
-
-            // Try to extract shipment info from order response
-            if (isset($orderResponse['shipment']) || isset($orderResponse['data']['shipment'])) {
-                $shipmentData = $orderResponse['shipment'] ?? $orderResponse['data']['shipment'];
-                $shipmentDto = OtoShipmentDto::fromApiResponse($shipmentData);
-            } elseif (isset($orderResponse['trackingNumber']) || isset($orderResponse['data']['trackingNumber'])) {
-                // Shipment info might be at root level
-                $shipmentDto = OtoShipmentDto::fromApiResponse($orderResponse);
-            }
-
-            // If no shipment in response, create it manually
-            if (!$shipmentDto || !$shipmentDto->isValid()) {
-                Log::info('No shipment in order response, creating shipment manually', [
-                    'order_id' => $order->id,
-                    'oto_order_id' => $otoOrderId,
-                ]);
-
-                $shipmentPayload = [
-                    'orderId' => $order->order_number,
-                ];
-
-                if ($deliveryOptionId) {
-                    $shipmentPayload['deliveryOptionId'] = $deliveryOptionId;
-                }
-
-                $shipmentResponse = $this->client->createShipment($shipmentPayload);
-                $shipmentDto = OtoShipmentDto::fromApiResponse($shipmentResponse);
-            }
-
-            if (!$shipmentDto->isValid()) {
-                Log::error('Invalid OTO shipment response', [
-                    'order_id' => $order->id,
-                    'response' => $orderResponse,
-                ]);
-                throw new \RuntimeException('Invalid shipment response from OTO API');
-            }
-
-            // Update order with shipment data
-            $this->updateOrderWithShipment($order, $shipmentDto);
-
-            $logData = [
-                'order_id' => $order->id,
+            // Store OTO order ID and set provider
+            $order->update([
                 'oto_order_id' => $otoOrderId,
-            ];
+                'shipping_provider' => 'OTO'
+            ]);
 
-            if ($shipmentDto->hasTrackingInfo()) {
-                $logData['tracking_number'] = $shipmentDto->trackingNumber;
-                $logData['shipment_reference'] = $shipmentDto->shipmentReference;
-                Log::info('OTO order and shipment created successfully', $logData);
-            } else {
-                Log::info('OTO order created, shipment request received (tracking pending)', $logData);
+            // Step 2: ONLY call createShipment if we have a specific deliveryOptionId
+            if ($deliveryOptionId) {
+                Log::info('OTO: Manually requesting specific courier', [
+                    'order_id' => $order->id,
+                    'delivery_option_id' => $deliveryOptionId
+                ]);
+
+                $this->client->createShipment([
+                    'orderId' => $order->order_number,
+                    'deliveryOptionId' => $deliveryOptionId
+                ]);
             }
 
-            return $shipmentDto;
+            // Step 3: Immediate Sync to fetch tracking number
+            // Since OTO processes tracking in background, we wait a moment
+            try {
+                usleep(500000); // 0.5 seconds
+                $this->syncShipmentStatus($order);
+            } catch (\Exception $e) {
+                Log::debug('OTO: Initial sync pending (OTO still processing carrier assignment)');
+            }
+
+            // Refresh order to get the latest state from sync
+            $order->refresh();
+
+            // Return a DTO representing the current state
+            return new OtoShipmentDto(
+                shipmentReference: $order->shipping_reference ?? '',
+                trackingNumber: $order->tracking_number ?? '',
+                trackingUrl: $order->tracking_url ?? '',
+                status: $order->tracking_status ?? 'pending',
+                eta: $order->shipping_eta,
+                rawPayload: $order->shipping_payload
+            );
         });
     }
 
@@ -280,23 +262,181 @@ class OtoShippingService
 
     /**
      * Get shipment status for an order
+     * Uses orderStatus endpoint first to get tracking number, then trackShipment for details
      */
     public function getShipmentStatus(Order $order): OtoShipmentStatusDto
     {
-        if (empty($order->tracking_number)) {
-            throw new \InvalidArgumentException(
-                "Order #{$order->order_number} does not have a tracking number"
-            );
-        }
-
         Log::info('Fetching OTO shipment status', [
             'order_id' => $order->id,
-            'tracking_number' => $order->tracking_number,
+            'order_number' => $order->order_number,
+            'oto_order_id' => $order->oto_order_id,
+            'current_tracking_number' => $order->tracking_number,
         ]);
 
-        $response = $this->client->getShipmentStatus($order->tracking_number);
+        // Step 1: Get order status using orderStatus endpoint
+        // documentation says we should use orderId (our order_number or otoId)
+        $orderStatusResponse = null;
+        $orderIdUsed = null;
 
-        return OtoShipmentStatusDto::fromApiResponse($response);
+        try {
+            // Try with order_number first as OTO seems to prefer the ID we provided
+            $orderIdUsed = $order->order_number;
+
+            Log::info('OTO: Calling orderStatus with order_number', [
+                'order_id' => $order->id,
+                'using_id' => $orderIdUsed,
+            ]);
+
+            $orderStatusResponse = $this->client->getOrderStatus($orderIdUsed);
+        } catch (\Exception $e) {
+            // If order_number fails and we have oto_order_id, try that
+            if ($order->oto_order_id) {
+                Log::info('OTO: orderStatus with order_number failed, trying oto_order_id', [
+                    'order_id' => $order->id,
+                    'oto_order_id' => $order->oto_order_id,
+                    'error' => $e->getMessage(),
+                ]);
+                try {
+                    $orderIdUsed = $order->oto_order_id;
+                    $orderStatusResponse = $this->client->getOrderStatus($order->oto_order_id);
+                } catch (\Exception $e2) {
+                    Log::error('OTO: Both order_number and oto_order_id failed for orderStatus', [
+                        'order_id' => $order->id,
+                        'order_number' => $order->order_number,
+                        'oto_order_id' => $order->oto_order_id,
+                        'error' => $e2->getMessage(),
+                    ]);
+                    throw $e2;
+                }
+            } else {
+                throw $e;
+            }
+        }
+
+        Log::info('OTO: orderStatus response received', [
+            'order_id' => $order->id,
+            'response' => $orderStatusResponse,
+        ]);
+
+        // Extract tracking information from orderStatus response
+        // dcTrackingNumber is the carrier's tracking number
+        $dcTrackingNumber = $orderStatusResponse['dcTrackingNumber'] ?? null;
+        $deliveryCompany = $orderStatusResponse['deliveryCompany'] ?? null;
+        $shipmentId = $orderStatusResponse['shipmentId'] ?? null;
+        $printAWBURL = $orderStatusResponse['printAWBURL'] ?? null;
+
+        // If we have tracking number, get detailed tracking info
+        $trackShipmentResponse = null;
+        if ($dcTrackingNumber && $deliveryCompany) {
+            try {
+                Log::info('OTO: Fetching detailed tracking with trackShipment', [
+                    'order_id' => $order->id,
+                    'tracking_number' => $dcTrackingNumber,
+                    'delivery_company' => $deliveryCompany,
+                ]);
+
+                $trackShipmentResponse = $this->client->trackShipment(
+                    $dcTrackingNumber,
+                    $deliveryCompany,
+                    statusHistory: true
+                );
+
+                Log::info('OTO: trackShipment response received', [
+                    'order_id' => $order->id,
+                    'response' => $trackShipmentResponse,
+                ]);
+            } catch (\Exception $e) {
+                Log::warning('OTO: trackShipment failed, using orderStatus data only', [
+                    'order_id' => $order->id,
+                    'tracking_number' => $dcTrackingNumber,
+                    'error' => $e->getMessage(),
+                ]);
+                // Continue with orderStatus data only
+            }
+        } else {
+            Log::warning('OTO: No tracking number or delivery company in orderStatus response yet', [
+                'order_id' => $order->id,
+                'order_status_response' => $orderStatusResponse,
+            ]);
+        }
+
+        // Combine data from both responses
+        $combinedData = $this->combineTrackingData($orderStatusResponse, $trackShipmentResponse, $order);
+
+        Log::info('OTO shipment status response (combined)', [
+            'response' => $combinedData,
+            'order_id' => $order->id,
+            'order_number' => $order->order_number,
+        ]);
+
+        return OtoShipmentStatusDto::fromApiResponse($combinedData);
+    }
+
+    /**
+     * Combine data from orderStatus and trackShipment responses
+     */
+    protected function combineTrackingData(array $orderStatusResponse, ?array $trackShipmentResponse, Order $order): array
+    {
+        // Start with orderStatus data
+        $combined = [
+            'orderId' => $orderStatusResponse['orderId'] ?? $order->order_number,
+            'status' => $orderStatusResponse['status'] ?? 'unknown',
+            'deliveryCompany' => $orderStatusResponse['deliveryCompany'] ?? null,
+            'shipmentId' => $orderStatusResponse['shipmentId'] ?? null,
+            'dcTrackingNumber' => $orderStatusResponse['dcTrackingNumber'] ?? null,
+            'date' => $orderStatusResponse['date'] ?? null,
+            'note' => $orderStatusResponse['note'] ?? null,
+            'deliverySlotDate' => $orderStatusResponse['deliverySlotDate'] ?? null,
+            'printAWBURL' => $orderStatusResponse['printAWBURL'] ?? null,
+        ];
+
+        // Add tracking number for DTO compatibility
+        $combined['tracking_number'] = $combined['dcTrackingNumber'] ?? $order->tracking_number;
+
+        // If we have trackShipment response, merge detailed data
+        if ($trackShipmentResponse && isset($trackShipmentResponse['items']) && !empty($trackShipmentResponse['items'])) {
+            $item = $trackShipmentResponse['items'][0]; // Get first item
+
+            // Use the most recent status from trackShipment if available
+            if (isset($item['otoStatus'])) {
+                $combined['status'] = $item['otoStatus'];
+            }
+
+            // Add tracking URL
+            if (isset($trackShipmentResponse['trackingUrl'])) {
+                $combined['trackingUrl'] = $trackShipmentResponse['trackingUrl'];
+            }
+
+            // Add status history/events
+            if (isset($item['history']) && is_array($item['history'])) {
+                $combined['events'] = $item['history'];
+                $combined['tracking_events'] = $item['history'];
+
+                // Get latest event for status description
+                $latestEvent = end($item['history']);
+                if ($latestEvent && isset($latestEvent['dcDescription'])) {
+                    $combined['status_description'] = $latestEvent['dcDescription'];
+                }
+
+                // Get latest update date
+                if ($latestEvent && isset($latestEvent['dcUpdateDate'])) {
+                    $combined['updated_at'] = $latestEvent['dcUpdateDate'];
+                }
+            }
+
+            // Add current location if available
+            if (isset($item['currentLocation'])) {
+                $combined['currentLocation'] = $item['currentLocation'];
+            }
+        }
+
+        // Add raw payloads for debugging
+        $combined['raw_order_status'] = $orderStatusResponse;
+        if ($trackShipmentResponse) {
+            $combined['raw_track_shipment'] = $trackShipmentResponse;
+        }
+
+        return $combined;
     }
 
     /**
@@ -324,6 +464,29 @@ class OtoShippingService
                 'shipping_payload' => $statusDto->rawPayload,
             ];
 
+            // Update tracking number if we got it from API but order doesn't have it
+            if (!empty($statusDto->trackingNumber) && empty($order->tracking_number)) {
+                $updates['tracking_number'] = $statusDto->trackingNumber;
+                Log::info('OTO: Updating order with tracking number from API', [
+                    'order_id' => $order->id,
+                    'tracking_number' => $statusDto->trackingNumber,
+                ]);
+            }
+
+            // Update tracking URL if available
+            $rawPayload = $statusDto->rawPayload;
+            if (isset($rawPayload['trackingUrl']) && empty($order->tracking_url)) {
+                $updates['tracking_url'] = $rawPayload['trackingUrl'];
+            }
+            if (isset($rawPayload['printAWBURL']) && empty($order->tracking_url)) {
+                $updates['tracking_url'] = $rawPayload['printAWBURL'];
+            }
+
+            // Update shipping reference if available
+            if (isset($rawPayload['shipmentId']) && empty($order->shipping_reference)) {
+                $updates['shipping_reference'] = $rawPayload['shipmentId'];
+            }
+
             // Update ETA if available
             if ($statusDto->eta) {
                 $updates['shipping_eta'] = $statusDto->eta;
@@ -342,22 +505,80 @@ class OtoShippingService
 
             $order->update($updates);
 
-            Log::info('Order shipment status updated', [
+            Log::info('OTO Sync: Order shipment status updated in database', [
                 'order_id' => $order->id,
+                'order_number' => $order->order_number,
                 'tracking_number' => $order->tracking_number,
                 'oto_status' => $statusDto->status,
+                'oto_status_description' => $statusDto->statusDescription,
                 'order_status' => $updates['status'] ?? 'unchanged',
+                'tracking_status' => $updates['tracking_status'],
+                'shipping_eta' => $updates['shipping_eta'] ?? null,
+                'shipping_status_updated_at' => $statusDto->updatedAt?->toDateTimeString(),
+                'shipping_payload' => $statusDto->rawPayload,
             ]);
         });
     }
 
     /**
      * Sync shipment status from OTO API
+     * Works even if order doesn't have tracking_number yet - uses orderStatus endpoint first
      */
     public function syncShipmentStatus(Order $order): void
     {
+        // Store original values for comparison
+        $originalStatus = $order->status;
+        $originalTrackingStatus = $order->tracking_status;
+        $originalTrackingNumber = $order->tracking_number;
+
+        // Get shipment status (will use orderStatus endpoint if no tracking number)
         $statusDto = $this->getShipmentStatus($order);
+
+        // Log comprehensive OTO sync data
+        Log::info('OTO Sync: Fetched shipment status from API', [
+            'order_id' => $order->id,
+            'order_number' => $order->order_number,
+            'oto_order_id' => $order->oto_order_id,
+            'tracking_number' => $order->tracking_number,
+            'oto_status' => $statusDto->status,
+            'oto_status_description' => $statusDto->statusDescription,
+            'oto_eta' => $statusDto->eta,
+            'oto_updated_at' => $statusDto->updatedAt?->toDateTimeString(),
+            'oto_events' => $statusDto->events,
+            'oto_raw_response' => $statusDto->rawPayload,
+            'current_order_status' => $originalStatus,
+            'current_tracking_status' => $originalTrackingStatus,
+        ]);
+
         $this->updateShipmentStatus($order, $statusDto);
+
+        // Reload order to get updated values
+        $order->refresh();
+
+        // Log what changed after sync
+        $changes = [];
+        if ($order->status !== $originalStatus) {
+            $changes['status'] = ['from' => $originalStatus, 'to' => $order->status];
+        }
+        if ($order->tracking_status !== $originalTrackingStatus) {
+            $changes['tracking_status'] = ['from' => $originalTrackingStatus, 'to' => $order->tracking_status];
+        }
+        if ($order->tracking_number !== $originalTrackingNumber && !empty($order->tracking_number)) {
+            $changes['tracking_number'] = ['from' => $originalTrackingNumber, 'to' => $order->tracking_number];
+        }
+        if ($order->shipping_eta !== null) {
+            $changes['shipping_eta'] = $order->shipping_eta;
+        }
+
+        Log::info('OTO Sync: Order updated after sync', [
+            'order_id' => $order->id,
+            'order_number' => $order->order_number,
+            'changes' => $changes,
+            'final_status' => $order->status,
+            'final_tracking_status' => $order->tracking_status,
+            'shipping_eta' => $order->shipping_eta,
+            'shipping_status_updated_at' => $order->shipping_status_updated_at?->toDateTimeString(),
+        ]);
     }
 
     /**
@@ -569,6 +790,7 @@ class OtoShippingService
                 'mobile' => $location->phone,
                 'email' => $location->email ?? $order->user->email ?? '',
                 'country' => 'SA',
+                'shortAddressCode' => $location->national_address,
             ],
         ];
 

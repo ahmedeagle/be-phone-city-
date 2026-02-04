@@ -214,7 +214,7 @@ class OtoHttpClient
             return $response->json();
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
             Log::error('OTO API connection failed', [
-                'endpoint' => '/shipments',
+                'endpoint' => '/createShipment',
                 'error' => $e->getMessage(),
             ]);
             throw OtoApiException::connectionFailed($e);
@@ -249,17 +249,113 @@ class OtoHttpClient
     }
 
     /**
-     * Get shipment status by tracking number
+     * Get order status by order ID (order_number or oto_order_id)
+     * This endpoint returns tracking information including dcTrackingNumber
+     */
+    public function getOrderStatus(string $orderId): array
+    {
+        $endpoint = config('services.oto.endpoints.order_status', '/orderStatus');
+        $payload = ['orderId' => $orderId];
+
+        $this->logRequest('POST', $endpoint, $payload);
+
+        try {
+            $response = $this->client()->post($endpoint, $payload);
+
+            $this->logResponse('POST', $endpoint, $response);
+
+            // Always log sync requests (not just in debug mode)
+            Log::info('OTO API: Get order status response', [
+                'endpoint' => $endpoint,
+                'order_id' => $orderId,
+                'status_code' => $response->status(),
+                'response_data' => $response->json(),
+            ]);
+
+            if ($response->failed()) {
+                throw OtoApiException::fromResponse($response, 'get order status');
+            }
+
+            return $response->json();
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error('OTO API connection failed', [
+                'endpoint' => $endpoint,
+                'order_id' => $orderId,
+                'error' => $e->getMessage(),
+            ]);
+            throw OtoApiException::connectionFailed($e);
+        }
+    }
+
+    /**
+     * Track shipment by tracking number and delivery company
+     * This endpoint provides detailed tracking with history
+     */
+    public function trackShipment(string $trackingNumber, string $deliveryCompanyName, bool $statusHistory = true, ?string $brandName = null): array
+    {
+        $endpoint = config('services.oto.endpoints.track_shipment', '/trackShipment');
+        $payload = [
+            'trackingNumber' => $trackingNumber,
+            'deliveryCompanyName' => $deliveryCompanyName,
+            'statusHistory' => $statusHistory,
+        ];
+
+        if ($brandName) {
+            $payload['brandName'] = $brandName;
+        }
+
+        $this->logRequest('POST', $endpoint, $payload);
+
+        try {
+            $response = $this->client()->post($endpoint, $payload);
+
+            $this->logResponse('POST', $endpoint, $response);
+
+            // Always log sync requests (not just in debug mode)
+            Log::info('OTO API: Track shipment response', [
+                'endpoint' => $endpoint,
+                'tracking_number' => $trackingNumber,
+                'delivery_company' => $deliveryCompanyName,
+                'status_code' => $response->status(),
+                'response_data' => $response->json(),
+            ]);
+
+            if ($response->failed()) {
+                throw OtoApiException::fromResponse($response, 'track shipment');
+            }
+
+            return $response->json();
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error('OTO API connection failed', [
+                'endpoint' => $endpoint,
+                'tracking_number' => $trackingNumber,
+                'error' => $e->getMessage(),
+            ]);
+            throw OtoApiException::connectionFailed($e);
+        }
+    }
+
+    /**
+     * Get shipment status by tracking number (deprecated - use getOrderStatus + trackShipment instead)
+     * Kept for backward compatibility
      */
     public function getShipmentStatus(string $trackingNumber): array
     {
         $endpoint = "/orderStatus/{$trackingNumber}";
-        $this->logRequest('GET', $endpoint);
+        $this->logRequest('POST', $endpoint, ['orderId' => $trackingNumber]);
 
         try {
             $response = $this->client()->post($endpoint, ['orderId' => $trackingNumber]);
 
-            $this->logResponse('GET', $endpoint, $response);
+            $this->logResponse('POST', $endpoint, $response);
+
+            // Always log sync requests (not just in debug mode)
+            Log::info('OTO API: Get shipment status response', [
+                'endpoint' => $endpoint,
+                'tracking_number' => $trackingNumber,
+                'status_code' => $response->status(),
+                'response_data' => $response->json(),
+            ]);
 
             if ($response->failed()) {
                 throw OtoApiException::fromResponse($response, 'get shipment status');

@@ -23,11 +23,11 @@ class OtoShipmentDto
     public static function fromApiResponse(array $data): self
     {
         return new self(
-            shipmentReference: $data['shipment_id'] ?? $data['reference'] ?? '',
-            trackingNumber: $data['tracking_number'] ?? $data['awb'] ?? '',
-            trackingUrl: $data['tracking_url'] ?? $data['tracking_link'] ?? '',
+            shipmentReference: $data['shipmentId'] ?? $data['shipment_id'] ?? $data['reference'] ?? '',
+            trackingNumber: $data['dcTrackingNumber'] ?? $data['tracking_number'] ?? $data['awb'] ?? '',
+            trackingUrl: $data['tracking_url'] ?? $data['tracking_link'] ?? $data['trackingUrl'] ?? '',
             status: $data['status'] ?? 'unknown',
-            eta: $data['estimated_delivery'] ?? $data['eta'] ?? null,
+            eta: $data['deliverySlotDate'] ?? $data['estimated_delivery'] ?? $data['eta'] ?? null,
             rawPayload: $data
         );
     }

@@ -39,7 +39,7 @@ class SyncOtoShipmentStatusJob implements ShouldQueue
     public function __construct(Order $order)
     {
         $this->order = $order;
-        
+
         // Use a queue for background processing
         $this->onQueue('oto-sync');
     }
@@ -52,9 +52,9 @@ class SyncOtoShipmentStatusJob implements ShouldQueue
         // Reload order to ensure fresh data
         $this->order->refresh();
 
-        // Skip if order no longer has tracking info
-        if (empty($this->order->tracking_number)) {
-            Log::warning('OTO sync skipped: No tracking number', [
+        // Skip if order doesn't have tracking info OR OTO order ID
+        if (empty($this->order->tracking_number) && empty($this->order->oto_order_id)) {
+            Log::warning('OTO sync skipped: No tracking number and no OTO order ID', [
                 'order_id' => $this->order->id,
                 'order_number' => $this->order->order_number,
             ]);
@@ -125,5 +125,3 @@ class SyncOtoShipmentStatusJob implements ShouldQueue
         ];
     }
 }
-
-

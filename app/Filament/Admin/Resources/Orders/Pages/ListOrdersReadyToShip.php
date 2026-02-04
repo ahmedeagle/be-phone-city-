@@ -43,7 +43,10 @@ class ListOrdersReadyToShip extends Page implements HasTable
             ->query(Order::query()
                 ->where('status', Order::STATUS_PROCESSING)
                 ->where('delivery_method', Order::DELIVERY_HOME)
-                ->whereNull('tracking_number')
+                ->where(function ($query) {
+                    $query->whereNull('tracking_number')
+                          ->orWhere('tracking_number', '');
+                })
             );
     }
 

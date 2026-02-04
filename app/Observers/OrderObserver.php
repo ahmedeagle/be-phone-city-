@@ -29,7 +29,37 @@ class OrderObserver
      */
     public function updated(Order $order): void
     {
-        if ($order->isDirty('status')) {
+        $statusChangedByUs = false;
+
+        // Check if payment status changed to PAID for OTO orders
+        if ($order->isDirty('payment_status')) {
+            $originalPaymentStatus = $order->getOriginal('payment_status');
+            $newPaymentStatus = $order->payment_status;
+
+            // If payment just became PAID and order has OTO order ID, set status to PROCESSING
+            if ($newPaymentStatus === Order::PAYMENT_STATUS_PAID
+                && $originalPaymentStatus !== Order::PAYMENT_STATUS_PAID
+                && !empty($order->oto_order_id)) {
+
+                // Only update if status is not already PROCESSING or higher
+                $originalStatus = $order->getOriginal('status');
+                if (!in_array($originalStatus, [
+                    Order::STATUS_PROCESSING,
+                    Order::STATUS_SHIPPED,
+                    Order::STATUS_IN_PROGRESS,
+                    Order::STATUS_DELIVERED,
+                    Order::STATUS_COMPLETED,
+                ])) {
+                    // Use saveQuietly to avoid triggering another observer event
+                    $order->status = Order::STATUS_PROCESSING;
+                    $order->saveQuietly();
+                    $statusChangedByUs = true;
+                }
+            }
+        }
+
+        // Handle status changes (only if status was changed in the original update, not by us)
+        if ($order->isDirty('status') && !$statusChangedByUs) {
             $this->notificationService->notifyOrderStatusChanged($order);
 
             // Send review request email when order is completed
@@ -40,6 +70,9 @@ class OrderObserver
                 && $order->user) {
                 $this->sendReviewRequest($order);
             }
+        } elseif ($statusChangedByUs) {
+            // Manually trigger notification since we used saveQuietly
+            $this->notificationService->notifyOrderStatusChanged($order);
         }
     }
 

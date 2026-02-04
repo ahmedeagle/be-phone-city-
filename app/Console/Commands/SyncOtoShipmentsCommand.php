@@ -17,7 +17,8 @@ class SyncOtoShipmentsCommand extends Command
      */
     protected $signature = 'oto:sync-shipments 
                             {--limit=100 : Maximum number of orders to sync}
-                            {--force : Force sync even for completed orders}';
+                            {--force : Force sync even for completed orders}
+                            {--dry-run : Show what would be synced without actually syncing}';
 
     /**
      * The console command description
@@ -29,7 +30,14 @@ class SyncOtoShipmentsCommand extends Command
      */
     public function handle(): int
     {
-        $this->info('Starting OTO shipments sync...');
+        $dryRun = $this->option('dry-run');
+        
+        if ($dryRun) {
+            $this->info('🔍 DRY RUN MODE - No actual sync will be performed');
+            $this->newLine();
+        } else {
+            $this->info('Starting OTO shipments sync...');
+        }
 
         $limit = (int) $this->option('limit');
         $force = $this->option('force');
@@ -37,11 +45,11 @@ class SyncOtoShipmentsCommand extends Command
         // Build query for orders with active shipments
         $query = Order::query()
             ->where('shipping_provider', 'OTO')
-            ->whereNotNull('tracking_number')
+            ->whereNotNull('oto_order_id') // We can sync if we have OTO ID, even if tracking is missing
             ->orderBy('shipping_status_updated_at', 'asc')
             ->orderBy('updated_at', 'asc');
 
-        // Unless forced, only sync orders that are in transit
+        // Unless forced, only sync orders that are in transit or processing
         if (!$force) {
             $query->whereIn('status', [
                 Order::STATUS_PROCESSING,
@@ -54,10 +62,40 @@ class SyncOtoShipmentsCommand extends Command
 
         if ($orders->isEmpty()) {
             $this->info('No orders found to sync.');
+            $this->newLine();
+            $this->comment('Query conditions:');
+            $this->comment('  - shipping_provider = OTO');
+            $this->comment('  - oto_order_id IS NOT NULL');
+            if (!$force) {
+                $this->comment('  - status IN (processing, shipped, Delivery is in progress)');
+            }
             return Command::SUCCESS;
         }
 
         $this->info("Found {$orders->count()} orders to sync.");
+        $this->newLine();
+
+        if ($dryRun) {
+            // Show table of orders that would be synced
+            $this->table(
+                ['Order #', 'Status', 'Tracking #', 'Last Updated', 'OTO Order ID'],
+                $orders->map(function ($order) {
+                    return [
+                        $order->order_number,
+                        $order->status,
+                        $order->tracking_number ?? 'MISSING (Will fetch)',
+                        $order->shipping_status_updated_at 
+                            ? $order->shipping_status_updated_at->format('Y-m-d H:i:s')
+                            : 'Never',
+                        $order->oto_order_id ?? 'N/A',
+                    ];
+                })->toArray()
+            );
+            $this->newLine();
+            $this->info("✅ Would sync {$orders->count()} orders");
+            $this->comment("Run without --dry-run to actually sync these orders.");
+            return Command::SUCCESS;
+        }
 
         $progressBar = $this->output->createProgressBar($orders->count());
         $progressBar->start();
@@ -87,10 +125,10 @@ class SyncOtoShipmentsCommand extends Command
         $progressBar->finish();
         $this->newLine(2);
 
-        $this->info("Sync jobs dispatched: {$dispatched}");
+        $this->info("✅ Sync jobs dispatched: {$dispatched}");
         
         if ($skipped > 0) {
-            $this->warn("Skipped: {$skipped}");
+            $this->warn("⚠️  Skipped: {$skipped}");
         }
 
         Log::info('OTO shipments sync command completed', [
@@ -102,5 +140,3 @@ class SyncOtoShipmentsCommand extends Command
         return Command::SUCCESS;
     }
 }
-
-
