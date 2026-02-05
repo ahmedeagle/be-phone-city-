@@ -67,6 +67,11 @@ class ProductForm
                                 ->label('منتج مميز')
                                 ->default(false)
                                 ->helperText('يعرض في قسم المنتجات المميزة'),
+
+                            Toggle::make('is_installment')
+                                ->label('متاح بالتقسيط')
+                                ->default(false)
+                                ->helperText('يمكن شراء هذا المنتج بالتقسيط'),
                         ]),
                 ])
                 ->columnSpan(1),

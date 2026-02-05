@@ -18,11 +18,13 @@ class PaymentMethod extends Model
         'description_en',
         'description_ar',
         'status',
+        'is_installment',
         'processing_fee_percentage',
     ];
 
     protected $casts = [
         'processing_fee_percentage' => 'decimal:2',
+        'is_installment' => 'boolean',
     ];
 
     protected $appends = ['name', 'description'];

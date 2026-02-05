@@ -97,6 +97,21 @@ class OrderController extends Controller
             );
         }
 
+        // Check if payment method is installment and if all cart items support it
+        if ($paymentMethod->is_installment) {
+            $allSupportInstallment = $cartItems->every(function ($item) {
+                return $item->product->is_installment;
+            });
+
+            if (!$allSupportInstallment) {
+                return Response::error(
+                    __('One or more items in your cart do not support installment payments'),
+                    null,
+                    422
+                );
+            }
+        }
+
         // Validate location for home delivery
         $location = null;
         if ($request->delivery_method === Order::DELIVERY_HOME) {
@@ -279,6 +294,15 @@ class OrderController extends Controller
                 $errors[] = __('Invalid payment method');
             } elseif ($paymentMethod->status !== 'active') {
                 $warnings[] = __('Selected payment method is not active');
+            } elseif ($paymentMethod->is_installment) {
+                // Check if all cart items support installment
+                $allSupportInstallment = $cartItems->every(function ($item) {
+                    return $item->product->is_installment;
+                });
+
+                if (!$allSupportInstallment) {
+                    $errors[] = __('One or more items in your cart do not support installment payments');
+                }
             }
         }
 

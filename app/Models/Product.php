@@ -31,7 +31,8 @@ class Product extends Model
         'quantity',
         'is_new',
         'is_new_arrival',
-        'is_featured'
+        'is_featured',
+        'is_installment',
     ];
 
     protected $casts = [
@@ -41,6 +42,7 @@ class Product extends Model
         'is_new' => 'boolean',
         'is_new_arrival' => 'boolean',
         'is_featured' => 'boolean',
+        'is_installment' => 'boolean',
         'details_en' => 'array',
         'details_ar' => 'array',
     ];

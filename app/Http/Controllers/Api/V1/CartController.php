@@ -45,7 +45,19 @@ class CartController extends Controller
         // Fetch cities and force simple mode for the resource
         request()->merge(['simple' => true]);
         $shippingMethods = City::getAllActive();
-        $paymentMethods = PaymentMethod::active()->get();
+        
+        $paymentMethodsQuery = PaymentMethod::active();
+
+        // Check if any product in cart does not support installments
+        $allSupportInstallment = $cartItems->every(function ($item) {
+            return $item->product->is_installment;
+        });
+
+        if (!$allSupportInstallment) {
+            $paymentMethodsQuery->where('is_installment', false);
+        }
+
+        $paymentMethods = $paymentMethodsQuery->get();
 
         // Total already includes tax because product prices do
         $total = $subtotal;

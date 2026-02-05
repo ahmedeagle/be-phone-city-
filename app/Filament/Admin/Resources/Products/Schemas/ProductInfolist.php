@@ -103,6 +103,13 @@ class ProductInfolist
                                                             ->formatStateUsing(fn ($state) => $state ? 'نعم' : 'لا')
                                                             ->color(fn ($state) => $state ? 'warning' : 'gray')
                                                             ->icon(fn ($state) => $state ? 'heroicon-o-star' : null),
+
+                                                        TextEntry::make('is_installment')
+                                                            ->label('تقسيط')
+                                                            ->badge()
+                                                            ->formatStateUsing(fn ($state) => $state ? 'نعم' : 'لا')
+                                                            ->color(fn ($state) => $state ? 'success' : 'gray')
+                                                            ->icon(fn ($state) => $state ? 'heroicon-o-credit-card' : null),
                                                     ]),
                                             ])
                                             ->columnSpan(2),

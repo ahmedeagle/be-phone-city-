@@ -35,7 +35,8 @@ class ProductsTable
                     ->badge()
                     ->separator(',')
                     ->searchable()
-                    ->label('التصنيفات'),
+                    ->label('التصنيفات')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('main_price')
                     ->money('SAR')
@@ -45,7 +46,8 @@ class ProductsTable
                 TextColumn::make('discounted_price')
                     ->money('SAR')
                     ->sortable()
-                    ->label('السعر المخفض'),
+                    ->label('السعر المخفض')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('purchase_price')
                     ->money('SAR')
@@ -60,7 +62,8 @@ class ProductsTable
                     ->falseIcon('heroicon-o-x-mark')
                     ->trueColor('success')
                     ->falseColor('gray')
-                    ->label('هل هو جديد؟'),
+                    ->label('هل هو جديد؟')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 IconColumn::make('is_new_arrival')
                     ->boolean()
@@ -69,7 +72,8 @@ class ProductsTable
                     ->falseIcon('heroicon-o-x-mark')
                     ->trueColor('success')
                     ->falseColor('gray')
-                    ->label('جديد الوصول'),
+                    ->label('جديد الوصول')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 IconColumn::make('is_featured')
                     ->boolean()
@@ -78,7 +82,18 @@ class ProductsTable
                     ->falseIcon('heroicon-o-x-mark')
                     ->trueColor('warning')
                     ->falseColor('gray')
-                    ->label('مميز'),
+                    ->label('مميز')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                IconColumn::make('is_installment')
+                    ->boolean()
+                    ->getStateUsing(fn ($record) => $record->is_installment)
+                    ->trueIcon('heroicon-o-credit-card')
+                    ->falseIcon('heroicon-o-x-mark')
+                    ->trueColor('success')
+                    ->falseColor('gray')
+                    ->label('تقسيط')
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 TextColumn::make('final_price')
                     ->money('SAR')
@@ -108,12 +123,14 @@ class ProductsTable
 
                 TextColumn::make('options_count')
                     ->counts('options')
-                    ->label('عدد الخيارات'),
+                    ->label('عدد الخيارات')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('reviews_count')
                     ->counts('reviews')
                     ->label('عدد التقييمات')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('average_rating')
                     ->label('متوسط التقييم')
@@ -137,7 +154,8 @@ class ProductsTable
                     })
                     ->sortable(query: function (Builder $query, string $direction): Builder {
                         return $query->orderBy('reviews_avg_rating', $direction);
-                    }),
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('sold_quantity')
                     ->label('الكمية المباعة')
@@ -147,7 +165,8 @@ class ProductsTable
                     })
                     ->sortable(query: function (Builder $query, string $direction): Builder {
                         return $query->orderBy('sold_quantity_sum', $direction);
-                    }),
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('total_revenue')
                     ->label('إجمالي الإيرادات')
@@ -158,7 +177,8 @@ class ProductsTable
                     ->sortable(query: function (Builder $query, string $direction): Builder {
                         return $query->orderBy('total_revenue_sum', $direction);
                     })
-                    ->color('success'),
+                    ->color('success')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('created_at')
                     ->dateTime()

@@ -197,7 +197,14 @@ class ProductResource extends JsonResource
      */
     protected function getPaymentMethods(float $finalPrice): array
     {
-        return PaymentMethod::active()->get()->map(function ($method) {
+        $query = PaymentMethod::active();
+
+        // If product does not support installment, exclude installment payment methods
+        if (!$this->is_installment) {
+            $query->where('is_installment', false);
+        }
+
+        return $query->get()->map(function ($method) {
             return [
                 'id' => $method->id,
                 'name' => $method->name,
