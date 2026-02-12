@@ -12,6 +12,14 @@ class Admin extends Authenticatable implements FilamentUser
 {
     use Notifiable, HasRoles;
 
+    /**
+     * Force Arabic locale for all notifications/emails.
+     */
+    public function preferredLocale(): string
+    {
+        return 'ar';
+    }
+
     protected $table = 'admins';
 
     protected $fillable = ['name', 'email', 'password'];

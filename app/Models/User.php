@@ -12,6 +12,14 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    /**
+     * Force Arabic locale for all notifications/emails.
+     */
+    public function preferredLocale(): string
+    {
+        return 'ar';
+    }
+
     protected $fillable = [
         'name',
         'email',

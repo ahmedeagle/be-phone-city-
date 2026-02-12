@@ -23,19 +23,32 @@ use function Laravel\Prompts\info;
 class NotificationService
 {
     /**
+     * Force Arabic locale for all notifications (mail + database).
+     */
+    private function forceArabicLocale(object $notification): object
+    {
+        // Laravel notifications support ->locale('ar'); keep it defensive for non-standard objects.
+        if (method_exists($notification, 'locale')) {
+            $notification->locale('ar');
+        }
+
+        return $notification;
+    }
+
+    /**
      * Notify about a new order
      */
     public function notifyOrderCreated(Order $order)
     {
         // Notify User
         if ($order->user) {
-            $order->user->notify(new OrderNotification($order, 'created'));
+            $order->user->notify($this->forceArabicLocale(new OrderNotification($order, 'created')));
         }
 
         // Notify Admins with 'orders.show' permission
         $this->notifyAdmins(
             permission: 'orders.show',
-            notification: new OrderNotification($order, 'created'),
+            notification: $this->forceArabicLocale(new OrderNotification($order, 'created')),
             filamentTitle: __('New Order Received'),
             filamentBody: __('Order #') . $order->order_number . ' ' . __('has been placed.'),
             filamentIcon: 'heroicon-o-shopping-cart',
@@ -50,7 +63,7 @@ class NotificationService
     public function notifyOrderStatusChanged(Order $order)
     {
         if ($order->user) {
-            $order->user->notify(new OrderNotification($order, 'status_updated'));
+            $order->user->notify($this->forceArabicLocale(new OrderNotification($order, 'status_updated')));
         }
     }
 
@@ -62,13 +75,13 @@ class NotificationService
         // Notify User if authenticated
         if ($ticket->user) {
             info($ticket->user);
-            $ticket->user->notify(new TicketNotification($ticket, 'created'));
+            $ticket->user->notify($this->forceArabicLocale(new TicketNotification($ticket, 'created')));
         }
 
         // Notify Admins with 'tickets.show' permission
         $this->notifyAdmins(
             permission: 'tickets.show',
-            notification: new TicketNotification($ticket, 'created'),
+            notification: $this->forceArabicLocale(new TicketNotification($ticket, 'created')),
             filamentTitle: __('New Support Ticket'),
             filamentBody: __('Ticket #') . $ticket->ticket_number . ': ' . $ticket->subject,
             filamentIcon: 'heroicon-o-ticket',
@@ -83,7 +96,7 @@ class NotificationService
     public function notifyTicketUpdated(Ticket $ticket)
     {
         if ($ticket->user) {
-            $ticket->user->notify(new TicketNotification($ticket, 'updated'));
+            $ticket->user->notify($this->forceArabicLocale(new TicketNotification($ticket, 'updated')));
         }
     }
 
@@ -96,7 +109,7 @@ class NotificationService
         // Adjust permission as per PermissionSeeder
         $this->notifyAdmins(
             permission: 'comments.show',
-            notification: new ReviewNotification($review),
+            notification: $this->forceArabicLocale(new ReviewNotification($review)),
             filamentTitle: __('New Product Review'),
             filamentBody: __('New review for') . ' ' . $review->product->name,
             filamentIcon: 'heroicon-o-star',
@@ -113,7 +126,7 @@ class NotificationService
         // Notify Admins with 'contact_requests.show' permission
         $this->notifyAdmins(
             permission: 'contact_requests.show',
-            notification: new ContactRequestNotification($contactRequest),
+            notification: $this->forceArabicLocale(new ContactRequestNotification($contactRequest)),
             filamentTitle: __('New Contact Request'),
             filamentBody: __('From') . ': ' . $contactRequest->name,
             filamentIcon: 'heroicon-o-envelope',
@@ -131,13 +144,13 @@ class NotificationService
 
         // Notify User
         if ($order->user) {
-            $order->user->notify(new PaymentProofNotification($transaction, 'uploaded'));
+            $order->user->notify($this->forceArabicLocale(new PaymentProofNotification($transaction, 'uploaded')));
         }
 
         // Notify Admins with 'payment_transactions.show' permission
         $this->notifyAdmins(
             permission: 'payment_transactions.show',
-            notification: new PaymentProofNotification($transaction, 'uploaded_admin'),
+            notification: $this->forceArabicLocale(new PaymentProofNotification($transaction, 'uploaded_admin')),
             filamentTitle: __('New Payment Proof Requires Review'),
             filamentBody: __('Payment proof uploaded for order #') . $order->order_number . ' ' . __('requires review.'),
             filamentIcon: 'heroicon-o-document-check',
@@ -157,7 +170,7 @@ class NotificationService
         if ($order->user) {
             try {
                 $type = $approved ? 'approved' : 'rejected';
-                $order->user->notify(new PaymentProofNotification($transaction, $type, $notes));
+                $order->user->notify($this->forceArabicLocale(new PaymentProofNotification($transaction, $type, $notes)));
             } catch (\Exception $e) {
                 // Log error but don't throw - database notification should still be saved
                 Log::warning('Failed to send payment proof review notification to user', [
@@ -192,7 +205,7 @@ class NotificationService
         }
 
         // Send Laravel Database/Mail notification
-        Notification::send($admins, $notification);
+        Notification::send($admins, $this->forceArabicLocale($notification));
 
         // Send Filament Notification
         foreach ($admins as $admin) {
