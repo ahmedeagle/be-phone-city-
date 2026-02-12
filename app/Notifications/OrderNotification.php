@@ -42,7 +42,7 @@ class OrderNotification extends Notification implements ShouldQueue
             $url = rtrim($frontendUrl, '/') . $localePrefix . '/myorder/';
         } else {
             // For admins, use admin panel URL or fallback
-            $url = config('app.url') . '/orders/' . $this->order->id;
+            $url = config('app.url') . '/dashboard/orders/' . $this->order->id;
         }
 
         $message = (new MailMessage)
