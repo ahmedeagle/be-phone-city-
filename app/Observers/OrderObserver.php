@@ -18,10 +18,8 @@ class OrderObserver
      */
     public function created(Order $order): void
     {
-        $this->notificationService->notifyOrderCreated($order);
-
-        // Mark product views as purchased for all products in this order
-        $this->markProductViewsAsPurchased($order);
+        // Do NOT notify or mark as purchased here
+        // Wait until payment is confirmed (payment_status = PAID)
     }
 
     /**
@@ -31,29 +29,37 @@ class OrderObserver
     {
         $statusChangedByUs = false;
 
-        // Check if payment status changed to PAID for OTO orders
+        // Check if payment status changed to PAID
         if ($order->isDirty('payment_status')) {
             $originalPaymentStatus = $order->getOriginal('payment_status');
             $newPaymentStatus = $order->payment_status;
 
-            // If payment just became PAID and order has OTO order ID, set status to PROCESSING
+            // When payment becomes PAID, send "order created" notification and mark products as purchased
             if ($newPaymentStatus === Order::PAYMENT_STATUS_PAID
-                && $originalPaymentStatus !== Order::PAYMENT_STATUS_PAID
-                && !empty($order->oto_order_id)) {
+                && $originalPaymentStatus !== Order::PAYMENT_STATUS_PAID) {
 
-                // Only update if status is not already PROCESSING or higher
-                $originalStatus = $order->getOriginal('status');
-                if (!in_array($originalStatus, [
-                    Order::STATUS_PROCESSING,
-                    Order::STATUS_SHIPPED,
-                    Order::STATUS_IN_PROGRESS,
-                    Order::STATUS_DELIVERED,
-                    Order::STATUS_COMPLETED,
-                ])) {
-                    // Use saveQuietly to avoid triggering another observer event
-                    $order->status = Order::STATUS_PROCESSING;
-                    $order->saveQuietly();
-                    $statusChangedByUs = true;
+                // Send the "order created" notification NOW (after payment confirmed)
+                $this->notificationService->notifyOrderCreated($order);
+
+                // Mark product views as purchased NOW (after payment confirmed)
+                $this->markProductViewsAsPurchased($order);
+
+                // If order has OTO order ID, set status to PROCESSING
+                if (!empty($order->oto_order_id)) {
+                    // Only update if status is not already PROCESSING or higher
+                    $originalStatus = $order->getOriginal('status');
+                    if (!in_array($originalStatus, [
+                        Order::STATUS_PROCESSING,
+                        Order::STATUS_SHIPPED,
+                        Order::STATUS_IN_PROGRESS,
+                        Order::STATUS_DELIVERED,
+                        Order::STATUS_COMPLETED,
+                    ])) {
+                        // Use saveQuietly to avoid triggering another observer event
+                        $order->status = Order::STATUS_PROCESSING;
+                        $order->saveQuietly();
+                        $statusChangedByUs = true;
+                    }
                 }
             }
         }
