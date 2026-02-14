@@ -86,19 +86,19 @@ class SliderForm
                                     'page' => Page::query()
                                         ->orderBy('name_en')
                                         ->get()
-                                        ->mapWithKeys(fn ($page) => [$page->slug => $page->name]),
+                                        ->mapWithKeys(fn ($page) => [$page->slug => (string) $page->name_ar ?? '']),
                                     'offer' => Offer::query()
                                         ->orderBy('name_en')
                                         ->get()
-                                        ->mapWithKeys(fn ($offer) => [$offer->slug => $offer->name]),
+                                        ->mapWithKeys(fn ($offer) => [$offer->slug => (string) $offer->name_ar ?? '']),
                                     'product' => Product::query()
                                         ->orderBy('name_en')
                                         ->get()
-                                        ->mapWithKeys(fn ($product) => [$product->slug => $product->name]),
+                                        ->mapWithKeys(fn ($product) => [$product->slug => (string) $product->name_ar ?? '']),
                                     'category' => Category::query()
                                         ->orderBy('name_en')
                                         ->get()
-                                        ->mapWithKeys(fn ($category) => [$category->slug => $category->name]),
+                                        ->mapWithKeys(fn ($category) => [$category->slug => (string) $category->name_ar ?? '']),
                                     default => [],
                                 };
                             })
