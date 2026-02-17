@@ -26,6 +26,29 @@ class AuthController extends Controller
     public function register(RegisterRequest $request)
     {
         try {
+            // Check if unverified user exists with same email or phone
+            $existingUserByEmail = User::where('email', $request->email)
+                ->whereNull('email_verified_at')
+                ->first();
+            
+            $existingUserByPhone = User::where('phone', $request->phone)
+                ->whereNull('email_verified_at')
+                ->first();
+
+            // If unverified user exists, delete it to allow re-registration
+            if ($existingUserByEmail) {
+                // Delete related verification codes first
+                $existingUserByEmail->verificationCodes()->delete();
+                $existingUserByEmail->delete();
+            }
+
+            // Handle phone separately if it's a different user
+            if ($existingUserByPhone && (!$existingUserByEmail || $existingUserByPhone->id !== $existingUserByEmail->id)) {
+                $existingUserByPhone->verificationCodes()->delete();
+                $existingUserByPhone->delete();
+            }
+
+            // Create new user
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
