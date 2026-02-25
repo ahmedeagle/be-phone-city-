@@ -45,6 +45,11 @@ class NotificationService
             $order->user->notify($this->forceArabicLocale(new OrderNotification($order, 'created')));
         }
 
+        // Skip admin notification for bank_transfer — admins were already notified when proof was uploaded
+        if ($order->paymentMethod?->gateway === 'bank_transfer') {
+            return;
+        }
+
         // Notify Admins with 'orders.show' permission
         $this->notifyAdmins(
             permission: 'orders.show',
@@ -58,7 +63,8 @@ class NotificationService
     }
 
     /**
-     * Notify about order status change
+     * Notify about order status change.
+     * Only notifies the customer (user) — admins are not notified for status updates.
      */
     public function notifyOrderStatusChanged(Order $order)
     {

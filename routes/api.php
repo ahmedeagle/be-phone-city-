@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\BlogController;
 use App\Http\Controllers\Api\V1\CommentController;
 use App\Http\Controllers\Api\V1\TicketController;
+use App\Http\Controllers\Api\V1\ChatbotController;
 
 /*
 |--------------------------------------------------------------------------
@@ -233,7 +234,18 @@ Route::prefix('v1')->namespace('App\Http\Controllers\Api\V1')->group(function ()
                 ->name('orders.payment.uploadProof');
         });
 
+        // Chatbot routes (authenticated users get personalized features)
+        Route::prefix('chatbot')->group(function () {
+            Route::get('/history/{sessionId}', [ChatbotController::class, 'history']);
+            Route::delete('/clear/{sessionId}', [ChatbotController::class, 'clear']);
+        });
+
     });
+
+    // Chatbot route (available for both guests and authenticated users)
+    Route::post('chatbot/chat', [ChatbotController::class, 'chat'])
+        ->middleware(\App\Http\Middleware\ChatbotRateLimitMiddleware::class)
+        ->name('chatbot.chat');
 
     // Payment callback (no auth required - gateway redirects here)
     Route::match(['get', 'post'], 'payment/callback/{order}', [PaymentController::class, 'callback'])

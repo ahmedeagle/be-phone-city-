@@ -52,7 +52,7 @@ class PaymentController extends Controller
             if (!$transactionId) {
                 // Check query string as well
                 $transactionId = $request->query('payment_link_id') ??  // Amwal
-                                 $request->query('id') ?? 
+                                 $request->query('id') ??
                                  $request->query('payment_id') ??
                                  $request->query('transaction_id');
             }
@@ -265,7 +265,7 @@ class PaymentController extends Controller
      */
     public function retry(Request $request, Order $order)
     {
-        
+
         try {
             // Check if user owns the order
             if ($order->user_id !== Auth::id()) {

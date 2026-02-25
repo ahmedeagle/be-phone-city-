@@ -32,7 +32,7 @@ class PaymentProofNotification extends Notification implements ShouldQueue
     public function toMail($notifiable): MailMessage
     {
         $order = $this->transaction->order;
-        
+
         // Use frontend_url for users, admin URL for admins
         if ($notifiable instanceof User) {
             $frontendUrl = config('app.frontend_url', config('app.url'));
@@ -40,10 +40,10 @@ class PaymentProofNotification extends Notification implements ShouldQueue
             $locale = $notifiable->locale ?? app()->getLocale();
             $isArabic = $locale === 'ar' || str_starts_with($locale, 'ar');
             $localePrefix = $isArabic ? '/ar' : '/en';
-            $url = rtrim($frontendUrl, '/') . $localePrefix . '/myorder/' . $order->id;
+            $url = rtrim($frontendUrl, '/') . $localePrefix . '/myorder/';
         } else {
             // For admins, use admin panel URL or fallback
-            $url = config('app.url') . '/orders/' . $order->id;
+            $url = config('app.url') . '/dashboard/orders/' . $order->id;
         }
 
         $subject = match($this->type) {
@@ -142,7 +142,7 @@ class PaymentProofNotification extends Notification implements ShouldQueue
             $locale = $notifiable->locale ?? app()->getLocale();
             $isArabic = $locale === 'ar' || str_starts_with($locale, 'ar');
             $localePrefix = $isArabic ? '/ar' : '/en';
-            $data['url'] = rtrim($frontendUrl, '/') . $localePrefix . '/myorder/' . $order->id;
+            $data['url'] = rtrim($frontendUrl, '/') . $localePrefix . '/myorder/';
         }
 
         return $data;
