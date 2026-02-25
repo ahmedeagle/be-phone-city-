@@ -161,7 +161,6 @@ class OrderController extends Controller
             'points_to_consume' => $calculations['points_to_consume'],
             'total' => $calculations['total'],
             'status' => Order::STATUS_PENDING,
-            'award_points' => true, // Award points from products
         ];
 
         try {

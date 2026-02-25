@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Order;
 use App\Models\Point;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Auth;
@@ -94,6 +95,57 @@ class PointsService
             Point::create([
                 'user_id' => $userId,
                 'order_id' => $orderId,
+                'product_id' => $product->id,
+                'points_count' => $productPoints,
+                'status' => Point::STATUS_AVAILABLE,
+                'expire_at' => $expireAt,
+                'description' => __('Points earned from product: :product_name', [
+                    'product_name' => $product->name,
+                ]),
+            ]);
+
+            $totalPointsAwarded += $productPoints;
+        }
+
+        return $totalPointsAwarded;
+    }
+
+    /**
+     * Award points to user from order items (when order is paid)
+     *
+     * @param Order $order Paid order with items
+     * @return int Total points awarded
+     */
+    public function awardPointsFromOrder(Order $order): int
+    {
+        if (!$order->user_id) {
+            return 0;
+        }
+
+        // Avoid double-awarding if points already exist for this order
+        if (Point::where('order_id', $order->id)->exists()) {
+            return 0;
+        }
+
+        $settings = Setting::getSettings();
+        $pointsDaysExpired = $settings->points_days_expired ?? 365;
+        $expireAt = now()->addDays($pointsDaysExpired);
+
+        $totalPointsAwarded = 0;
+        $orderItems = $order->items()->with('product')->get();
+
+        foreach ($orderItems as $orderItem) {
+            $product = $orderItem->product;
+
+            if (!$product || !$product->points || $product->points <= 0) {
+                continue;
+            }
+
+            $productPoints = $product->points * $orderItem->quantity;
+
+            Point::create([
+                'user_id' => $order->user_id,
+                'order_id' => $order->id,
                 'product_id' => $product->id,
                 'points_count' => $productPoints,
                 'status' => Point::STATUS_AVAILABLE,

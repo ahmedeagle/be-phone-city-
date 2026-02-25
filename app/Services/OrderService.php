@@ -46,10 +46,7 @@ class OrderService
             // Create order items from cart
             $this->createOrderItems($order, $cartItems);
 
-            // Award points from products
-            if (isset($orderData['award_points']) && $orderData['award_points']) {
-                $this->pointsService->awardPointsFromCart($userId, $order->id, $cartItems);
-            }
+            // Points are awarded when order is paid (see OrderObserver)
 
             // Consume points if used
             if (isset($orderData['points_to_consume']) && $orderData['points_to_consume'] > 0) {

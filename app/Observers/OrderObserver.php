@@ -6,11 +6,13 @@ use App\Models\Order;
 use App\Models\ProductView;
 use App\Notifications\OrderCompletedReviewRequest;
 use App\Services\NotificationService;
+use App\Services\PointsService;
 
 class OrderObserver
 {
     public function __construct(
-        protected NotificationService $notificationService
+        protected NotificationService $notificationService,
+        protected PointsService $pointsService
     ) {}
 
     /**
@@ -40,6 +42,9 @@ class OrderObserver
 
                 // Send the "order created" notification NOW (after payment confirmed)
                 $this->notificationService->notifyOrderCreated($order);
+
+                // Award points from order items NOW (after payment confirmed)
+                $this->pointsService->awardPointsFromOrder($order);
 
                 // Mark product views as purchased NOW (after payment confirmed)
                 $this->markProductViewsAsPurchased($order);
