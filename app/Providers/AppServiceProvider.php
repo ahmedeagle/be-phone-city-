@@ -27,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Register Observers
         \App\Models\Order::observe(\App\Observers\OrderObserver::class);
+        \App\Models\Offer::observe(\App\Observers\OfferObserver::class);
         \App\Models\Ticket::observe(\App\Observers\TicketObserver::class);
         \App\Models\Review::observe(\App\Observers\ReviewObserver::class);
         \App\Models\ContactRequest::observe(\App\Observers\ContactRequestObserver::class);

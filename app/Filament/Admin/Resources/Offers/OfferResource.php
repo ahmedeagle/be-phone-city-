@@ -109,6 +109,12 @@ class OfferResource extends Resource
                     ])
                     ->native(false)
                     ->reactive()
+                    ->afterStateUpdated(fn ($set, $state) => match ($state) {
+                        'product' => $set('categories', []),
+                        'category' => $set('products', []),
+                        'all' => $set(['products' => [], 'categories' => []]),
+                        default => null,
+                    })
                     ->label('تطبيق على'),
                 Select::make('products')
                     ->multiple()
