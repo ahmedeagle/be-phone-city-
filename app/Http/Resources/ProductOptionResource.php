@@ -2,9 +2,9 @@
 
 namespace App\Http\Resources;
 
+use App\Models\PaymentMethod;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use App\Models\PaymentMethod;
 
 class ProductOptionResource extends JsonResource
 {
@@ -13,6 +13,7 @@ class ProductOptionResource extends JsonResource
     public function simple()
     {
         $this->simple = true;
+
         return $this;
     }
 
@@ -37,14 +38,8 @@ class ProductOptionResource extends JsonResource
             ];
         }
 
-        // Full mode with payment methods
-        $paymentMethods = PaymentMethod::active()->get()->map(function ($method) {
-            return [
-                'id' => $method->id,
-                'name' => $method->name,
-                'image' => $method->image ? asset('storage/' . $method->image) : asset('images/payment-placeholder.jpg'),
-            ];
-        })->values();
+        // Full mode with payment methods (same logic as ProductResource - bank transfer / installment filtering)
+        $paymentMethods = $this->getPaymentMethods();
 
         return [
             'id' => $this->id,
@@ -61,6 +56,35 @@ class ProductOptionResource extends JsonResource
             'applied_offer' => $bestOffer ? new OfferResource($bestOffer) : null,
             'payment_methods' => $paymentMethods,
         ];
+    }
+
+    /**
+     * Get payment methods with bank transfer / installment filtering based on product's category
+     */
+    protected function getPaymentMethods(): array
+    {
+        $product = $this->product;
+        if (! $product) {
+            return [];
+        }
+
+        $query = PaymentMethod::active();
+
+        if ($product->isInBankTransferCategory()) {
+            $query->bankTransfer();
+        } else {
+            if (! $product->is_installment) {
+                $query->where('is_installment', false);
+            }
+        }
+
+        return $query->get()->map(function ($method) {
+            return [
+                'id' => $method->id,
+                'name' => $method->name,
+                'image' => $method->image ? asset('storage/'.$method->image) : asset('images/payment-placeholder.jpg'),
+            ];
+        })->values()->toArray();
     }
 
     /**

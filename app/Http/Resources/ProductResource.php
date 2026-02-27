@@ -2,9 +2,9 @@
 
 namespace App\Http\Resources;
 
+use App\Models\PaymentMethod;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use App\Models\PaymentMethod;
 use Illuminate\Support\Facades\Auth;
 
 class ProductResource extends JsonResource
@@ -14,6 +14,7 @@ class ProductResource extends JsonResource
     public function simple()
     {
         $this->simple = true;
+
         return $this;
     }
 
@@ -145,7 +146,7 @@ class ProductResource extends JsonResource
     protected function getOptionsData()
     {
         // Check if options relationship is loaded
-        if (!$this->relationLoaded('options')) {
+        if (! $this->relationLoaded('options')) {
             // If not loaded, create default option
             return $this->createDefaultOption();
         }
@@ -183,7 +184,7 @@ class ProductResource extends JsonResource
         ];
 
         // In full mode, include images and payment methods
-        if (!$isSimple) {
+        if (! $isSimple) {
             $defaultOption['images'] = ImageResource::collection($this->whenLoaded('images'));
             $defaultOption['applied_offer'] = $bestOffer ? new OfferResource($bestOffer) : null;
             $defaultOption['payment_methods'] = $this->getPaymentMethods($finalPrice);
@@ -194,14 +195,20 @@ class ProductResource extends JsonResource
 
     /**
      * Get payment methods with calculated fees
+     * When product is in a bank transfer category, only bank transfer payment methods are shown
      */
     protected function getPaymentMethods(float $finalPrice): array
     {
         $query = PaymentMethod::active();
 
-        // If product does not support installment, exclude installment payment methods
-        if (!$this->is_installment) {
-            $query->where('is_installment', false);
+        // If product is in a bank transfer category, show only bank transfer payment methods
+        if ($this->isInBankTransferCategory()) {
+            $query->bankTransfer();
+        } else {
+            // If product does not support installment, exclude installment payment methods
+            if (! $this->is_installment) {
+                $query->where('is_installment', false);
+            }
         }
 
         return $query->get()->map(function ($method) {
@@ -209,7 +216,7 @@ class ProductResource extends JsonResource
                 'id' => $method->id,
                 'name' => $method->name,
                 'image' => $method->image
-                    ? asset('storage/' . $method->image)
+                    ? asset('storage/'.$method->image)
                     : asset('images/payment-placeholder.jpg'),
             ];
         })->toArray();
@@ -220,7 +227,7 @@ class ProductResource extends JsonResource
      */
     protected function getMainImageUrl(): ?string
     {
-        return $this->main_image ? asset('storage/' . $this->main_image) : null;
+        return $this->main_image ? asset('storage/'.$this->main_image) : null;
     }
 
     /**
@@ -228,7 +235,7 @@ class ProductResource extends JsonResource
      */
     protected function isFavorite(): bool
     {
-        if (!Auth::guard('sanctum')->check()) {
+        if (! Auth::guard('sanctum')->check()) {
             return false;
         }
 
@@ -242,7 +249,7 @@ class ProductResource extends JsonResource
      */
     protected function inCart(): bool
     {
-        if (!Auth::guard('sanctum')->check()) {
+        if (! Auth::guard('sanctum')->check()) {
             return false;
         }
 

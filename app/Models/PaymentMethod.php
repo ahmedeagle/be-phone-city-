@@ -19,12 +19,14 @@ class PaymentMethod extends Model
         'description_ar',
         'status',
         'is_installment',
+        'is_bank_transfer',
         'processing_fee_percentage',
     ];
 
     protected $casts = [
         'processing_fee_percentage' => 'decimal:2',
         'is_installment' => 'boolean',
+        'is_bank_transfer' => 'boolean',
     ];
 
     protected $appends = ['name', 'description'];
@@ -54,5 +56,10 @@ class PaymentMethod extends Model
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
+    }
+
+    public function scopeBankTransfer($query)
+    {
+        return $query->where('is_bank_transfer', true);
     }
 }

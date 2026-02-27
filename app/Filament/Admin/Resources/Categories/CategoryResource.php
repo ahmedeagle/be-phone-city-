@@ -5,7 +5,6 @@ namespace App\Filament\Admin\Resources\Categories;
 use App\Filament\Admin\Resources\Categories\Pages\CreateCategory;
 use App\Filament\Admin\Resources\Categories\Pages\EditCategory;
 use App\Filament\Admin\Resources\Categories\Pages\ListCategories;
-use App\Filament\Admin\Resources\Categories\Pages\ManageCategories;
 use App\Filament\Admin\Resources\Categories\Pages\ViewCategory;
 use App\Models\Category;
 use BackedEnum;
@@ -98,6 +97,10 @@ class CategoryResource extends Resource
                 Toggle::make('is_trademark')
                     ->label('علامة تجارية')
                     ->default(false),
+
+                Toggle::make('is_bank_transfer')
+                    ->label('تحويل بنكي فقط')
+                    ->default(false),
             ]);
     }
 
@@ -119,6 +122,9 @@ class CategoryResource extends Resource
                 TextEntry::make('is_trademark')
                     ->state(fn ($record) => $record->is_trademark ? 'نعم' : 'لا')
                     ->label('علامة تجارية'),
+                TextEntry::make('is_bank_transfer')
+                    ->state(fn ($record) => $record->is_bank_transfer ? 'نعم' : 'لا')
+                    ->label('تحويل بنكي فقط'),
                 TextEntry::make('children_count')
                     ->state(fn ($record) => $record->children()->count())
                     ->label('عدد التصنيفات الفرعية'),
@@ -160,6 +166,10 @@ class CategoryResource extends Resource
                     ->boolean()
                     ->sortable()
                     ->label('علامة تجارية'),
+                IconColumn::make('is_bank_transfer')
+                    ->boolean()
+                    ->sortable()
+                    ->label('تحويل بنكي فقط'),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Category extends Model
 {
-    use HasFactory, HasTranslations, HasSlug;
+    use HasFactory, HasSlug, HasTranslations;
 
     protected $fillable = [
         'name_en',
@@ -20,10 +20,12 @@ class Category extends Model
         'icon',
         'parent_id',
         'is_trademark',
+        'is_bank_transfer',
     ];
 
     protected $casts = [
         'is_trademark' => 'boolean',
+        'is_bank_transfer' => 'boolean',
     ];
 
     protected $appends = ['name'];
@@ -59,5 +61,4 @@ class Category extends Model
     {
         return $this->morphToMany(Offer::class, 'offerable', 'offerables');
     }
-
 }

@@ -63,7 +63,7 @@ class OrderController extends Controller
     {
         // Get cart items
         $cartItems = Cart::where('user_id', Auth::id())
-            ->with(['product', 'productOption'])
+            ->with(['product.categories', 'productOption'])
             ->get();
 
         if ($cartItems->isEmpty()) {
@@ -78,7 +78,7 @@ class OrderController extends Controller
         $discount = null;
         if ($request->filled('discount_code')) {
             $discount = $this->discountService->validateDiscountCode($request->discount_code);
-            if (!$discount) {
+            if (! $discount) {
                 return Response::error(
                     __('Invalid or expired discount code'),
                     null,
@@ -89,9 +89,22 @@ class OrderController extends Controller
 
         // Get and validate payment method
         $paymentMethod = PaymentMethod::find($request->payment_method_id);
-        if (!$paymentMethod) {
+        if (! $paymentMethod) {
             return Response::error(
                 __('Invalid payment method'),
+                null,
+                422
+            );
+        }
+
+        // If any product is in a bank transfer category, only bank transfer payment methods are allowed
+        $hasBankTransferCategoryProduct = $cartItems->contains(function ($item) {
+            return $item->product->categories->contains('is_bank_transfer', true);
+        });
+
+        if ($hasBankTransferCategoryProduct && ! $paymentMethod->is_bank_transfer) {
+            return Response::error(
+                __('One or more items in your cart require bank transfer payment only'),
                 null,
                 422
             );
@@ -103,7 +116,7 @@ class OrderController extends Controller
                 return $item->product->is_installment;
             });
 
-            if (!$allSupportInstallment) {
+            if (! $allSupportInstallment) {
                 return Response::error(
                     __('One or more items in your cart do not support installment payments'),
                     null,
@@ -115,7 +128,7 @@ class OrderController extends Controller
         // Validate location for home delivery
         $location = null;
         if ($request->delivery_method === Order::DELIVERY_HOME) {
-            if (!$request->filled('location_id')) {
+            if (! $request->filled('location_id')) {
                 return Response::error(
                     __('Location is required for home delivery'),
                     null,
@@ -124,7 +137,7 @@ class OrderController extends Controller
             }
 
             $locationValidation = $this->shippingService->validateLocation($request->location_id);
-            if (!$locationValidation['valid']) {
+            if (! $locationValidation['valid']) {
                 return Response::error(
                     $locationValidation['error'],
                     null,
@@ -238,7 +251,7 @@ class OrderController extends Controller
     {
         // Get cart items
         $cartItems = Cart::where('user_id', Auth::id())
-            ->with(['product', 'productOption'])
+            ->with(['product.categories', 'productOption'])
             ->get();
 
         if ($cartItems->isEmpty()) {
@@ -251,7 +264,7 @@ class OrderController extends Controller
 
         // Validate required fields
         $errors = $this->validatePreviewRequest($request);
-        if (!empty($errors)) {
+        if (! empty($errors)) {
             return Response::error(
                 __('Validation failed'),
                 ['errors' => $errors],
@@ -267,7 +280,7 @@ class OrderController extends Controller
         $discountCode = null;
         if ($request->filled('discount_code')) {
             $discount = $this->discountService->validateDiscountCode($request->discount_code);
-            if (!$discount) {
+            if (! $discount) {
                 $errors[] = __('Invalid or expired discount code');
             } else {
                 $discountCode = $request->discount_code;
@@ -289,18 +302,26 @@ class OrderController extends Controller
         $warnings = [];
         if ($request->filled('payment_method_id')) {
             $paymentMethod = PaymentMethod::find($request->payment_method_id);
-            if (!$paymentMethod) {
+            if (! $paymentMethod) {
                 $errors[] = __('Invalid payment method');
             } elseif ($paymentMethod->status !== 'active') {
                 $warnings[] = __('Selected payment method is not active');
-            } elseif ($paymentMethod->is_installment) {
-                // Check if all cart items support installment
-                $allSupportInstallment = $cartItems->every(function ($item) {
-                    return $item->product->is_installment;
+            } else {
+                $hasBankTransferCategoryProduct = $cartItems->contains(function ($item) {
+                    return $item->product->categories->contains('is_bank_transfer', true);
                 });
 
-                if (!$allSupportInstallment) {
-                    $errors[] = __('One or more items in your cart do not support installment payments');
+                if ($hasBankTransferCategoryProduct && ! $paymentMethod->is_bank_transfer) {
+                    $errors[] = __('One or more items in your cart require bank transfer payment only');
+                } elseif ($paymentMethod->is_installment) {
+                    // Check if all cart items support installment
+                    $allSupportInstallment = $cartItems->every(function ($item) {
+                        return $item->product->is_installment;
+                    });
+
+                    if (! $allSupportInstallment) {
+                        $errors[] = __('One or more items in your cart do not support installment payments');
+                    }
                 }
             }
         }
@@ -310,7 +331,7 @@ class OrderController extends Controller
         $shippingInfo = null;
         if ($request->delivery_method === Order::DELIVERY_HOME && $request->filled('location_id')) {
             $locationValidation = $this->shippingService->validateLocation($request->location_id);
-            if (!$locationValidation['valid']) {
+            if (! $locationValidation['valid']) {
                 $errors[] = $locationValidation['error'];
             } else {
                 $location = $locationValidation['location'];
@@ -319,7 +340,7 @@ class OrderController extends Controller
         }
 
         // Return early if there are validation errors
-        if (!empty($errors)) {
+        if (! empty($errors)) {
             return Response::error(
                 __('Order validation failed'),
                 [
@@ -343,7 +364,7 @@ class OrderController extends Controller
 
         // Check stock availability
         $stockIssues = $this->calculationService->checkStockAvailability($cartItems);
-        if (!empty($stockIssues)) {
+        if (! empty($stockIssues)) {
             $warnings[] = __('Some products have insufficient stock');
         }
 
@@ -381,7 +402,7 @@ class OrderController extends Controller
                 'location.city',
                 'paymentMethod',
                 'discountCode',
-                'invoice'
+                'invoice',
             ])
             ->findOrFail($id);
 
@@ -395,22 +416,21 @@ class OrderController extends Controller
     /**
      * Validate preview request
      *
-     * @param Request $request
      * @return array Validation errors
      */
     protected function validatePreviewRequest(Request $request): array
     {
         $errors = [];
 
-        if (!$request->filled('payment_method_id')) {
+        if (! $request->filled('payment_method_id')) {
             $errors[] = __('Payment method is required');
         }
 
-        if (!$request->filled('delivery_method')) {
+        if (! $request->filled('delivery_method')) {
             $errors[] = __('Delivery method is required');
         }
 
-        if ($request->delivery_method === Order::DELIVERY_HOME && !$request->filled('location_id')) {
+        if ($request->delivery_method === Order::DELIVERY_HOME && ! $request->filled('location_id')) {
             $errors[] = __('Location is required for home delivery');
         }
 
@@ -419,9 +439,6 @@ class OrderController extends Controller
 
     /**
      * Build shipping info array for response
-     *
-     * @param Location $location
-     * @return array
      */
     protected function buildShippingInfo(Location $location): array
     {
@@ -441,17 +458,7 @@ class OrderController extends Controller
     /**
      * Build complete preview response
      *
-     * @param mixed $cartItems
-     * @param array $calculations
-     * @param Request $request
-     * @param Location|null $location
-     * @param PaymentMethod|null $paymentMethod
-     * @param string|null $discountCode
-     * @param array|null $discountInfo
-     * @param array|null $shippingInfo
-     * @param array $warnings
-     * @param array $stockIssues
-     * @return array
+     * @param  mixed  $cartItems
      */
     protected function buildPreviewResponse(
         $cartItems,
@@ -479,7 +486,7 @@ class OrderController extends Controller
                     'name_en' => $item->product->name_en,
                     'name_ar' => $item->product->name_ar,
                     'main_image' => $item->product->main_image
-                        ? asset('storage/' . $item->product->main_image)
+                        ? asset('storage/'.$item->product->main_image)
                         : null,
                     'stock_status' => $item->productOption ? $item->productOption->stock_status : $item->product->stock_status,
                     'quantity_available' => $item->productOption ? $item->productOption->quantity : $item->product->quantity,
@@ -534,7 +541,7 @@ class OrderController extends Controller
                     'name_en' => $paymentMethod->name_en,
                     'name_ar' => $paymentMethod->name_ar,
                     'image' => $paymentMethod->image
-                        ? asset('storage/' . $paymentMethod->image)
+                        ? asset('storage/'.$paymentMethod->image)
                         : null,
                     'status' => $paymentMethod->status,
                 ] : null,

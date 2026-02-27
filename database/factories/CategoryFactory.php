@@ -17,6 +17,14 @@ class CategoryFactory extends Factory
             'image' => null,
             'icon' => null,
             'parent_id' => null,
+            'is_bank_transfer' => false,
         ];
+    }
+
+    public function bankTransfer(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_bank_transfer' => true,
+        ]);
     }
 }

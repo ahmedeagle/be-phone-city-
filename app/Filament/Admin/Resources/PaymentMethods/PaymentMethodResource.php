@@ -6,9 +6,6 @@ use App\Filament\Admin\Resources\PaymentMethods\Pages\CreatePaymentMethod;
 use App\Filament\Admin\Resources\PaymentMethods\Pages\EditPaymentMethod;
 use App\Filament\Admin\Resources\PaymentMethods\Pages\ListPaymentMethods;
 use App\Filament\Admin\Resources\PaymentMethods\Pages\ViewPaymentMethod;
-use App\Filament\Admin\Resources\PaymentMethods\Schemas\PaymentMethodForm;
-use App\Filament\Admin\Resources\PaymentMethods\Schemas\PaymentMethodInfolist;
-use App\Filament\Admin\Resources\PaymentMethods\Tables\PaymentMethodsTable;
 use App\Models\PaymentMethod;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -111,6 +108,10 @@ class PaymentMethodResource extends Resource
                 Toggle::make('is_installment')
                     ->label('يدعم التقسيط')
                     ->default(false),
+
+                Toggle::make('is_bank_transfer')
+                    ->label('تحويل بنكي')
+                    ->default(false),
             ]);
     }
 
@@ -150,6 +151,10 @@ class PaymentMethodResource extends Resource
                 IconEntry::make('is_installment')
                     ->boolean()
                     ->label('يدعم التقسيط'),
+
+                IconEntry::make('is_bank_transfer')
+                    ->boolean()
+                    ->label('تحويل بنكي'),
 
                 TextEntry::make('created_at')
                     ->dateTime()
@@ -196,6 +201,10 @@ class PaymentMethodResource extends Resource
                 IconColumn::make('is_installment')
                     ->boolean()
                     ->label('يدعم التقسيط'),
+
+                IconColumn::make('is_bank_transfer')
+                    ->boolean()
+                    ->label('تحويل بنكي'),
 
                 TextColumn::make('created_at')
                     ->dateTime()

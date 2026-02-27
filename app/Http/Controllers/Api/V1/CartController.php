@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CartResource;
 use App\Http\Resources\CityResource;
-use App\Http\Resources\PaymentMethodResource;
 use App\Models\Cart;
 use App\Models\City;
 use App\Models\PaymentMethod;
@@ -14,9 +13,9 @@ use App\Models\ProductOption;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
 
 class CartController extends Controller
 {
@@ -45,16 +44,25 @@ class CartController extends Controller
         // Fetch cities and force simple mode for the resource
         request()->merge(['simple' => true]);
         $shippingMethods = City::getAllActive();
-        
+
         $paymentMethodsQuery = PaymentMethod::active();
 
-        // Check if any product in cart does not support installments
-        $allSupportInstallment = $cartItems->every(function ($item) {
-            return $item->product->is_installment;
+        // If any product is in a bank transfer category, restrict to bank transfer payment methods only
+        $hasBankTransferCategoryProduct = $cartItems->contains(function ($item) {
+            return $item->product->categories->contains('is_bank_transfer', true);
         });
 
-        if (!$allSupportInstallment) {
-            $paymentMethodsQuery->where('is_installment', false);
+        if ($hasBankTransferCategoryProduct) {
+            $paymentMethodsQuery->bankTransfer();
+        } else {
+            // Check if any product in cart does not support installments
+            $allSupportInstallment = $cartItems->every(function ($item) {
+                return $item->product->is_installment;
+            });
+
+            if (! $allSupportInstallment) {
+                $paymentMethodsQuery->where('is_installment', false);
+            }
         }
 
         $paymentMethods = $paymentMethodsQuery->get();
@@ -84,7 +92,7 @@ class CartController extends Controller
                         'name' => $method->name,
                         'name_en' => $method->name_en,
                         'name_ar' => $method->name_ar,
-                        'image' => $method->image ? asset('storage/' . $method->image) : null,
+                        'image' => $method->image ? asset('storage/'.$method->image) : null,
                     ];
                 }),
                 'total' => $total,
@@ -107,7 +115,7 @@ class CartController extends Controller
         ]);
 
         // At least one of product_id or product_option_id must be provided
-        if (!$request->product_id && !$request->product_option_id) {
+        if (! $request->product_id && ! $request->product_option_id) {
             return Response::error(
                 __('Either product_id or product_option_id is required'),
                 null,
@@ -236,12 +244,13 @@ class CartController extends Controller
             foreach ($request->items as $index => $item) {
                 $product = Product::with('options')->find($item['product_id']);
 
-                if (!$product) {
+                if (! $product) {
                     $errors[] = [
                         'index' => $index,
                         'product_id' => $item['product_id'],
-                        'error' => __('Product not found')
+                        'error' => __('Product not found'),
                     ];
+
                     continue;
                 }
 
@@ -253,18 +262,20 @@ class CartController extends Controller
                     $errors[] = [
                         'index' => $index,
                         'product_id' => $item['product_id'],
-                        'error' => __('This product requires selecting an option')
+                        'error' => __('This product requires selecting an option'),
                     ];
+
                     continue;
                 }
 
                 // If product has no options, product_option_id should be null
-                if (!$hasOptions && !empty($item['product_option_id'])) {
+                if (! $hasOptions && ! empty($item['product_option_id'])) {
                     $errors[] = [
                         'index' => $index,
                         'product_id' => $item['product_id'],
-                        'error' => __('This product does not have options')
+                        'error' => __('This product does not have options'),
                     ];
+
                     continue;
                 }
 
@@ -273,12 +284,13 @@ class CartController extends Controller
                         ->where('product_id', $product->id)
                         ->first();
 
-                    if (!$option) {
+                    if (! $option) {
                         $errors[] = [
                             'index' => $index,
                             'product_id' => $item['product_id'],
-                            'error' => __('Invalid option for this product')
+                            'error' => __('Invalid option for this product'),
                         ];
+
                         continue;
                     }
                     $price = $option->getFinalPrice();
@@ -304,8 +316,9 @@ class CartController extends Controller
                             'product_id' => $item['product_id'],
                             'error' => __('Insufficient stock for total quantity'),
                             'available' => $availableQuantity,
-                            'in_cart' => $cartItem->quantity
+                            'in_cart' => $cartItem->quantity,
                         ];
+
                         continue;
                     }
 
@@ -319,8 +332,9 @@ class CartController extends Controller
                             'index' => $index,
                             'product_id' => $item['product_id'],
                             'error' => __('Insufficient stock'),
-                            'available' => $availableQuantity
+                            'available' => $availableQuantity,
                         ];
+
                         continue;
                     }
                     // Create new cart item
@@ -344,7 +358,7 @@ class CartController extends Controller
                 'added_count' => count($addedItems),
             ];
 
-            if (!empty($errors)) {
+            if (! empty($errors)) {
                 $responseData['errors'] = $errors;
                 $responseData['error_count'] = count($errors);
             }
@@ -357,6 +371,7 @@ class CartController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return Response::error(__('Failed to add items to cart'), ['error' => $e->getMessage()], 500);
         }
     }

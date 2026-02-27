@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
 {
-    use HasFactory, HasTranslations, HasSlug;
+    use HasFactory, HasSlug, HasTranslations;
 
     protected $fillable = [
         'name_en',
@@ -88,6 +88,7 @@ class Product extends Model
                         return $decoded;
                     }
                 }
+
                 // Return empty array if details is null or invalid
                 return $details ?: [];
             }
@@ -106,11 +107,18 @@ class Product extends Model
         return $this->belongsToMany(Category::class);
     }
 
+    /**
+     * Check if product is in a category that requires bank transfer only
+     */
+    public function isInBankTransferCategory(): bool
+    {
+        return $this->categories()->where('is_bank_transfer', true)->exists();
+    }
+
     public function options()
     {
         return $this->hasMany(ProductOption::class);
     }
-
 
     public function images()
     {
@@ -146,7 +154,6 @@ class Product extends Model
     {
         return $this->hasMany(ProductView::class);
     }
-
 
     /**
      * Get all applicable offers for this product
@@ -247,7 +254,7 @@ class Product extends Model
         $basePrice = $this->getBaseSellingPrice();
         $bestOffer = $this->getBestOffer();
 
-        if (!$bestOffer) {
+        if (! $bestOffer) {
             return $basePrice;
         }
 
