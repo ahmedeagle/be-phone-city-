@@ -18,9 +18,6 @@ class TabbyGateway extends AbstractPaymentGateway
 
     /**
      * Create a payment session for the order
-     *
-     * @param Order $order
-     * @return array
      */
     public function createPayment(Order $order): array
     {
@@ -29,7 +26,7 @@ class TabbyGateway extends AbstractPaymentGateway
             $merchantCode = $this->getConfig('merchant_code');
             $baseUrl = rtrim($this->getConfig('api_url', 'https://api.tabby.ai'), '/');
 
-            if (!$publicKey || !$merchantCode) {
+            if (! $publicKey || ! $merchantCode) {
                 return [
                     'success' => false,
                     'message' => __('Tabby configuration is incomplete'),
@@ -45,7 +42,7 @@ class TabbyGateway extends AbstractPaymentGateway
                 'payment' => [
                     'amount' => number_format($order->total, 2, '.', ''),
                     'currency' => strtoupper($order->currency ?? config('payment-gateways.currency', 'SAR')),
-                    'description' => __('Order') . ' #' . $order->order_number,
+                    'description' => __('Order').' #'.$order->order_number,
                     'buyer' => [
                         'phone' => $user->phone ?? '966500000000',
                         'email' => $user->email ?? 'customer@example.com',
@@ -69,7 +66,7 @@ class TabbyGateway extends AbstractPaymentGateway
                                 'unit_price' => number_format($item->price, 2, '.', ''),
                                 'discount_amount' => '0.00',
                                 'reference_id' => $item->product_id,
-                                'category' => $item->product->category->name ?? 'General',
+                                'category' => $item->product->categories->first()?->name ?? 'General',
                             ];
                         })->toArray(),
                     ],
@@ -84,15 +81,15 @@ class TabbyGateway extends AbstractPaymentGateway
             ];
 
             $response = $this->httpPost(
-                $baseUrl . '/api/v2/checkout',
+                $baseUrl.'/api/v2/checkout',
                 $paymentData,
                 [
-                    'Authorization' => 'Bearer ' . $publicKey,
+                    'Authorization' => 'Bearer '.$publicKey,
                     'Content-Type' => 'application/json',
                 ]
             );
 
-            if (!$response['success']) {
+            if (! $response['success']) {
                 return [
                     'success' => false,
                     'message' => $response['error'] ?? __('Failed to create Tabby checkout session'),
@@ -104,11 +101,36 @@ class TabbyGateway extends AbstractPaymentGateway
 
             $paymentResponse = $response['data'];
             $tabbyPayment = $paymentResponse['payment'] ?? [];
+            $configuration = $paymentResponse['configuration'] ?? [];
+            $status = $paymentResponse['status'] ?? null;
+
+            // Tabby returns HTTP 200 even when rejected - check status and available products
+            if ($status === 'rejected' || empty($configuration['available_products'] ?? [])) {
+                $errorMessage = $this->getTabbyRejectionMessage($paymentResponse);
+
+                return [
+                    'success' => false,
+                    'message' => $errorMessage,
+                    'transaction_id' => $tabbyPayment['id'] ?? null,
+                    'redirect_url' => null,
+                    'status' => 'rejected',
+                    'error_code' => $paymentResponse['rejection_reason_code'] ?? null,
+                    'data' => $paymentResponse,
+                ];
+            }
+
+            // Extract web_url - Tabby schema: configuration.available_products.installments[0].web_url
+            $availableProducts = $configuration['available_products'] ?? [];
+            $installmentsList = is_array($availableProducts) && isset($availableProducts['installments'])
+                ? ($availableProducts['installments'] ?? [])
+                : $availableProducts;
+            $firstInstallment = is_array($installmentsList) ? ($installmentsList[0] ?? []) : [];
+            $webUrl = $firstInstallment['web_url'] ?? null;
 
             return [
                 'success' => true,
                 'transaction_id' => $tabbyPayment['id'] ?? null,
-                'redirect_url' => $paymentResponse['configuration']['available_products']['installments'][0]['web_url'] ?? null,
+                'redirect_url' => $webUrl,
                 'requires_redirect' => true,
                 'status' => 'pending',
                 'message' => __('Tabby checkout session created successfully'),
@@ -132,9 +154,6 @@ class TabbyGateway extends AbstractPaymentGateway
 
     /**
      * Capture a payment
-     *
-     * @param string $transactionId
-     * @return array
      */
     public function capturePayment(string $transactionId): array
     {
@@ -142,7 +161,7 @@ class TabbyGateway extends AbstractPaymentGateway
             $secretKey = $this->getConfig('secret_key');
             $baseUrl = rtrim($this->getConfig('api_url', 'https://api.tabby.ai'), '/');
 
-            if (!$secretKey) {
+            if (! $secretKey) {
                 return [
                     'success' => false,
                     'message' => __('Tabby secret key is not configured'),
@@ -150,15 +169,15 @@ class TabbyGateway extends AbstractPaymentGateway
             }
 
             $response = $this->httpPost(
-                $baseUrl . '/api/v1/payments/' . $transactionId . '/captures',
+                $baseUrl.'/api/v1/payments/'.$transactionId.'/captures',
                 [],
                 [
-                    'Authorization' => 'Bearer ' . $secretKey,
+                    'Authorization' => 'Bearer '.$secretKey,
                     'Content-Type' => 'application/json',
                 ]
             );
 
-            if (!$response['success']) {
+            if (! $response['success']) {
                 return [
                     'success' => false,
                     'message' => $response['error'] ?? __('Failed to capture Tabby payment'),
@@ -187,10 +206,6 @@ class TabbyGateway extends AbstractPaymentGateway
 
     /**
      * Refund a payment
-     *
-     * @param string $transactionId
-     * @param float $amount
-     * @return array
      */
     public function refundPayment(string $transactionId, float $amount): array
     {
@@ -198,7 +213,7 @@ class TabbyGateway extends AbstractPaymentGateway
             $secretKey = $this->getConfig('secret_key');
             $baseUrl = rtrim($this->getConfig('api_url', 'https://api.tabby.ai'), '/');
 
-            if (!$secretKey) {
+            if (! $secretKey) {
                 return [
                     'success' => false,
                     'message' => __('Tabby secret key is not configured'),
@@ -210,15 +225,15 @@ class TabbyGateway extends AbstractPaymentGateway
             ];
 
             $response = $this->httpPost(
-                $baseUrl . '/api/v1/payments/' . $transactionId . '/refunds',
+                $baseUrl.'/api/v1/payments/'.$transactionId.'/refunds',
                 $refundData,
                 [
-                    'Authorization' => 'Bearer ' . $secretKey,
+                    'Authorization' => 'Bearer '.$secretKey,
                     'Content-Type' => 'application/json',
                 ]
             );
 
-            if (!$response['success']) {
+            if (! $response['success']) {
                 return [
                     'success' => false,
                     'message' => $response['error'] ?? __('Failed to process Tabby refund'),
@@ -229,7 +244,7 @@ class TabbyGateway extends AbstractPaymentGateway
 
             return [
                 'success' => true,
-                'refund_id' => $response['data']['id'] ?? $transactionId . '-refund',
+                'refund_id' => $response['data']['id'] ?? $transactionId.'-refund',
                 'message' => __('Refund processed successfully'),
                 'data' => $response['data'] ?? [],
             ];
@@ -250,9 +265,6 @@ class TabbyGateway extends AbstractPaymentGateway
 
     /**
      * Get payment status from gateway
-     *
-     * @param string $transactionId
-     * @return array
      */
     public function getPaymentStatus(string $transactionId): array
     {
@@ -260,7 +272,7 @@ class TabbyGateway extends AbstractPaymentGateway
             $secretKey = $this->getConfig('secret_key');
             $baseUrl = rtrim($this->getConfig('api_url', 'https://api.tabby.ai'), '/');
 
-            if (!$secretKey) {
+            if (! $secretKey) {
                 return [
                     'success' => false,
                     'status' => 'unknown',
@@ -269,14 +281,14 @@ class TabbyGateway extends AbstractPaymentGateway
             }
 
             $response = $this->httpGet(
-                $baseUrl . '/api/v2/payments/' . $transactionId,
+                $baseUrl.'/api/v2/payments/'.$transactionId,
                 [],
                 [
-                    'Authorization' => 'Bearer ' . $secretKey,
+                    'Authorization' => 'Bearer '.$secretKey,
                 ]
             );
 
-            if (!$response['success']) {
+            if (! $response['success']) {
                 return [
                     'success' => false,
                     'status' => 'unknown',
@@ -309,9 +321,6 @@ class TabbyGateway extends AbstractPaymentGateway
 
     /**
      * Handle webhook notification
-     *
-     * @param array $payload
-     * @return array
      */
     public function handleWebhook(array $payload): array
     {
@@ -320,7 +329,7 @@ class TabbyGateway extends AbstractPaymentGateway
             $paymentId = $payload['id'] ?? null;
             $orderNumber = $payload['order']['reference_id'] ?? null;
 
-            if (!$orderNumber) {
+            if (! $orderNumber) {
                 return [
                     'success' => false,
                     'order_id' => null,
@@ -355,9 +364,6 @@ class TabbyGateway extends AbstractPaymentGateway
 
     /**
      * Validate webhook signature
-     *
-     * @param Request $request
-     * @return bool
      */
     public function validateWebhookSignature(Request $request): bool
     {
@@ -368,14 +374,37 @@ class TabbyGateway extends AbstractPaymentGateway
     }
 
     /**
+     * Get user-friendly message for Tabby rejection
+     */
+    protected function getTabbyRejectionMessage(array $paymentResponse): string
+    {
+        $rejectionReason = null;
+        $configuration = $paymentResponse['configuration'] ?? [];
+        $products = $configuration['products'] ?? [];
+        $installments = $products['installments'] ?? [];
+
+        if (! empty($installments['rejection_reason'])) {
+            $rejectionReason = $installments['rejection_reason'];
+        }
+
+        $rejectionCode = $paymentResponse['rejection_reason_code'] ?? $rejectionReason;
+
+        $messages = [
+            'order_amount_too_high' => __('Tabby installment is not available for this order amount. The order total exceeds the allowed limit. Please try a different payment method.'),
+            'order_amount_too_low' => __('Tabby installment is not available. The order amount is below the minimum required.'),
+            'not_enough_limit' => __('Tabby installment is not available. Your spending limit does not cover this order. Please try a different payment method.'),
+            'not_available' => __('Tabby installment is not available for this order. Please try a different payment method.'),
+        ];
+
+        return $messages[$rejectionReason ?? $rejectionCode] ?? $messages['not_available'];
+    }
+
+    /**
      * Map Tabby status to internal status
-     *
-     * @param string $status
-     * @return string
      */
     protected function mapTabbyStatus(string $status): string
     {
-        return match(strtolower($status)) {
+        return match (strtolower($status)) {
             'authorized', 'captured', 'closed' => 'success',
             'created', 'initiated' => 'pending',
             'rejected', 'expired' => 'failed',

@@ -6,19 +6,17 @@ use App\Models\Order;
 use App\Models\PaymentTransaction;
 use App\Models\Setting;
 use App\Services\PaymentGateways\PaymentGatewayFactory;
+use Exception;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Exception;
 
 class PaymentService
 {
     /**
      * Initiate payment for an order
      *
-     * @param Order $order
-     * @return array
      * @throws Exception
      */
     public function initiatePayment(Order $order): array
@@ -29,7 +27,7 @@ class PaymentService
             // Get payment method
             $paymentMethod = $order->paymentMethod;
 
-            if (!$paymentMethod) {
+            if (! $paymentMethod) {
                 throw new Exception(__('Payment method not found'));
             }
 
@@ -41,7 +39,7 @@ class PaymentService
             $gateway = PaymentGatewayFactory::makeFromPaymentMethod($paymentMethod);
 
             // Check if gateway is enabled
-            if (!$gateway->isEnabled()) {
+            if (! $gateway->isEnabled()) {
                 throw new Exception(__('Payment gateway is currently disabled'));
             }
 
@@ -94,6 +92,9 @@ class PaymentService
                 'message' => $paymentResponse['message'] ?? __('Payment initiated successfully'),
                 'payment_status' => $orderPaymentStatus,
                 'expires_at' => $transaction->expires_at?->toDateTimeString(),
+                'error' => $paymentResponse['success'] ? null : ($paymentResponse['message'] ?? null),
+                'error_code' => $paymentResponse['error_code'] ?? null,
+                'can_retry' => ! $paymentResponse['success'],
             ];
 
         } catch (Exception $e) {
@@ -110,11 +111,6 @@ class PaymentService
 
     /**
      * Process payment callback from gateway
-     *
-     * @param Order $order
-     * @param string $transactionId
-     * @param array $data
-     * @return bool
      */
     public function processPaymentCallback(Order $order, string $transactionId, array $data): bool
     {
@@ -126,7 +122,7 @@ class PaymentService
                 ->where('order_id', $order->id)
                 ->first();
 
-            if (!$transaction) {
+            if (! $transaction) {
                 // Try to find the latest pending or processing transaction for this order
                 // This handles cases like Moyasar where transaction_id changes from session ID to payment ID
                 $transaction = PaymentTransaction::where('order_id', $order->id)
@@ -147,6 +143,7 @@ class PaymentService
                         'order_id' => $order->id,
                         'transaction_id' => $transactionId,
                     ]);
+
                     return false;
                 }
             }
@@ -163,7 +160,7 @@ class PaymentService
 
             $statusResponse = $gateway->getPaymentStatus($transactionId);
 
-            if (!$statusResponse['success']) {
+            if (! $statusResponse['success']) {
                 Log::warning('Payment callback: Failed to get payment status from gateway', [
                     'order_id' => $order->id,
                     'transaction_id' => $transactionId,
@@ -217,10 +214,6 @@ class PaymentService
 
     /**
      * Handle webhook from payment gateway
-     *
-     * @param string $gateway
-     * @param array $payload
-     * @return array
      */
     public function handleWebhook(string $gateway, array $payload): array
     {
@@ -241,7 +234,7 @@ class PaymentService
 
                     if ($transaction) {
                         // Update transaction ID if webhook provides a different one (for Amwal)
-                        if (!empty($webhookResponse['transaction_id']) &&
+                        if (! empty($webhookResponse['transaction_id']) &&
                             $webhookResponse['transaction_id'] !== $transaction->transaction_id) {
                             Log::info('Webhook: Updating transaction ID', [
                                 'order_id' => $order->id,
@@ -312,15 +305,12 @@ class PaymentService
     /**
      * Refund an order
      *
-     * @param Order $order
-     * @param float|null $amount
-     * @return array
      * @throws Exception
      */
     public function refundOrder(Order $order, ?float $amount = null): array
     {
         try {
-            if (!$order->hasSuccessfulPayment()) {
+            if (! $order->hasSuccessfulPayment()) {
                 throw new Exception(__('Order payment must be successful before refunding'));
             }
 
@@ -330,7 +320,7 @@ class PaymentService
                 ->latest()
                 ->first();
 
-            if (!$transaction) {
+            if (! $transaction) {
                 throw new Exception(__('No successful transaction found for this order'));
             }
 
@@ -384,16 +374,13 @@ class PaymentService
 
     /**
      * Check payment status for an order
-     *
-     * @param Order $order
-     * @return array
      */
     public function checkPaymentStatus(Order $order): array
     {
         try {
             $transaction = $order->getLatestPaymentTransaction();
 
-            if (!$transaction) {
+            if (! $transaction) {
                 return [
                     'success' => false,
                     'status' => 'no_transaction',
@@ -465,8 +452,6 @@ class PaymentService
 
     /**
      * Mark expired payments (run via scheduled task)
-     *
-     * @return void
      */
     public function markExpiredPayments(): void
     {
@@ -475,9 +460,9 @@ class PaymentService
 
             // Mark transactions as expired
             PaymentTransaction::whereIn('status', [
-                    PaymentTransaction::STATUS_PENDING,
-                    PaymentTransaction::STATUS_PROCESSING,
-                ])
+                PaymentTransaction::STATUS_PENDING,
+                PaymentTransaction::STATUS_PROCESSING,
+            ])
                 ->where('created_at', '<', now()->subMinutes($expirationMinutes))
                 ->update(['status' => PaymentTransaction::STATUS_EXPIRED]);
 
@@ -501,9 +486,8 @@ class PaymentService
     /**
      * Upload payment proof for bank transfer
      *
-     * @param Order $order
-     * @param UploadedFile $file
      * @return string Path to uploaded file
+     *
      * @throws Exception
      */
     public function uploadPaymentProof(Order $order, UploadedFile $file): string
@@ -514,7 +498,7 @@ class PaymentService
             // Get latest transaction
             $transaction = $order->getLatestPaymentTransaction();
 
-            if (!$transaction) {
+            if (! $transaction) {
                 throw new Exception(__('No payment transaction found for this order'));
             }
 
@@ -543,7 +527,7 @@ class PaymentService
                 ]);
             }
             // Check if proof already uploaded and awaiting review
-            elseif ($transaction->hasPaymentProof() && !$transaction->isReviewed()) {
+            elseif ($transaction->hasPaymentProof() && ! $transaction->isReviewed()) {
                 throw new Exception(__('Payment proof already uploaded and awaiting review.'));
             }
             // Edge case: Has proof but status is pending after review (shouldn't happen normally)
@@ -565,13 +549,13 @@ class PaymentService
             $gateway = PaymentGatewayFactory::make('bank_transfer');
             $validation = $gateway->validatePaymentProof($file);
 
-            if (!$validation['valid']) {
+            if (! $validation['valid']) {
                 throw new Exception($validation['error']);
             }
 
             // Store file
             $storagePath = config('payment-gateways.gateways.bank_transfer.storage_path', 'payment-proofs');
-            $fileName = $order->order_number . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $fileName = $order->order_number.'_'.time().'.'.$file->getClientOriginalExtension();
             $filePath = $file->storeAs($storagePath, $fileName, 'local'); // Store in storage/app (not public)
 
             // Update transaction
@@ -611,10 +595,6 @@ class PaymentService
     /**
      * Review payment proof (approve or reject)
      *
-     * @param Order $order
-     * @param bool $approve
-     * @param string|null $notes
-     * @return bool
      * @throws Exception
      */
     public function reviewPaymentProof(Order $order, bool $approve, ?string $notes = null): bool
@@ -624,7 +604,7 @@ class PaymentService
 
             $transaction = $order->getLatestPaymentTransaction();
 
-            if (!$transaction) {
+            if (! $transaction) {
                 throw new Exception(__('No payment transaction found'));
             }
 
@@ -633,9 +613,9 @@ class PaymentService
                 && $transaction->status === PaymentTransaction::STATUS_PENDING
                 && empty($transaction->payment_proof_path);
 
-            if (!$wasRejected) {
+            if (! $wasRejected) {
                 // For new reviews, check if proof exists and not already reviewed
-                if (!$transaction->hasPaymentProof()) {
+                if (! $transaction->hasPaymentProof()) {
                     throw new Exception(__('No payment proof uploaded'));
                 }
 
@@ -719,7 +699,6 @@ class PaymentService
     /**
      * Get bank account details
      *
-     * @return array
      * @throws Exception
      */
     public function getBankAccountDetails(): array
@@ -753,13 +732,10 @@ class PaymentService
 
     /**
      * Map gateway status to transaction status
-     *
-     * @param string $gatewayStatus
-     * @return string
      */
     protected function mapGatewayStatusToTransactionStatus(string $gatewayStatus): string
     {
-        return match(strtolower($gatewayStatus)) {
+        return match (strtolower($gatewayStatus)) {
             'success', 'paid', 'completed', 'captured' => PaymentTransaction::STATUS_SUCCESS,
             'pending', 'awaiting_payment' => PaymentTransaction::STATUS_PENDING,
             'processing', 'awaiting_review' => PaymentTransaction::STATUS_PROCESSING,
@@ -774,9 +750,7 @@ class PaymentService
     /**
      * Determine order payment status from gateway response
      *
-     * @param array $paymentResponse
-     * @param object $gateway
-     * @return string
+     * @param  object  $gateway
      */
     protected function determineOrderPaymentStatus(array $paymentResponse, $gateway): string
     {
@@ -786,26 +760,22 @@ class PaymentService
             return Order::PAYMENT_STATUS_AWAITING_REVIEW;
         }
 
-        return match(strtolower($status)) {
+        return match (strtolower($status)) {
             'success', 'paid' => Order::PAYMENT_STATUS_PAID,
             'processing', 'awaiting_review' => Order::PAYMENT_STATUS_PROCESSING,
-            'failed' => Order::PAYMENT_STATUS_FAILED,
+            'failed', 'rejected' => Order::PAYMENT_STATUS_FAILED,
             default => Order::PAYMENT_STATUS_PENDING,
         };
     }
 
     /**
      * Update order payment status based on transaction
-     *
-     * @param Order $order
-     * @param PaymentTransaction $transaction
-     * @return void
      */
     protected function updateOrderPaymentStatus(Order $order, PaymentTransaction $transaction): void
     {
         $oldPaymentStatus = $order->payment_status;
 
-        $orderStatus = match($transaction->status) {
+        $orderStatus = match ($transaction->status) {
             PaymentTransaction::STATUS_SUCCESS => Order::PAYMENT_STATUS_PAID,
             PaymentTransaction::STATUS_FAILED => Order::PAYMENT_STATUS_FAILED,
             PaymentTransaction::STATUS_EXPIRED => Order::PAYMENT_STATUS_EXPIRED,
@@ -837,7 +807,7 @@ class PaymentService
         $shouldCreateShipping = $orderStatus === Order::PAYMENT_STATUS_PAID
             && $oldPaymentStatus !== Order::PAYMENT_STATUS_PAID
             && $order->delivery_method === Order::DELIVERY_HOME
-            && !$order->hasActiveShipment()
+            && ! $order->hasActiveShipment()
             && empty($order->oto_order_id);
 
         Log::info('PaymentService: Checking if should create automatic OTO shipping', [
@@ -846,7 +816,7 @@ class PaymentService
             'payment_status_paid' => $orderStatus === Order::PAYMENT_STATUS_PAID,
             'was_not_paid_before' => $oldPaymentStatus !== Order::PAYMENT_STATUS_PAID,
             'is_home_delivery' => $order->delivery_method === Order::DELIVERY_HOME,
-            'no_active_shipment' => !$order->hasActiveShipment(),
+            'no_active_shipment' => ! $order->hasActiveShipment(),
             'no_oto_order_id' => empty($order->oto_order_id),
         ]);
 
@@ -864,7 +834,7 @@ class PaymentService
                     'was_already_paid' => $oldPaymentStatus === Order::PAYMENT_STATUS_PAID,
                     'not_home_delivery' => $order->delivery_method !== Order::DELIVERY_HOME,
                     'has_active_shipment' => $order->hasActiveShipment(),
-                    'has_oto_order_id' => !empty($order->oto_order_id),
+                    'has_oto_order_id' => ! empty($order->oto_order_id),
                 ],
             ]);
         }
@@ -872,9 +842,6 @@ class PaymentService
 
     /**
      * Handle automatic OTO shipping when order is paid
-     *
-     * @param Order $order
-     * @return void
      */
     protected function handleAutomaticOtoShipping(Order $order): void
     {
@@ -917,13 +884,14 @@ class PaymentService
             ]);
 
             // Check if order is eligible for shipment
-            if (!$order->location || $order->delivery_method !== Order::DELIVERY_HOME) {
+            if (! $order->location || $order->delivery_method !== Order::DELIVERY_HOME) {
                 Log::warning('PaymentService: Order not eligible for automatic OTO shipping', [
                     'order_id' => $order->id,
                     'delivery_method' => $order->delivery_method,
                     'has_location' => (bool) $order->location,
                     'location_id' => $order->location_id,
                 ]);
+
                 return;
             }
 

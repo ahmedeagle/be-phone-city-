@@ -188,6 +188,7 @@ class OrderController extends Controller
                 $responseData = [
                     'order' => new OrderResource($order->fresh(['paymentMethod', 'location', 'items'])),
                     'payment' => [
+                        'success' => $paymentData['success'],
                         'status' => $paymentData['payment_status'],
                         'gateway' => $paymentData['gateway'],
                         'transaction_id' => $paymentData['transaction_id'],
@@ -197,6 +198,9 @@ class OrderController extends Controller
                         'bank_account_details' => $paymentData['bank_account_details'] ?? null,
                         'message' => $paymentData['message'] ?? null,
                         'expires_at' => $paymentData['expires_at'] ?? null,
+                        'error' => $paymentData['error'] ?? null,
+                        'error_code' => $paymentData['error_code'] ?? null,
+                        'can_retry' => $paymentData['can_retry'] ?? false,
                     ],
                 ];
 
