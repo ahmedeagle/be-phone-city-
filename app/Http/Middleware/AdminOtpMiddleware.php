@@ -20,8 +20,8 @@ class AdminOtpMiddleware
             return $next($request);
         }
 
-        // Allow access to OTP verification page and logout
-        if ($request->routeIs('filament.admin.otp-challenge') || $request->routeIs('filament.admin.auth.*') || $request->is('*/otp-challenge')) {
+        // Allow access to OTP verification page, login, and logout
+        if ($request->is('dashboard/otp-challenge') || $request->is('dashboard/login') || $request->is('dashboard/logout') || $request->routeIs('admin.otp-challenge') || $request->routeIs('filament.admin.auth.*')) {
             return $next($request);
         }
 

@@ -23,7 +23,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
 // SECURITY: Artisan routes removed - they were publicly accessible without authentication.
 // Use `php artisan` CLI commands directly on the server instead.
 
-// Serve static assets from frontend directory
+// OTP Challenge route - standalone, only requires admin auth (not OTP middleware)
+Route::get('/dashboard/otp-challenge', \App\Livewire\OtpChallenge::class)
+    ->middleware(['web', 'auth:admin'])
+    ->name('admin.otp-challenge');
+
 // Serve static assets from frontend directory
 Route::get('/assets/{path}', function ($path) {
     $filePath = public_path("frontend/assets/{$path}");
