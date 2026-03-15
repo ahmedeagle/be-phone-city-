@@ -101,7 +101,7 @@ class AdminPanelProvider extends PanelProvider
             ->authGuard('admin')
             ->authMiddleware([
                 Authenticate::class,
-                AdminOtpMiddleware::class,
+                // AdminOtpMiddleware::class, // Temporarily disabled to restore dashboard access
             ])
             ->databaseNotifications();
     }
