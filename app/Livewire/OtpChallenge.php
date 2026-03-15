@@ -27,6 +27,17 @@ class OtpChallenge extends Component
             $this->redirect('/dashboard');
             return;
         }
+
+        // Generate OTP if not already pending
+        $cacheKey = 'admin_otp_' . $admin->id;
+        if (!Cache::has($cacheKey)) {
+            $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            Cache::put($cacheKey, $code, now()->addMinutes(10));
+            Cache::put($cacheKey . '_attempts', 0, now()->addMinutes(10));
+
+            Notification::route('mail', $admin->email)
+                ->notify(new AdminOtpNotification($code, $admin->name));
+        }
     }
 
     public function verify(): void

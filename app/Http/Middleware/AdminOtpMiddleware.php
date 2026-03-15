@@ -21,7 +21,7 @@ class AdminOtpMiddleware
         }
 
         // Allow access to OTP verification page, login, and logout
-        if ($request->is('dashboard/otp-challenge') || $request->is('dashboard/login') || $request->is('dashboard/logout') || $request->routeIs('admin.otp-challenge') || $request->routeIs('filament.admin.auth.*')) {
+        if ($request->is('otp-verify') || $request->is('dashboard/login') || $request->is('dashboard/logout') || $request->routeIs('admin.otp-challenge') || $request->routeIs('filament.admin.auth.*')) {
             return $next($request);
         }
 
@@ -30,17 +30,6 @@ class AdminOtpMiddleware
             return $next($request);
         }
 
-        // Generate OTP if not already pending
-        $cacheKey = 'admin_otp_' . $admin->id;
-        if (!Cache::has($cacheKey)) {
-            $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-            Cache::put($cacheKey, $code, now()->addMinutes(10));
-            Cache::put($cacheKey . '_attempts', 0, now()->addMinutes(10));
-
-            Notification::route('mail', $admin->email)
-                ->notify(new AdminOtpNotification($code, $admin->name));
-        }
-
-        return redirect('/dashboard/otp-challenge');
+        return redirect('/otp-verify');
     }
 }

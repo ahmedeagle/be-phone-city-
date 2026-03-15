@@ -23,8 +23,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 // SECURITY: Artisan routes removed - they were publicly accessible without authentication.
 // Use `php artisan` CLI commands directly on the server instead.
 
-// OTP Challenge route - standalone, only requires admin auth (not OTP middleware)
-Route::get('/dashboard/otp-challenge', \App\Livewire\OtpChallenge::class)
+// OTP Challenge route - standalone, outside Filament's /dashboard path
+Route::get('/otp-verify', \App\Livewire\OtpChallenge::class)
     ->middleware(['web', 'auth:admin'])
     ->name('admin.otp-challenge');
 
