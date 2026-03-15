@@ -19,7 +19,7 @@ class OtpController extends Controller
             return redirect('/dashboard/login');
         }
 
-        if (Cache::has('admin_otp_verified_' . $admin->id)) {
+        if ($admin->isOtpVerified()) {
             return redirect('/dashboard');
         }
 
@@ -87,10 +87,11 @@ class OtpController extends Controller
             return back()->withErrors(['code' => "رمز التحقق غير صحيح. المحاولات المتبقية: {$remaining}"])->withInput();
         }
 
-        // OTP verified — cache for 8 hours
+        // OTP verified — store timestamp in DB for 8 hours (survives all requests)
         Cache::forget($cacheKey);
         Cache::forget($attemptsKey);
-        Cache::put('admin_otp_verified_' . $admin->id, true, now()->addHours(8));
+        $admin->otp_verified_until = now()->addHours(8);
+        $admin->save();
 
         return redirect('/dashboard');
     }
@@ -126,10 +127,11 @@ class OtpController extends Controller
         $admin = Auth::guard('admin')->user();
 
         if ($admin) {
-            // Clear OTP cache keys
+            // Clear OTP cache keys and DB verification
             Cache::forget('admin_otp_' . $admin->id);
             Cache::forget('admin_otp_' . $admin->id . '_attempts');
-            Cache::forget('admin_otp_verified_' . $admin->id);
+            $admin->otp_verified_until = null;
+            $admin->save();
 
             Auth::guard('admin')->logout();
         }

@@ -22,11 +22,23 @@ class Admin extends Authenticatable implements FilamentUser
 
     protected $table = 'admins';
 
-    protected $fillable = ['name', 'email', 'password'];
+    protected $fillable = ['name', 'email', 'password', 'otp_verified_until'];
 
     protected $hidden = ['password', 'remember_token'];
 
+    protected $casts = [
+        'otp_verified_until' => 'datetime',
+    ];
+
     protected $guard_name = 'admin';
+
+    /**
+     * Check if this admin has a valid OTP verification.
+     */
+    public function isOtpVerified(): bool
+    {
+        return $this->otp_verified_until !== null && $this->otp_verified_until->isFuture();
+    }
 
     public function canAccessPanel(Panel $panel): bool
     {

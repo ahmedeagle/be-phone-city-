@@ -4,10 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Notification;
-use App\Notifications\AdminOtpNotification;
 use Symfony\Component\HttpFoundation\Response;
 
 class AdminOtpMiddleware
@@ -25,8 +22,8 @@ class AdminOtpMiddleware
             return $next($request);
         }
 
-        // Check if OTP already verified (cache-based, survives across middleware stacks)
-        if (Cache::has('admin_otp_verified_' . $admin->id)) {
+        // Check if OTP already verified (stored in DB — survives across all middleware stacks)
+        if ($admin->isOtpVerified()) {
             return $next($request);
         }
 

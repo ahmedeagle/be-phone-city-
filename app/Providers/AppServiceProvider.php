@@ -35,10 +35,13 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\Review::observe(\App\Observers\ReviewObserver::class);
         \App\Models\ContactRequest::observe(\App\Observers\ContactRequestObserver::class);
 
-        // Clear OTP verified cache when admin logs out (forces re-verification on next login)
+        // Clear OTP verification on logout (forces re-verification on next login)
         Event::listen(Logout::class, function (Logout $event) {
             if ($event->guard === 'admin' && $event->user) {
-                Cache::forget('admin_otp_verified_' . $event->user->id);
+                Cache::forget('admin_otp_' . $event->user->id);
+                Cache::forget('admin_otp_' . $event->user->id . '_attempts');
+                $event->user->otp_verified_until = null;
+                $event->user->save();
             }
         });
 
