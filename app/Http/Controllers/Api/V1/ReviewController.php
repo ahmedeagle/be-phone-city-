@@ -17,11 +17,12 @@ class ReviewController extends Controller
     use PaginatesResponses;
 
     /**
-     * Get all reviews for a product
+     * Get all reviews for a product — only approved reviews are returned publicly.
      */
     public function index(Request $request)
     {
-        $query = Review::with(['user', 'product']);
+        $query = Review::with(['user', 'product'])
+            ->where('status', Review::STATUS_APPROVED);
 
         // Filter by product_id
         if ($request->filled('product_id')) {
@@ -91,16 +92,17 @@ class ReviewController extends Controller
         }
 
         $review = Review::create([
-            'user_id' => $userId,
+            'user_id'    => $userId,
             'product_id' => $request->product_id,
-            'comment' => $request->comment,
-            'rating' => $request->rating,
+            'comment'    => $request->comment,
+            'rating'     => $request->rating,
+            'status'     => Review::STATUS_PENDING,
         ]);
 
         $review->load(['user', 'product']);
 
         return Response::success(
-            __('Review created successfully'),
+            __('Your review has been submitted and is awaiting admin approval'),
             new ReviewResource($review),
             201
         );
@@ -125,6 +127,8 @@ class ReviewController extends Controller
         }
 
         if (!empty($updateData)) {
+            // Reset to pending so the updated content is re-reviewed by admin
+            $updateData['status'] = Review::STATUS_PENDING;
             $review->update($updateData);
             $review->refresh();
         }

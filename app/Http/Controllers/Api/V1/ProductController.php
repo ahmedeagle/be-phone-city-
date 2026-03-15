@@ -62,10 +62,13 @@ class ProductController extends Controller
             'categories',
             'favorites',
             'carts',
-            'reviews.user',
+            'reviews' => fn ($q) => $q->approved()->with('user'),
         ])
-            ->loadCount(['reviews', 'options'])
-            ->loadAvg('reviews', 'rating');
+            ->loadCount([
+                'reviews as reviews_count' => fn ($q) => $q->approved(),
+                'options',
+            ])
+            ->loadAvg(['reviews as reviews_avg_rating' => fn ($q) => $q->approved()], 'rating');
 
         return Response::success(
             __('Product fetched successfully'),
