@@ -76,7 +76,7 @@ class CommentResource extends Resource
                     ->schema([
                         Select::make('blog_id')
                             ->label('المقال')
-                            ->relationship('blog', 'title')
+                            ->relationship('blog', 'title_en')
                             ->required()
                             ->searchable()
                             ->preload()
@@ -154,7 +154,7 @@ class CommentResource extends Resource
     {
         return $schema
             ->components([
-                TextEntry::make('blog.title')
+                TextEntry::make('blog.title_en')
                     ->label('المقال'),
                 TextEntry::make('user.name')
                     ->label('المستخدم')
@@ -207,7 +207,7 @@ class CommentResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('blog.title')
+                TextColumn::make('blog.title_en')
                     ->searchable()
                     ->sortable()
                     ->label('المقال')
@@ -256,7 +256,7 @@ class CommentResource extends Resource
                     ]),
                 SelectFilter::make('blog_id')
                     ->label('المقال')
-                    ->relationship('blog', 'title')
+                    ->relationship('blog', 'title_en')
                     ->searchable()
                     ->preload(),
                 SelectFilter::make('is_guest_comment')
