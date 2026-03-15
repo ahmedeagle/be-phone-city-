@@ -1,0 +1,42 @@
+# robots.txt for City Phones - cityphonesa.com
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://cityphonesa.com/sitemap.xml
+
+# Disallow admin/private paths
+Disallow: /api/
+Disallow: /checkout
+Disallow: /profile
+Disallow: /wallet
+Disallow: /myorder
+Disallow: /bills
+Disallow: /singlebills
+Disallow: /address
+Disallow: /singleaddress
+Disallow: /discounts
+Disallow: /notifications
+Disallow: /login
+Disallow: /register
+
+# Allow crawlers to access all public pages
+Allow: /ar/
+Allow: /en/
+Allow: /ar/about
+Allow: /en/about
+Allow: /ar/offers
+Allow: /en/offers
+Allow: /ar/servces
+Allow: /en/servces
+Allow: /ar/contact
+Allow: /en/contact
+Allow: /ar/blog
+Allow: /en/blog
+Allow: /ar/singleproduct/
+Allow: /en/singleproduct/
+Allow: /ar/categorySingle/
+Allow: /en/categorySingle/
+
+# Crawl-delay for polite crawling
+Crawl-delay: 1
