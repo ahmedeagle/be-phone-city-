@@ -23,7 +23,7 @@ class OtpChallenge extends Component
             return;
         }
 
-        if (session('admin_otp_verified') === true) {
+        if (Cache::has('admin_otp_verified_' . $admin->id)) {
             $this->redirect('/dashboard');
             return;
         }
@@ -80,10 +80,10 @@ class OtpChallenge extends Component
             return;
         }
 
-        // OTP verified
+        // OTP verified — store in cache for 8 hours (admin work session)
         Cache::forget($cacheKey);
         Cache::forget($attemptsKey);
-        session(['admin_otp_verified' => true]);
+        Cache::put('admin_otp_verified_' . $admin->id, true, now()->addHours(8));
 
         $this->redirect('/dashboard');
     }

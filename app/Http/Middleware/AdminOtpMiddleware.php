@@ -25,8 +25,8 @@ class AdminOtpMiddleware
             return $next($request);
         }
 
-        // Check if OTP already verified this session
-        if (session('admin_otp_verified') === true) {
+        // Check if OTP already verified (cache-based, survives across middleware stacks)
+        if (Cache::has('admin_otp_verified_' . $admin->id)) {
             return $next($request);
         }
 
