@@ -15,7 +15,7 @@ class AdminSeeder extends Seeder
             ['email' => 'admin@gmail.com'],
             [
                 'name' => 'المدير',
-                'password' => Hash::make('12345678'), // change this later
+                'password' => Hash::make('CityPhone@Admin2024!'), // Strong default password - CHANGE on first login
             ]
         );
 

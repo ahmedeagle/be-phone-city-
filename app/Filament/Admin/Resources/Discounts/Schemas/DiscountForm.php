@@ -46,7 +46,7 @@ class DiscountForm
                             ->helperText(fn ($get) => $get('type') === 'percentage'
                                 ? 'قيمة الخصم كنسبة مئوية (0-100)'
                                 : 'قيمة الخصم كمبلغ ثابت')
-                            ->minValue(0)
+                            ->minValue(0.01)
                             ->maxValue(fn ($get) => $get('type') === 'percentage' ? 100 : null)
                             ->reactive(),
                     ])
@@ -57,13 +57,15 @@ class DiscountForm
                             ->label('تاريخ البداية')
                             ->required()
                             ->native(false)
-                            ->displayFormat('d/m/Y H:i'),
+                            ->displayFormat('d/m/Y H:i')
+                            ->minDate(now()),
                         DateTimePicker::make('end')
                             ->label('تاريخ النهاية')
                             ->required()
                             ->native(false)
                             ->displayFormat('d/m/Y H:i')
-                            ->after('start'),
+                            ->after('start')
+                            ->minDate(now()),
                     ])
                     ->columns(2),
                 Section::make('الوصف')

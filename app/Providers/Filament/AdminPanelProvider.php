@@ -16,6 +16,7 @@ use App\Filament\Admin\Resources\Orders\Pages\ListOrdersShipped;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use App\Http\Middleware\AdminOtpMiddleware;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -100,6 +101,7 @@ class AdminPanelProvider extends PanelProvider
             ->authGuard('admin')
             ->authMiddleware([
                 Authenticate::class,
+                AdminOtpMiddleware::class,
             ])
             ->databaseNotifications();
     }

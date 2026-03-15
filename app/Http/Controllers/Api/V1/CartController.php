@@ -97,6 +97,8 @@ class CartController extends Controller
                 }),
                 'total' => $total,
                 'count' => $cartItems->count(),
+                'unique_products_count' => $cartItems->unique('product_id')->count(),
+                'total_quantity' => $cartItems->sum('quantity'),
             ]
         );
     }

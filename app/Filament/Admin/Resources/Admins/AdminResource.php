@@ -88,7 +88,17 @@ class AdminResource extends Resource
                             ->label('كلمة المرور')
                             ->required(fn ($livewire) => $livewire instanceof CreateAdmin)
                             ->dehydrated(fn ($state) => filled($state))
-                            ->helperText(fn ($livewire) => $livewire instanceof EditAdmin ? 'اتركه فارغاً إذا لم ترد تغيير كلمة المرور' : ''),
+                            ->minLength(12)
+                            ->rules([
+                                'min:12',
+                                'regex:/[a-z]/',
+                                'regex:/[A-Z]/',
+                                'regex:/[0-9]/',
+                                'regex:/[@$!%*#?&]/',
+                            ])
+                            ->helperText(fn ($livewire) => $livewire instanceof EditAdmin
+                                ? 'اتركه فارغاً إذا لم ترد تغيير كلمة المرور'
+                                : 'يجب أن تكون 12 حرف على الأقل وتحتوي على حرف كبير وصغير ورقم ورمز خاص'),
                     ])
                     ->columns(1),
 

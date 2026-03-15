@@ -121,6 +121,7 @@
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 30px;
+            direction: rtl;
         }
 
         .items-table thead {
@@ -133,6 +134,7 @@
             text-align: right;
             font-weight: 600;
             font-size: 14px;
+            direction: rtl;
         }
 
         .items-table td {
@@ -140,6 +142,7 @@
             border-bottom: 1px solid #ecf0f1;
             font-size: 14px;
             text-align: right;
+            direction: rtl;
         }
 
         .items-table tbody tr:hover {
@@ -158,10 +161,12 @@
             display: flex;
             justify-content: flex-start;
             margin-bottom: 40px;
+            direction: rtl;
         }
 
         .totals-table {
             width: 350px;
+            direction: rtl;
         }
 
         .totals-table tr {
