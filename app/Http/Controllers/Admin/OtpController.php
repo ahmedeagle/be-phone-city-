@@ -71,8 +71,18 @@ class OtpController extends Controller
         $storedCode = Cache::get($cacheKey);
 
         if (!$storedCode || !hash_equals($storedCode, $request->input('code'))) {
-            Cache::put($attemptsKey, $attempts + 1, now()->addMinutes(10));
-            $remaining = 4 - $attempts;
+            $newAttempts = $attempts + 1;
+            Cache::put($attemptsKey, $newAttempts, now()->addMinutes(10));
+            $remaining = 5 - $newAttempts;
+
+            if ($remaining <= 0) {
+                Cache::forget($cacheKey);
+                Cache::forget($attemptsKey);
+                Auth::guard('admin')->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                return redirect('/dashboard/login');
+            }
 
             return back()->withErrors(['code' => "رمز التحقق غير صحيح. المحاولات المتبقية: {$remaining}"])->withInput();
         }

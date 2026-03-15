@@ -24,11 +24,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
 // Use `php artisan` CLI commands directly on the server instead.
 
 // OTP Challenge routes - simple controller-based (no Livewire dependency)
+// throttle: max 10 requests per minute per IP on POST routes
 Route::get('/otp-verify', [\App\Http\Controllers\Admin\OtpController::class, 'show'])
     ->name('admin.otp-verify');
 Route::post('/otp-verify', [\App\Http\Controllers\Admin\OtpController::class, 'verify'])
+    ->middleware('throttle:10,1')
     ->name('admin.otp-verify.submit');
 Route::post('/otp-verify/resend', [\App\Http\Controllers\Admin\OtpController::class, 'resend'])
+    ->middleware('throttle:5,1')
     ->name('admin.otp-verify.resend');
 
 // Serve static assets from frontend directory
