@@ -2,7 +2,7 @@
 
 namespace App\Filament\Admin\Pages;
 
-use Filament\Pages\SimplePage;
+use Filament\Pages\Page;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -10,13 +10,13 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use App\Notifications\AdminOtpNotification;
 
-class OtpChallenge extends SimplePage
+class OtpChallenge extends Page
 {
-    protected string $view = 'filament.pages.otp-challenge';
+    protected static string $view = 'filament.pages.otp-challenge';
 
     protected static ?string $title = 'التحقق بالرمز';
 
-    protected static string $routePath = '/otp-challenge';
+    protected static string $layout = 'filament-panels::components.layout.base';
 
     protected static bool $shouldRegisterNavigation = false;
 
