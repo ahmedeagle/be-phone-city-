@@ -24,8 +24,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
 // Use `php artisan` CLI commands directly on the server instead.
 
 // OTP Challenge route - standalone, outside Filament's /dashboard path
-// No auth:admin middleware here — the Livewire component handles auth in mount()
+// Uses 'web' middleware for session/CSRF (required by Livewire)
+// No auth:admin — the Livewire component handles auth check in mount()
 Route::get('/otp-verify', \App\Livewire\OtpChallenge::class)
+    ->middleware('web')
     ->name('admin.otp-challenge');
 
 // Serve static assets from frontend directory
