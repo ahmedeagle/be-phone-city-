@@ -135,9 +135,4 @@ class OtpChallenge extends Page
             ->success()
             ->send();
     }
-
-    public static function getRouteName(?string $panel = null): string
-    {
-        return 'filament.admin.otp-challenge';
-    }
 }
