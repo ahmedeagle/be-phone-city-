@@ -45,6 +45,11 @@ class AppServiceProvider extends ServiceProvider
             }
         });
 
+        // Force Arabic locale for all Filament admin panel requests (validation messages, etc.)
+        Filament::serving(function () {
+            app()->setLocale('ar');
+        });
+
         // الماكروز اللي أنت عاملها تفضل زي ما هي 👇
         Response::macro('success', function ($message, $data = [], $status = 200, $pagination = []) {
             $response = [
