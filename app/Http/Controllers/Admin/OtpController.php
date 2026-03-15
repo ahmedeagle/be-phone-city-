@@ -35,7 +35,6 @@ class OtpController extends Controller
         }
 
         return view('admin.otp-verify', [
-            'error' => session('otp_error'),
             'success' => session('otp_success'),
         ]);
     }
@@ -43,7 +42,10 @@ class OtpController extends Controller
     public function verify(Request $request)
     {
         $request->validate([
-            'code' => 'required|string|size:6',
+            'code' => 'required|digits:6',
+        ], [
+            'code.required' => 'يرجى إدخال رمز التحقق',
+            'code.digits'   => 'يجب أن يتكون الرمز من 6 أرقام',
         ]);
 
         $admin = Auth::guard('admin')->user();
@@ -72,7 +74,7 @@ class OtpController extends Controller
             Cache::put($attemptsKey, $attempts + 1, now()->addMinutes(10));
             $remaining = 4 - $attempts;
 
-            return back()->with('otp_error', "رمز التحقق غير صحيح. المحاولات المتبقية: {$remaining}");
+            return back()->withErrors(['code' => "رمز التحقق غير صحيح. المحاولات المتبقية: {$remaining}"])->withInput();
         }
 
         // OTP verified — cache for 8 hours
@@ -95,7 +97,7 @@ class OtpController extends Controller
         $resendKey = 'admin_otp_resend_' . $admin->id;
 
         if (Cache::has($resendKey)) {
-            return back()->with('otp_error', 'يرجى الانتظار 60 ثانية قبل إعادة الإرسال');
+            return back()->withErrors(['code' => 'يرجى الانتظار 60 ثانية قبل إعادة الإرسال']);
         }
 
         $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);

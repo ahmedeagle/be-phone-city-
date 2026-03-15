@@ -27,8 +27,8 @@
         <h2>التحقق بالرمز</h2>
         <p class="subtitle">تم إرسال رمز التحقق إلى بريدك الإلكتروني</p>
 
-        @if($error)
-            <div class="error">{{ $error }}</div>
+        @if($errors->any())
+            <div class="error">{{ $errors->first() }}</div>
         @endif
 
         @if($success)
@@ -46,6 +46,7 @@
                 placeholder="أدخل الرمز المكون من 6 أرقام"
                 dir="ltr"
                 class="otp-input"
+                value="{{ old('code') }}"
                 autofocus
                 required
             >
