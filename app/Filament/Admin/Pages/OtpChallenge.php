@@ -12,7 +12,7 @@ use App\Notifications\AdminOtpNotification;
 
 class OtpChallenge extends Page
 {
-    protected static string $view = 'filament.pages.otp-challenge';
+    protected string $view = 'filament.pages.otp-challenge';
 
     protected static ?string $title = 'التحقق بالرمز';
 
