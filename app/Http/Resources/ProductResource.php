@@ -218,6 +218,9 @@ class ProductResource extends JsonResource
                 'image' => $method->image
                     ? asset('storage/'.$method->image)
                     : asset('images/payment-placeholder.jpg'),
+                'is_bank_transfer' => (bool) $method->is_bank_transfer,
+                'is_installment' => (bool) $method->is_installment,
+                'gateway' => $method->gateway ?? null,
             ];
         })->toArray();
     }

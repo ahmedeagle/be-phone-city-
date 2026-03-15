@@ -117,9 +117,10 @@ class PaymentService
         try {
             DB::beginTransaction();
 
-            // Find transaction
+            // Find transaction — lock the row to prevent concurrent callback races
             $transaction = PaymentTransaction::where('transaction_id', $transactionId)
                 ->where('order_id', $order->id)
+                ->lockForUpdate()
                 ->first();
 
             if (! $transaction) {
@@ -128,6 +129,7 @@ class PaymentService
                 $transaction = PaymentTransaction::where('order_id', $order->id)
                     ->whereIn('status', [PaymentTransaction::STATUS_PENDING, PaymentTransaction::STATUS_PROCESSING])
                     ->latest()
+                    ->lockForUpdate()
                     ->first();
 
                 if ($transaction) {

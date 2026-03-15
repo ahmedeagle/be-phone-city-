@@ -17,6 +17,7 @@ use App\Services\ShippingService;
 use App\Traits\PaginatesResponses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Response;
 
@@ -71,6 +72,16 @@ class OrderController extends Controller
                 __('Cart is empty'),
                 null,
                 400
+            );
+        }
+
+        // Stock availability check before proceeding
+        $stockIssues = $this->calculationService->checkStockAvailability($cartItems);
+        if (! empty($stockIssues)) {
+            return Response::error(
+                __('One or more items are out of stock or have insufficient quantity'),
+                ['stock_issues' => $stockIssues],
+                422
             );
         }
 
@@ -177,68 +188,59 @@ class OrderController extends Controller
         ];
 
         try {
-            // Create order
-            $order = $this->orderService->createOrderFromCart($orderData);
+            // Wrap both order creation AND payment initiation in a single transaction.
+            // If the payment gateway call fails, the order is rolled back automatically.
+            $result = DB::transaction(function () use ($orderData, $paymentMethod) {
+                // Create order
+                $order = $this->orderService->createOrderFromCart($orderData);
 
-            // Initiate payment
-            try {
+                // Initiate payment — if this throws, the whole transaction rolls back
                 $paymentData = $this->paymentService->initiatePayment($order);
 
-                // Prepare response with order and payment data
-                $responseData = [
-                    'order' => new OrderResource($order->fresh(['paymentMethod', 'location', 'items'])),
-                    'payment' => [
-                        'success' => $paymentData['success'],
-                        'status' => $paymentData['payment_status'],
-                        'gateway' => $paymentData['gateway'],
-                        'transaction_id' => $paymentData['transaction_id'],
-                        'redirect_url' => $paymentData['redirect_url'] ?? null,
-                        'requires_redirect' => $paymentData['requires_redirect'] ?? false,
-                        'requires_proof_upload' => $paymentData['requires_proof_upload'] ?? false,
-                        'bank_account_details' => $paymentData['bank_account_details'] ?? null,
-                        'message' => $paymentData['message'] ?? null,
-                        'expires_at' => $paymentData['expires_at'] ?? null,
-                        'error' => $paymentData['error'] ?? null,
-                        'error_code' => $paymentData['error_code'] ?? null,
-                        'can_retry' => $paymentData['can_retry'] ?? false,
-                    ],
-                ];
+                return compact('order', 'paymentData');
+            });
 
-                // For bank transfers, add upload URL
-                if ($paymentData['requires_proof_upload'] ?? false) {
-                    $responseData['payment']['upload_url'] = route('orders.payment.uploadProof', ['order' => $order->id]);
-                }
+            $order = $result['order'];
+            $paymentData = $result['paymentData'];
 
-                return Response::success(
-                    __('Order created successfully'),
-                    $responseData,
-                    201
-                );
+            // Prepare response with order and payment data
+            $responseData = [
+                'order' => new OrderResource($order->fresh(['paymentMethod', 'location', 'items'])),
+                'payment' => [
+                    'success' => $paymentData['success'],
+                    'status' => $paymentData['payment_status'],
+                    'gateway' => $paymentData['gateway'],
+                    'transaction_id' => $paymentData['transaction_id'],
+                    'redirect_url' => $paymentData['redirect_url'] ?? null,
+                    'requires_redirect' => $paymentData['requires_redirect'] ?? false,
+                    'requires_proof_upload' => $paymentData['requires_proof_upload'] ?? false,
+                    'bank_account_details' => $paymentData['bank_account_details'] ?? null,
+                    'message' => $paymentData['message'] ?? null,
+                    'expires_at' => $paymentData['expires_at'] ?? null,
+                    'error' => $paymentData['error'] ?? null,
+                    'error_code' => $paymentData['error_code'] ?? null,
+                    'can_retry' => $paymentData['can_retry'] ?? false,
+                ],
+            ];
 
-            } catch (\Exception $paymentException) {
-                // Payment initiation failed, but order is created
-                // Log error and return order with payment failure info
-                Log::error('Payment initiation failed after order creation', [
-                    'order_id' => $order->id,
-                    'error' => $paymentException->getMessage(),
-                ]);
-
-                return Response::success(
-                    __('Order created but payment initiation failed. You can retry payment from order details.'),
-                    [
-                        'order' => new OrderResource($order->fresh(['paymentMethod', 'location', 'items'])),
-                        'payment' => [
-                            'status' => 'failed',
-                            'message' => __('Payment initiation failed. Please try again.'),
-                            'error' => $paymentException->getMessage(),
-                            'can_retry' => true,
-                        ],
-                    ],
-                    201
-                );
+            // For bank transfers, add upload URL
+            if ($paymentData['requires_proof_upload'] ?? false) {
+                $responseData['payment']['upload_url'] = route('orders.payment.uploadProof', ['order' => $order->id]);
             }
 
+            return Response::success(
+                __('Order created successfully'),
+                $responseData,
+                201
+            );
+
         } catch (\Exception $e) {
+            Log::error('Order creation failed', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return Response::error(
                 __('Failed to create order'),
                 ['error' => $e->getMessage()],

@@ -19,7 +19,7 @@ class Order extends Model
     public const STATUS_CONFIRMED = 'confirmed';
     public const STATUS_PROCESSING = 'processing';
     public const STATUS_SHIPPED = 'shipped';
-    public const STATUS_IN_PROGRESS = 'Delivery is in progress';
+    public const STATUS_IN_PROGRESS = 'in_progress';
     public const STATUS_DELIVERED = 'delivered';
     public const STATUS_COMPLETED = 'completed';
     public const STATUS_CANCELLED = 'cancelled';

@@ -24,6 +24,9 @@ class PaymentMethodResource extends JsonResource
             'description_ar' => $this->description_ar,
             'image' => $this->image ? asset('storage/' . $this->image) : null,
             'status' => $this->status,
+            'is_bank_transfer' => (bool) $this->is_bank_transfer,
+            'is_installment' => (bool) $this->is_installment,
+            'gateway' => $this->gateway ?? null,
         ];
     }
 }

@@ -293,6 +293,48 @@ class ViewOrder extends ViewRecord
                     && auth()->user()->can('orders.update')
                 ),
 
+            Action::make('approve_payment')
+                ->label('قبول الدفع')
+                ->icon('heroicon-o-check-circle')
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalHeading('تأكيد قبول الدفع')
+                ->modalDescription('هل تريد قبول إيصال التحويل البنكي وتعيين الطلب كمدفوع؟')
+                ->modalSubmitActionLabel('نعم، قبول الدفع')
+                ->action(function () {
+                    $this->record->markPaymentAsPaid();
+                    Notification::make()
+                        ->title('تم قبول الدفع بنجاح')
+                        ->success()
+                        ->send();
+                    $this->record->refresh();
+                })
+                ->visible(fn () =>
+                    $this->record->payment_status === Order::PAYMENT_STATUS_AWAITING_REVIEW
+                    && auth()->user()->can('orders.update')
+                ),
+
+            Action::make('reject_payment')
+                ->label('رفض الدفع')
+                ->icon('heroicon-o-x-circle')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('تأكيد رفض الدفع')
+                ->modalDescription('هل تريد رفض إيصال التحويل البنكي وتعيين حالة الدفع كفاشل؟')
+                ->modalSubmitActionLabel('نعم، رفض الدفع')
+                ->action(function () {
+                    $this->record->markPaymentAsFailed();
+                    Notification::make()
+                        ->title('تم رفض الدفع')
+                        ->danger()
+                        ->send();
+                    $this->record->refresh();
+                })
+                ->visible(fn () =>
+                    $this->record->payment_status === Order::PAYMENT_STATUS_AWAITING_REVIEW
+                    && auth()->user()->can('orders.update')
+                ),
+
             Action::make('print')
                 ->label('طباعة الطلب')
                 ->icon('heroicon-o-printer')

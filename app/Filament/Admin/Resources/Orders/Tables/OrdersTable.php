@@ -219,7 +219,17 @@ class OrdersTable
                     ->visible(fn () => auth()->user()->can('orders.show')),
                 DeleteAction::make()
                     ->visible(fn () => auth()->user()->can('orders.delete'))
-                    ->requiresConfirmation(),
+                    ->requiresConfirmation()
+                    ->before(function (Order $record, $action) {
+                        if ($record->payment_status === Order::PAYMENT_STATUS_PAID) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('لا يمكن حذف الطلب')
+                                ->body('لا يمكن حذف طلب مدفوع.')
+                                ->danger()
+                                ->send();
+                            $action->cancel();
+                        }
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
@@ -297,6 +307,14 @@ class OrdersTable
                         ->visible(fn () => auth()->user()->can('orders.update'))
                         ->action(function ($records) {
                             foreach ($records as $record) {
+                                if ($record->payment_status !== Order::PAYMENT_STATUS_PAID) {
+                                    \Filament\Notifications\Notification::make()
+                                        ->title('تعذّر تحديد طلب كمكتمل')
+                                        ->body("الطلب #{$record->order_number} لم يتم دفعه بعد.")
+                                        ->warning()
+                                        ->send();
+                                    continue;
+                                }
                                 $record->update(['status' => Order::STATUS_COMPLETED]);
                             }
                         }),
@@ -312,7 +330,18 @@ class OrdersTable
                             }
                         }),
                     DeleteBulkAction::make()
-                        ->visible(fn () => auth()->user()->can('orders.delete')),
+                        ->visible(fn () => auth()->user()->can('orders.delete'))
+                        ->before(function ($records, $action) {
+                            $paidOrders = $records->filter(fn ($record) => $record->payment_status === Order::PAYMENT_STATUS_PAID);
+                            if ($paidOrders->isNotEmpty()) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('لا يمكن الحذف')
+                                    ->body('لا يمكن حذف الطلبات المدفوعة. يرجى إلغاؤها أولاً إذا لزم الأمر.')
+                                    ->danger()
+                                    ->send();
+                                $action->cancel();
+                            }
+                        }),
                 ]),
             ]);
     }

@@ -93,6 +93,9 @@ class CartController extends Controller
                         'name_en' => $method->name_en,
                         'name_ar' => $method->name_ar,
                         'image' => $method->image ? asset('storage/'.$method->image) : null,
+                        'is_bank_transfer' => (bool) $method->is_bank_transfer,
+                        'is_installment' => (bool) $method->is_installment,
+                        'gateway' => $method->gateway ?? null,
                     ];
                 }),
                 'total' => $total,
@@ -113,7 +116,7 @@ class CartController extends Controller
         $validator = Validator::make($request->all(), [
             'product_id' => 'nullable|exists:products,id',
             'product_option_id' => 'nullable|exists:product_options,id',
-            'quantity' => 'required|integer|min:1',
+            'quantity' => 'required|integer|min:1|max:99',
         ]);
 
         // At least one of product_id or product_option_id must be provided
@@ -173,7 +176,7 @@ class CartController extends Controller
         }
 
         // Check stock
-        if ($stockStatus === 'out_of_stock') {
+        if ($stockStatus === 'out_of_stock' || $stockStatus === 'discontinued') {
             return Response::error(__('Product is out of stock'), null, 400);
         }
 
@@ -230,7 +233,7 @@ class CartController extends Controller
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.product_option_id' => 'nullable|exists:product_options,id',
-            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.quantity' => 'required|integer|min:1|max:99',
         ]);
 
         if ($validator->fails()) {
@@ -384,7 +387,7 @@ class CartController extends Controller
     public function update(Request $request, int $id)
     {
         $validator = Validator::make($request->all(), [
-            'quantity' => 'required|integer|min:1',
+            'quantity' => 'required|integer|min:1|max:99',
         ]);
 
         if ($validator->fails()) {

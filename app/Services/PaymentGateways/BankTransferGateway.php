@@ -4,6 +4,7 @@ namespace App\Services\PaymentGateways;
 
 use App\Models\Order;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class BankTransferGateway extends AbstractPaymentGateway
 {
@@ -22,6 +23,14 @@ class BankTransferGateway extends AbstractPaymentGateway
 
         // Get bank account details from settings
         $bankAccountDetails = $this->getBankAccountDetails();
+
+        if (empty($bankAccountDetails)) {
+            return [
+                'success' => false,
+                'message' => __('Bank transfer is not configured. Please contact support.'),
+                'error' => 'bank_transfer_not_configured',
+            ];
+        }
 
         return [
             'success' => true,
@@ -62,16 +71,11 @@ class BankTransferGateway extends AbstractPaymentGateway
             // Settings table might not exist yet or no settings configured
         }
 
-        // Fallback to default values
-        return [
-            'bank_name' => __('Bank Name'),
-            'account_holder' => __('Account Holder Name'),
-            'account_number' => __('Account Number'),
-            'iban' => __('IBAN'),
-            'swift_code' => __('SWIFT Code'),
-            'branch' => __('Branch'),
-            'instructions' => __('Please include your order number in the transfer description'),
-        ];
+        // No settings found — log a warning and return empty details so the
+        // caller / frontend can surface a meaningful "not configured" error.
+        Log::warning('BankTransferGateway: bank account settings are not configured. Please add them via Admin > Settings > Bank Account.');
+
+        return [];
     }
 
     /**

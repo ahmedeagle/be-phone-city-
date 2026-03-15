@@ -49,7 +49,15 @@ class TamaraGateway extends AbstractPaymentGateway
             $phone = $user->phone ?? '500000000';
             $phone = preg_replace('/[^0-9]/', '', $phone);
             if (strlen($phone) === 9 && strpos($phone, '5') === 0) {
+                // 9 digits starting with 5 → 966XXXXXXXXX
                 $phone = '966' . $phone;
+            } elseif (strlen($phone) === 10 && strpos($phone, '05') === 0) {
+                // 10 digits starting with 05 → remove leading 0 and add country code
+                $phone = '966' . substr($phone, 1);
+            } elseif (strlen($phone) === 12 && strpos($phone, '966') === 0) {
+                // Already correctly formatted
+            } else {
+                $phone = '966500000000'; // Final fallback
             }
             if (strpos($phone, '+') !== 0) {
                 $phone = '+' . ltrim($phone, '+');
@@ -89,19 +97,19 @@ class TamaraGateway extends AbstractPaymentGateway
                         'quantity' => (int)$item->quantity,
                         'total_amount' => [
                             'amount' => (float)$item->total,
-                            'currency' => 'SAR',
+                            'currency' => strtoupper($order->currency ?? config('payment-gateways.currency', 'SAR')),
                         ],
                         'unit_price' => [
                             'amount' => (float)$item->price,
-                            'currency' => 'SAR',
+                            'currency' => strtoupper($order->currency ?? config('payment-gateways.currency', 'SAR')),
                         ],
                         'discount_amount' => [
                             'amount' => 0.0,
-                            'currency' => 'SAR',
+                            'currency' => strtoupper($order->currency ?? config('payment-gateways.currency', 'SAR')),
                         ],
                         'tax_amount' => [
                             'amount' => 0.0,
-                            'currency' => 'SAR',
+                            'currency' => strtoupper($order->currency ?? config('payment-gateways.currency', 'SAR')),
                         ],
                     ];
                 })->toArray(),

@@ -3,6 +3,8 @@
 namespace App\Observers;
 
 use App\Models\Order;
+use App\Models\Product;
+use App\Models\ProductOption;
 use App\Models\ProductView;
 use App\Notifications\OrderCompletedReviewRequest;
 use App\Services\NotificationService;
@@ -40,6 +42,9 @@ class OrderObserver
             if ($newPaymentStatus === Order::PAYMENT_STATUS_PAID
                 && $originalPaymentStatus !== Order::PAYMENT_STATUS_PAID) {
 
+                // Decrement stock for every order item
+                $this->decrementStock($order);
+
                 // Send the "order created" notification NOW (after payment confirmed)
                 $this->notificationService->notifyOrderCreated($order);
 
@@ -69,6 +74,20 @@ class OrderObserver
             }
         }
 
+        // Check if order status changed to CANCELLED — restore stock
+        if ($order->isDirty('status')) {
+            $originalStatus = $order->getOriginal('status');
+            $newStatus = $order->status;
+
+            if ($newStatus === Order::STATUS_CANCELLED
+                && $originalStatus !== Order::STATUS_CANCELLED) {
+                // Only restore stock if the order was previously paid (stock was decremented)
+                if ($order->payment_status === Order::PAYMENT_STATUS_PAID) {
+                    $this->restoreStock($order);
+                }
+            }
+        }
+
         // Handle status changes (only if status was changed in the original update, not by us)
         if ($order->isDirty('status') && !$statusChangedByUs) {
             $this->notificationService->notifyOrderStatusChanged($order);
@@ -84,6 +103,42 @@ class OrderObserver
         } elseif ($statusChangedByUs) {
             // Manually trigger notification since we used saveQuietly
             $this->notificationService->notifyOrderStatusChanged($order);
+        }
+    }
+
+    /**
+     * Decrement stock for each item in the order
+     */
+    protected function decrementStock(Order $order): void
+    {
+        $items = $order->items()->get();
+
+        foreach ($items as $item) {
+            if ($item->product_option_id) {
+                ProductOption::where('id', $item->product_option_id)
+                    ->decrement('quantity', $item->quantity);
+            } else {
+                Product::where('id', $item->product_id)
+                    ->decrement('quantity', $item->quantity);
+            }
+        }
+    }
+
+    /**
+     * Restore stock for each item in the order (when order is cancelled)
+     */
+    protected function restoreStock(Order $order): void
+    {
+        $items = $order->items()->get();
+
+        foreach ($items as $item) {
+            if ($item->product_option_id) {
+                ProductOption::where('id', $item->product_option_id)
+                    ->increment('quantity', $item->quantity);
+            } else {
+                Product::where('id', $item->product_id)
+                    ->increment('quantity', $item->quantity);
+            }
         }
     }
 

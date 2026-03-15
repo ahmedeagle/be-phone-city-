@@ -107,7 +107,7 @@ class AmwalGateway extends AbstractPaymentGateway
                 'client_first_name' => $firstName,
                 'client_last_name' => $lastName,
                 'client_email' => $user->email ?? 'customer@example.com',
-                // 'client_phone_number' => $phone,
+                'client_phone_number' => $phone,
                 'callback_url' => $this->getCallbackUrl($order),
                 'metadata' => [
                     'order_id' => $order->id,
@@ -505,23 +505,25 @@ class AmwalGateway extends AbstractPaymentGateway
      */
     public function validateWebhookSignature(Request $request): bool
     {
-        // Amwal webhook validation
-        // Check if webhook secret is configured
         $webhookSecret = $this->getConfig('webhook_secret');
         if (!$webhookSecret) {
-            // If no secret configured, accept webhook (not recommended for production)
+            // No secret configured — log a warning and accept (not recommended for production)
+            Log::warning('AmwalGateway: webhook_secret is not configured; accepting webhook without signature verification');
             return true;
         }
 
-        // Check for signature header (update based on Amwal's actual implementation)
         $signature = $request->header('X-Amwal-Signature') ?? $request->header('Authorization');
         if (!$signature) {
+            Log::warning('AmwalGateway: webhook received without signature header');
             return false;
         }
 
-        // Validate signature (implement based on Amwal's signature algorithm)
-        // This is a placeholder - update with actual validation logic
-        return true;
+        // Strip "sha256=" prefix if present (some gateways prepend it)
+        $signature = preg_replace('/^sha256=/i', '', $signature);
+
+        $expectedSignature = hash_hmac('sha256', $request->getContent(), $webhookSecret);
+
+        return hash_equals($expectedSignature, strtolower($signature));
     }
 
     /**

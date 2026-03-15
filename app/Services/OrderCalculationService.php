@@ -34,7 +34,7 @@ class OrderCalculationService
     /**
      * Calculate tax as a straight percentage of the inclusive amount
      *
-     * @param float $amount Amount that includes tax
+     * @param float $amount Amount that includes tax (tax-inclusive pricing)
      * @param float|null $taxPercentage Tax percentage (defaults to setting value)
      * @return float Tax amount
      */
@@ -49,8 +49,9 @@ class OrderCalculationService
             return 0;
         }
 
-        // Calculate tax as percentage of total
-        return $amount * ($taxPercentage / 100);
+        // Extract the embedded tax from a tax-inclusive price.
+        // Formula: tax = amount × rate / (1 + rate)   where rate = taxPercentage / 100
+        return $amount * ($taxPercentage / (100 + $taxPercentage));
     }
 
     /**

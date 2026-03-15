@@ -21,6 +21,7 @@ class PaymentMethod extends Model
         'is_installment',
         'is_bank_transfer',
         'processing_fee_percentage',
+        'gateway',
     ];
 
     protected $casts = [

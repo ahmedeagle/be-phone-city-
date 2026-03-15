@@ -43,15 +43,15 @@ class TabbyGateway extends AbstractPaymentGateway
                     'amount' => number_format($order->total, 2, '.', ''),
                     'currency' => strtoupper($order->currency ?? config('payment-gateways.currency', 'SAR')),
                     'description' => __('Order').' #'.$order->order_number,
-                    // 'buyer' => [
-                    //     // 'phone' => $user->phone ?? '966500000000',
-                    //     // 'email' => $user->email ?? 'customer@example.com',
-                    //     // 'name' => $user->name ?? 'Customer',
-                    // ],
+                    'buyer' => [
+                        'phone' => $user->phone ?? '966500000000',
+                        'email' => $user->email ?? 'customer@example.com',
+                        'name' => $user->name ?? 'Customer',
+                    ],
                     'shipping_address' => [
                         'city' => $location?->city?->name ?? 'Riyadh',
                         'address' => $location?->address ?? 'Saudi Arabia',
-                        'zip' => '12345',
+                        'zip' => $location?->postal_code ?? '12345',
                     ],
                     'order' => [
                         'tax_amount' => number_format($order->tax, 2, '.', ''),
