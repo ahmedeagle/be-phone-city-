@@ -23,12 +23,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
 // SECURITY: Artisan routes removed - they were publicly accessible without authentication.
 // Use `php artisan` CLI commands directly on the server instead.
 
-// OTP Challenge route - standalone, outside Filament's /dashboard path
-// Uses 'web' middleware for session/CSRF (required by Livewire)
-// No auth:admin — the Livewire component handles auth check in mount()
-Route::get('/otp-verify', \App\Livewire\OtpChallenge::class)
-    ->middleware('web')
-    ->name('admin.otp-challenge');
+// OTP Challenge routes - simple controller-based (no Livewire dependency)
+Route::get('/otp-verify', [\App\Http\Controllers\Admin\OtpController::class, 'show'])
+    ->name('admin.otp-verify');
+Route::post('/otp-verify', [\App\Http\Controllers\Admin\OtpController::class, 'verify'])
+    ->name('admin.otp-verify.submit');
+Route::post('/otp-verify/resend', [\App\Http\Controllers\Admin\OtpController::class, 'resend'])
+    ->name('admin.otp-verify.resend');
 
 // Serve static assets from frontend directory
 Route::get('/assets/{path}', function ($path) {
