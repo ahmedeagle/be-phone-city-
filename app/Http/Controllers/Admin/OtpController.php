@@ -120,4 +120,23 @@ class OtpController extends Controller
 
         return back()->with('otp_success', 'تم إرسال رمز جديد إلى بريدك الإلكتروني');
     }
+
+    public function cancel(Request $request)
+    {
+        $admin = Auth::guard('admin')->user();
+
+        if ($admin) {
+            // Clear OTP cache keys
+            Cache::forget('admin_otp_' . $admin->id);
+            Cache::forget('admin_otp_' . $admin->id . '_attempts');
+            Cache::forget('admin_otp_verified_' . $admin->id);
+
+            Auth::guard('admin')->logout();
+        }
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect('/dashboard/login');
+    }
 }

@@ -19,6 +19,8 @@
         .btn-verify:hover { background: #2563eb; }
         .btn-resend { margin-top: 16px; background: none; border: none; color: #6b7280; font-size: 14px; cursor: pointer; text-decoration: underline; }
         .btn-resend:hover { color: #3b82f6; }
+        .btn-cancel { background: none; border: none; color: #ef4444; font-size: 13px; cursor: pointer; text-decoration: underline; }
+        .btn-cancel:hover { color: #dc2626; }
     </style>
 </head>
 <body>
@@ -56,6 +58,11 @@
         <form method="POST" action="{{ route('admin.otp-verify.resend') }}">
             @csrf
             <button type="submit" class="btn-resend">إعادة إرسال الرمز</button>
+        </form>
+
+        <form method="POST" action="{{ route('admin.otp-verify.cancel') }}" style="margin-top: 12px;">
+            @csrf
+            <button type="submit" class="btn-cancel">رجوع لصفحة تسجيل الدخول</button>
         </form>
     </div>
 </body>

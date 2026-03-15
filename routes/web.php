@@ -33,6 +33,8 @@ Route::post('/otp-verify', [\App\Http\Controllers\Admin\OtpController::class, 'v
 Route::post('/otp-verify/resend', [\App\Http\Controllers\Admin\OtpController::class, 'resend'])
     ->middleware('throttle:5,1')
     ->name('admin.otp-verify.resend');
+Route::post('/otp-verify/cancel', [\App\Http\Controllers\Admin\OtpController::class, 'cancel'])
+    ->name('admin.otp-verify.cancel');
 
 // Serve static assets from frontend directory
 Route::get('/assets/{path}', function ($path) {
