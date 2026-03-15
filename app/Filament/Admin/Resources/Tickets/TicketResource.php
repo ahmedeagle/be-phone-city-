@@ -89,11 +89,12 @@ class TicketResource extends Resource
                 Section::make('المعلومات الأساسية')
                     ->schema([
                         TextInput::make('ticket_number')
-                            ->required()
-                            ->unique(ignoreRecord: true)
                             ->label('رقم التذكرة')
+                            ->placeholder('يتم إنشاؤه تلقائياً')
+                            ->helperText('يتم إنشاؤه تلقائياً')
                             ->disabled()
-                            ->helperText('يتم إنشاؤه تلقائياً'),
+                            ->dehydrated(false)
+                            ->hiddenOn('create'),
                         Select::make('user_id')
                             ->label('العميل المسجل')
                             ->relationship('user', 'name')
