@@ -248,7 +248,6 @@ class ProductForm
                                 ->label('السعر بعد الخصم (اختياري)')
                                 ->placeholder('0.00')
                                 ->helperText('يجب أن يكون أقل من السعر الأساسي')
-                                ->lt('main_price')
                                 ->reactive()
                                 ->rules([fn ($get) => function ($attribute, $value, $fail) use ($get) {
                                     if ($value !== null && $value !== '' && $get('main_price') !== null && $get('main_price') !== '' && floatval($value) >= floatval($get('main_price'))) {
