@@ -238,7 +238,8 @@ class ProductForm
                                 ->minValue(0)
                                 ->prefix('ر.س')
                                 ->label('السعر الأساسي')
-                                ->placeholder('0.00'),
+                                ->placeholder('0.00')
+                                ->reactive(),
 
                             TextInput::make('discounted_price')
                                 ->numeric()
@@ -246,14 +247,31 @@ class ProductForm
                                 ->prefix('ر.س')
                                 ->label('السعر بعد الخصم (اختياري)')
                                 ->placeholder('0.00')
-                                ->helperText('اتركه فارغاً لاستخدام السعر الأساسي'),
+                                ->helperText('يجب أن يكون أقل من السعر الأساسي')
+                                ->lt('main_price')
+                                ->reactive()
+                                ->rules([fn ($get) => function ($attribute, $value, $fail) use ($get) {
+                                    if ($value !== null && $value !== '' && $get('main_price') !== null && $get('main_price') !== '' && floatval($value) >= floatval($get('main_price'))) {
+                                        $fail('السعر بعد الخصم يجب أن يكون أقل من السعر الأساسي.');
+                                    }
+                                }]),
 
                             TextInput::make('purchase_price')
                                 ->numeric()
                                 ->minValue(0)
                                 ->prefix('ر.س')
                                 ->label('سعر التكلفة (للمسؤول فقط)')
-                                ->placeholder('0.00'),
+                                ->placeholder('0.00')
+                                ->helperText('يجب أن يكون أقل من السعر الأساسي')
+                                ->rules([fn ($get) => function ($attribute, $value, $fail) use ($get) {
+                                    if ($value !== null && $value !== '' && $get('main_price') !== null && $get('main_price') !== '') {
+                                        $discounted = $get('discounted_price');
+                                        $comparePrice = ($discounted !== null && $discounted !== '') ? floatval($discounted) : floatval($get('main_price'));
+                                        if (floatval($value) >= $comparePrice) {
+                                            $fail('سعر التكلفة يجب أن يكون أقل من السعر بعد الخصم (أو الأساسي إن لم يكن هناك خصم).');
+                                        }
+                                    }
+                                }]),
                         ]),
 
                     Grid::make(3)
@@ -321,21 +339,46 @@ class ProductForm
                                         ->prefix('ر.س')
                                         ->label('السعر الإضافي')
                                         ->placeholder('0.00')
-                                        ->helperText('اتركه فارغاً إذا كان بنفس السعر الأساسي'),
+                                        ->helperText('اتركه فارغاً إذا كان بنفس السعر الأساسي')
+                                        ->reactive(),
 
                                     TextInput::make('discounted_price')
                                         ->numeric()
                                         ->minValue(0)
                                         ->prefix('ر.س')
                                         ->label('السعر بعد الخصم')
-                                        ->placeholder('0.00'),
+                                        ->placeholder('0.00')
+                                        ->helperText('يجب أن يكون أقل من السعر الإضافي')
+                                        ->rules([fn ($get) => function ($attribute, $value, $fail) use ($get) {
+                                            if ($value !== null && $value !== '' && $get('price') !== null && $get('price') !== '' && floatval($value) >= floatval($get('price'))) {
+                                                $fail('السعر بعد الخصم يجب أن يكون أقل من السعر الإضافي.');
+                                            }
+                                        }])
+                                        ->reactive(),
 
                                     TextInput::make('purchase_price')
                                         ->numeric()
                                         ->minValue(0)
                                         ->prefix('ر.س')
                                         ->label('سعر التكلفة')
-                                        ->placeholder('0.00'),
+                                        ->placeholder('0.00')
+                                        ->helperText('يجب أن يكون أقل من السعر بعد الخصم أو الإضافي')
+                                        ->rules([fn ($get) => function ($attribute, $value, $fail) use ($get) {
+                                            if ($value !== null && $value !== '') {
+                                                $discounted = $get('discounted_price');
+                                                $base = $get('price');
+                                                if ($discounted !== null && $discounted !== '') {
+                                                    $comparePrice = floatval($discounted);
+                                                } elseif ($base !== null && $base !== '') {
+                                                    $comparePrice = floatval($base);
+                                                } else {
+                                                    return;
+                                                }
+                                                if (floatval($value) >= $comparePrice) {
+                                                    $fail('سعر التكلفة يجب أن يكون أقل من سعر البيع.');
+                                                }
+                                            }
+                                        }]),
                                 ]),
 
                             Repeater::make('images')
@@ -430,21 +473,46 @@ class ProductForm
                                         ->prefix('ر.س')
                                         ->label('السعر الإضافي')
                                         ->placeholder('0.00')
-                                        ->helperText('اتركه فارغاً إذا كان بنفس السعر الأساسي'),
+                                        ->helperText('اتركه فارغاً إذا كان بنفس السعر الأساسي')
+                                        ->reactive(),
 
                                     TextInput::make('discounted_price')
                                         ->numeric()
                                         ->minValue(0)
                                         ->prefix('ر.س')
                                         ->label('السعر بعد الخصم')
-                                        ->placeholder('0.00'),
+                                        ->placeholder('0.00')
+                                        ->helperText('يجب أن يكون أقل من السعر الإضافي')
+                                        ->rules([fn ($get) => function ($attribute, $value, $fail) use ($get) {
+                                            if ($value !== null && $value !== '' && $get('price') !== null && $get('price') !== '' && floatval($value) >= floatval($get('price'))) {
+                                                $fail('السعر بعد الخصم يجب أن يكون أقل من السعر الإضافي.');
+                                            }
+                                        }])
+                                        ->reactive(),
 
                                     TextInput::make('purchase_price')
                                         ->numeric()
                                         ->minValue(0)
                                         ->prefix('ر.س')
                                         ->label('سعر التكلفة')
-                                        ->placeholder('0.00'),
+                                        ->placeholder('0.00')
+                                        ->helperText('يجب أن يكون أقل من السعر بعد الخصم أو الإضافي')
+                                        ->rules([fn ($get) => function ($attribute, $value, $fail) use ($get) {
+                                            if ($value !== null && $value !== '') {
+                                                $discounted = $get('discounted_price');
+                                                $base = $get('price');
+                                                if ($discounted !== null && $discounted !== '') {
+                                                    $comparePrice = floatval($discounted);
+                                                } elseif ($base !== null && $base !== '') {
+                                                    $comparePrice = floatval($base);
+                                                } else {
+                                                    return;
+                                                }
+                                                if (floatval($value) >= $comparePrice) {
+                                                    $fail('سعر التكلفة يجب أن يكون أقل من سعر البيع.');
+                                                }
+                                            }
+                                        }]),
                                 ]),
 
                             Repeater::make('images')

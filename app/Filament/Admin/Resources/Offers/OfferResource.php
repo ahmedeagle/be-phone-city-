@@ -81,7 +81,11 @@ class OfferResource extends Resource
                 TextInput::make('value')
                     ->required()
                     ->numeric()
-                    ->minValue(0)
+                    ->minValue(0.01)
+                    ->maxValue(fn ($get) => $get('type') === 'percentage' ? 100 : null)
+                    ->suffix(fn ($get) => $get('type') === 'percentage' ? '%' : 'ر.س')
+                    ->helperText(fn ($get) => $get('type') === 'percentage' ? 'نسبة الخصم (1 - 100%)' : 'قيمة الخصم بالريال')
+                    ->reactive()
                     ->label('القيمة'),
                 Select::make('type')
                     ->required()
