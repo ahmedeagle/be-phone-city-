@@ -96,6 +96,18 @@ class OrderController extends Controller
                     400
                 );
             }
+
+            // Validate discount conditions
+            $subtotal = $this->calculationService->calculateSubtotal($cartItems);
+            $cartItemsCount = $cartItems->sum('quantity');
+            $conditionResult = $this->discountService->validateConditions($discount, $subtotal, Auth::id(), $cartItemsCount);
+            if (! $conditionResult['valid']) {
+                return Response::error(
+                    $conditionResult['error'],
+                    null,
+                    400
+                );
+            }
         }
 
         // Get and validate payment method
@@ -289,17 +301,25 @@ class OrderController extends Controller
             if (! $discount) {
                 $errors[] = __('Invalid or expired discount code');
             } else {
-                $discountCode = $request->discount_code;
                 $subtotal = $this->calculationService->calculateSubtotal($cartItems);
-                $discountAmount = $this->discountService->calculateDiscountAmount($discount, $subtotal);
+                $cartItemsCount = $cartItems->sum('quantity');
 
-                $discountInfo = [
-                    'id' => $discount->id,
-                    'code' => $discount->code,
-                    'type' => $discount->type,
-                    'value' => $discount->value,
-                    'discount_amount' => number_format($discountAmount, 2),
-                ];
+                // Validate discount conditions
+                $conditionResult = $this->discountService->validateConditions($discount, $subtotal, Auth::id(), $cartItemsCount);
+                if (! $conditionResult['valid']) {
+                    $errors[] = $conditionResult['error'];
+                } else {
+                    $discountCode = $request->discount_code;
+                    $discountAmount = $this->discountService->calculateDiscountAmount($discount, $subtotal);
+
+                    $discountInfo = [
+                        'id' => $discount->id,
+                        'code' => $discount->code,
+                        'type' => $discount->type,
+                        'value' => $discount->value,
+                        'discount_amount' => number_format($discountAmount, 2),
+                    ];
+                }
             }
         }
 

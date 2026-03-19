@@ -42,9 +42,13 @@ class TicketNotification extends Notification implements ShouldQueue
             $url = config('app.url') . '/tickets/' . $this->ticket->id;
         }
 
+        $greeting = ($notifiable instanceof User)
+            ? __('Hello') . ' ' . $notifiable->name
+            : __('Hello') . ' ' . config('app.name');
+
         $message = (new MailMessage)
             ->subject(__('Ticket Update') . ': #' . $this->ticket->ticket_number)
-            ->greeting(__('Hello') . ' ' . $notifiable->name);
+            ->greeting($greeting);
 
         if ($this->type === 'created') {
             $message->line(__('A new support ticket has been created.'))

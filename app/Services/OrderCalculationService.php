@@ -81,8 +81,9 @@ class OrderCalculationService
         // Calculate subtotal
         $subtotal = $this->calculateSubtotal($cartItems);
 
-        // Process discount
-        $discountData = $this->discountService->processDiscount($discountCode, $subtotal);
+        // Process discount (with condition validation)
+        $cartItemsCount = $cartItems->sum('quantity');
+        $discountData = $this->discountService->processDiscount($discountCode, $subtotal, $userId, $cartItemsCount);
         $discount = $discountData['discount'];
         $discountAmount = $discountData['amount'];
 

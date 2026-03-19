@@ -28,6 +28,7 @@ class ReviewNotification extends Notification implements ShouldQueue
     {
         return (new MailMessage)
             ->subject(__('New Product Review'))
+            ->greeting(__('Hello') . ' ' . config('app.name'))
             ->line(__('A new review has been submitted for product') . ': ' . $this->review->product->name)
             ->line(__('Rating') . ': ' . $this->review->rating . '/5')
             ->line(__('Comment') . ': ' . $this->review->comment)

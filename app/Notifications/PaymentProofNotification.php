@@ -54,9 +54,13 @@ class PaymentProofNotification extends Notification implements ShouldQueue
             default => __('Payment Proof Update'),
         };
 
+        $greeting = ($notifiable instanceof User)
+            ? __('Hello') . ' ' . $notifiable->name
+            : __('Hello') . ' ' . config('app.name');
+
         $message = (new MailMessage)
             ->subject($subject . ' - ' . __('Order #') . $order->order_number)
-            ->greeting(__('Hello') . ' ' . $notifiable->name);
+            ->greeting($greeting);
 
         if ($this->type === 'uploaded') {
             // Notification for user

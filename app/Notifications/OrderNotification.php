@@ -45,9 +45,13 @@ class OrderNotification extends Notification implements ShouldQueue
             $url = config('app.url') . '/dashboard/orders/' . $this->order->id;
         }
 
+        $greeting = ($notifiable instanceof User)
+            ? __('Hello') . ' ' . $notifiable->name
+            : __('Hello') . ' ' . config('app.name');
+
         $message = (new MailMessage)
             ->subject(__('Order Update') . ': #' . $this->order->order_number)
-            ->greeting(__('Hello') . ' ' . $notifiable->name);
+            ->greeting($greeting);
 
         if ($this->type === 'created') {
             $message->line(__('Your order has been successfully placed.'))

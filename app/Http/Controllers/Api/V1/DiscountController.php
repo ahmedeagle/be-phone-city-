@@ -82,6 +82,26 @@ class DiscountController extends Controller
             );
         }
 
+        // Validate conditions if subtotal is provided
+        if ($request->filled('subtotal')) {
+            $discountService = app(\App\Services\DiscountService::class);
+            $cartItemsCount = (int) $request->input('cart_items_count', 0);
+            $conditionResult = $discountService->validateConditions(
+                $discount,
+                (float) $request->subtotal,
+                auth()->id(),
+                $cartItemsCount
+            );
+
+            if (!$conditionResult['valid']) {
+                return Response::error(
+                    $conditionResult['error'],
+                    null,
+                    400
+                );
+            }
+        }
+
         // Return discount details
         return Response::success(
             __('Discount code is valid'),

@@ -28,6 +28,7 @@ class ContactRequestNotification extends Notification implements ShouldQueue
     {
         return (new MailMessage)
             ->subject(__('New Contact Request'))
+            ->greeting(__('Hello') . ' ' . config('app.name'))
             ->line(__('A new contact request has been received.'))
             ->line(__('From') . ': ' . $this->contactRequest->name)
             ->line(__('Email') . ': ' . $this->contactRequest->email)
