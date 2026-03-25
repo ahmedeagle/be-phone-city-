@@ -47,12 +47,12 @@
     "Ticket #": "تذكرة #",
     "has been updated.": "تم تحديثها.",
 
-    "Pending": "قيد الانتظار",
-    "Confirmed": "مؤكد",
-    "Processing": "قيد المعالجة",
+    "Pending": "بانتظار الدفع",
+    "Confirmed": "تم تأكيد الطلب",
+    "Processing": "جاري تجهيز الطلب",
     "Shipped": "تم الشحن",
-    "Delivery in Progress": "قيد التوصيل",
-    "Delivered": "تم التسليم",
+    "Delivery in Progress": "جاري التوصيل",
+    "Delivered": "تم التوصيل",
     "Completed": "مكتمل",
     "Cancelled": "ملغي",
 
