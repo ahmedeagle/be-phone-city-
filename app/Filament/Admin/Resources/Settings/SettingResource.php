@@ -167,6 +167,18 @@ class SettingResource extends Resource
                     ])
                     ->columns(2),
 
+                Section::make('إعدادات تأكيد الطلبات')
+                    ->description('التحكم في تأكيد الطلبات المدفوعة إلكترونياً تلقائياً أو يدوياً')
+                    ->icon('heroicon-o-shield-check')
+                    ->schema([
+                        Toggle::make('auto_confirm_electronic_payments')
+                            ->label('تأكيد تلقائي للدفع الإلكتروني')
+                            ->helperText('عند التفعيل: الطلبات المدفوعة إلكترونياً (Tabby, Tamara, Amwal, Moyasar) تتأكد وتنتقل للمعالجة تلقائياً مع إنشاء شحنة OTO. عند الإلغاء: تبقى في حالة "مؤكد" وتنتظر مراجعة الأدمن قبل المعالجة. التحويل البنكي يحتاج دائماً موافقة الأدمن بغض النظر عن هذا الخيار.')
+                            ->default(true)
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(1),
+
                 Section::make('معلومات الحساب البنكي')
                     ->description('معلومات الحساب البنكي لطريقة الدفع بالتحويل البنكي')
                     ->icon('heroicon-o-building-library')
@@ -321,6 +333,17 @@ class SettingResource extends Resource
                             ->visible(fn ($record) => $record->show_featured_section ?? true),
                     ])
                     ->columns(2),
+
+                Section::make('إعدادات تأكيد الطلبات')
+                    ->icon('heroicon-o-shield-check')
+                    ->schema([
+                        TextEntry::make('auto_confirm_electronic_payments')
+                            ->label('تأكيد تلقائي للدفع الإلكتروني')
+                            ->badge()
+                            ->formatStateUsing(fn ($state) => $state ? 'مفعل — الطلبات تتأكد تلقائياً' : 'معطل — تحتاج مراجعة يدوية')
+                            ->color(fn ($state) => $state ? 'success' : 'warning'),
+                    ])
+                    ->columns(1),
 
                 Section::make('معلومات الحساب البنكي')
                     ->icon('heroicon-o-building-library')

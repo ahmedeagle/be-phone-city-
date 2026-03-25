@@ -31,6 +31,8 @@ class Setting extends Model
         'show_featured_section',
         'new_arrivals_count',
         'featured_count',
+        // Order Confirmation Settings
+        'auto_confirm_electronic_payments',
     ];
 
     protected $casts = [
@@ -42,6 +44,7 @@ class Setting extends Model
         'show_featured_section' => 'boolean',
         'new_arrivals_count' => 'integer',
         'featured_count' => 'integer',
+        'auto_confirm_electronic_payments' => 'boolean',
     ];
 
     /**

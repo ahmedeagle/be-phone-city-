@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Services\Shipping\OtoShippingService;
 use App\Services\Shipping\Oto\Exceptions\OtoValidationException;
 use App\Services\Shipping\Oto\Exceptions\OtoApiException;
+use App\Services\PaymentService;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Notifications\Notification;
@@ -299,15 +300,40 @@ class ViewOrder extends ViewRecord
                 ->color('success')
                 ->requiresConfirmation()
                 ->modalHeading('تأكيد قبول الدفع')
-                ->modalDescription('هل تريد قبول إيصال التحويل البنكي وتعيين الطلب كمدفوع؟')
+                ->modalDescription('هل تريد قبول إيصال التحويل البنكي وتعيين الطلب كمدفوع؟ سيتم تنفيذ جميع الإجراءات التلقائية (خصم المخزون، إرسال إشعار، إضافة النقاط، إنشاء شحنة).')
                 ->modalSubmitActionLabel('نعم، قبول الدفع')
-                ->action(function () {
-                    $this->record->markPaymentAsPaid();
-                    Notification::make()
-                        ->title('تم قبول الدفع بنجاح')
-                        ->success()
-                        ->send();
-                    $this->record->refresh();
+                ->form([
+                    \Filament\Forms\Components\Textarea::make('notes')
+                        ->label('ملاحظات (اختياري)')
+                        ->rows(2)
+                        ->maxLength(500),
+                ])
+                ->action(function (array $data) {
+                    try {
+                        $paymentService = app(PaymentService::class);
+                        $paymentService->reviewPaymentProof($this->record, true, $data['notes'] ?? null);
+
+                        Notification::make()
+                            ->title('تم قبول الدفع بنجاح')
+                            ->success()
+                            ->body('تم تأكيد الدفع وتنفيذ جميع الإجراءات التلقائية (خصم مخزون، إشعار، نقاط، شحنة)')
+                            ->duration(8000)
+                            ->send();
+
+                        $this->record->refresh();
+                    } catch (\Exception $e) {
+                        Log::error('Admin approve payment failed', [
+                            'order_id' => $this->record->id,
+                            'error' => $e->getMessage(),
+                        ]);
+
+                        Notification::make()
+                            ->title('فشل قبول الدفع')
+                            ->danger()
+                            ->body($e->getMessage())
+                            ->persistent()
+                            ->send();
+                    }
                 })
                 ->visible(fn () =>
                     $this->record->payment_status === Order::PAYMENT_STATUS_AWAITING_REVIEW
@@ -320,18 +346,83 @@ class ViewOrder extends ViewRecord
                 ->color('danger')
                 ->requiresConfirmation()
                 ->modalHeading('تأكيد رفض الدفع')
-                ->modalDescription('هل تريد رفض إيصال التحويل البنكي وتعيين حالة الدفع كفاشل؟')
+                ->modalDescription('هل تريد رفض إيصال التحويل البنكي؟ سيتمكن العميل من رفع إيصال جديد.')
                 ->modalSubmitActionLabel('نعم، رفض الدفع')
-                ->action(function () {
-                    $this->record->markPaymentAsFailed();
-                    Notification::make()
-                        ->title('تم رفض الدفع')
-                        ->danger()
-                        ->send();
-                    $this->record->refresh();
+                ->form([
+                    \Filament\Forms\Components\Textarea::make('rejection_notes')
+                        ->label('سبب الرفض')
+                        ->rows(2)
+                        ->maxLength(500)
+                        ->helperText('سيتم إرسال السبب للعميل'),
+                ])
+                ->action(function (array $data) {
+                    try {
+                        $paymentService = app(PaymentService::class);
+                        $paymentService->reviewPaymentProof($this->record, false, $data['rejection_notes'] ?? null);
+
+                        Notification::make()
+                            ->title('تم رفض الدفع')
+                            ->danger()
+                            ->body('تم إبلاغ العميل ويمكنه رفع إيصال جديد')
+                            ->send();
+
+                        $this->record->refresh();
+                    } catch (\Exception $e) {
+                        Log::error('Admin reject payment failed', [
+                            'order_id' => $this->record->id,
+                            'error' => $e->getMessage(),
+                        ]);
+
+                        Notification::make()
+                            ->title('فشل رفض الدفع')
+                            ->danger()
+                            ->body($e->getMessage())
+                            ->persistent()
+                            ->send();
+                    }
                 })
                 ->visible(fn () =>
                     $this->record->payment_status === Order::PAYMENT_STATUS_AWAITING_REVIEW
+                    && auth()->user()->can('orders.update')
+                ),
+
+            Action::make('process_confirmed_order')
+                ->label('بدء معالجة الطلب')
+                ->icon('heroicon-o-play')
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalHeading('تأكيد بدء المعالجة')
+                ->modalDescription('هذا الطلب مؤكد ومدفوع. هل تريد نقله إلى مرحلة المعالجة؟ سيتم إنشاء شحنة OTO تلقائياً إذا كان التوصيل منزلي.')
+                ->modalSubmitActionLabel('نعم، ابدأ المعالجة')
+                ->action(function () {
+                    try {
+                        $this->record->update(['status' => Order::STATUS_PROCESSING]);
+
+                        Notification::make()
+                            ->title('تم نقل الطلب للمعالجة')
+                            ->success()
+                            ->body('سيتم إنشاء شحنة OTO تلقائياً إذا كان التوصيل منزلي')
+                            ->duration(8000)
+                            ->send();
+
+                        $this->record->refresh();
+                    } catch (\Exception $e) {
+                        Log::error('Admin process confirmed order failed', [
+                            'order_id' => $this->record->id,
+                            'error' => $e->getMessage(),
+                        ]);
+
+                        Notification::make()
+                            ->title('فشل بدء المعالجة')
+                            ->danger()
+                            ->body($e->getMessage())
+                            ->persistent()
+                            ->send();
+                    }
+                })
+                ->visible(fn () =>
+                    $this->record->status === Order::STATUS_CONFIRMED
+                    && $this->record->payment_status === Order::PAYMENT_STATUS_PAID
                     && auth()->user()->can('orders.update')
                 ),
 

@@ -6,9 +6,11 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductOption;
 use App\Models\ProductView;
+use App\Models\Setting;
 use App\Notifications\OrderCompletedReviewRequest;
 use App\Services\NotificationService;
 use App\Services\PointsService;
+use Illuminate\Support\Facades\Log;
 
 class OrderObserver
 {
@@ -38,9 +40,11 @@ class OrderObserver
             $originalPaymentStatus = $order->getOriginal('payment_status');
             $newPaymentStatus = $order->payment_status;
 
-            // When payment becomes PAID, send "order created" notification and mark products as purchased
+            // When payment becomes PAID, trigger the full post-payment flow
             if ($newPaymentStatus === Order::PAYMENT_STATUS_PAID
                 && $originalPaymentStatus !== Order::PAYMENT_STATUS_PAID) {
+
+                // === Always execute these regardless of auto-confirm setting ===
 
                 // Decrement stock for every order item
                 $this->decrementStock($order);
@@ -54,22 +58,36 @@ class OrderObserver
                 // Mark product views as purchased NOW (after payment confirmed)
                 $this->markProductViewsAsPurchased($order);
 
-                // If order has OTO order ID, set status to PROCESSING
-                if (!empty($order->oto_order_id)) {
-                    // Only update if status is not already PROCESSING or higher
-                    $originalStatus = $order->getOriginal('status');
-                    if (!in_array($originalStatus, [
-                        Order::STATUS_PROCESSING,
-                        Order::STATUS_SHIPPED,
-                        Order::STATUS_IN_PROGRESS,
-                        Order::STATUS_DELIVERED,
-                        Order::STATUS_COMPLETED,
-                    ])) {
-                        // Use saveQuietly to avoid triggering another observer event
-                        $order->status = Order::STATUS_PROCESSING;
-                        $order->saveQuietly();
-                        $statusChangedByUs = true;
-                    }
+                // === Determine whether to auto-process or hold at confirmed ===
+
+                $shouldAutoProcess = $this->shouldAutoProcess($order);
+
+                Log::info('OrderObserver: Payment confirmed — determining auto-process', [
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'should_auto_process' => $shouldAutoProcess,
+                    'payment_gateway' => $order->paymentMethod?->gateway ?? 'unknown',
+                    'delivery_method' => $order->delivery_method,
+                ]);
+
+                if ($shouldAutoProcess) {
+                    // Auto-confirm: Move to confirmed → processing and create OTO shipment
+                    $order->status = Order::STATUS_PROCESSING;
+                    $order->saveQuietly();
+                    $statusChangedByUs = true;
+
+                    // Create OTO shipment for home delivery orders
+                    $this->handleAutomaticOtoShipping($order);
+                } else {
+                    // Manual review required: Hold at confirmed status
+                    $order->status = Order::STATUS_CONFIRMED;
+                    $order->saveQuietly();
+                    $statusChangedByUs = true;
+
+                    Log::info('OrderObserver: Order held at confirmed — awaiting admin review', [
+                        'order_id' => $order->id,
+                        'order_number' => $order->order_number,
+                    ]);
                 }
             }
         }
@@ -92,9 +110,14 @@ class OrderObserver
         if ($order->isDirty('status') && !$statusChangedByUs) {
             $this->notificationService->notifyOrderStatusChanged($order);
 
-            // Send review request email when order is completed
-            // Only send if status changed TO completed (not if it was already completed)
+            // When admin moves a confirmed order to processing, trigger OTO shipping
             $originalStatus = $order->getOriginal('status');
+            if ($order->status === Order::STATUS_PROCESSING
+                && $originalStatus === Order::STATUS_CONFIRMED) {
+                $this->handleAutomaticOtoShipping($order);
+            }
+
+            // Send review request email when order is completed
             if ($order->status === Order::STATUS_COMPLETED
                 && $originalStatus !== Order::STATUS_COMPLETED
                 && $order->user) {
@@ -103,6 +126,92 @@ class OrderObserver
         } elseif ($statusChangedByUs) {
             // Manually trigger notification since we used saveQuietly
             $this->notificationService->notifyOrderStatusChanged($order);
+        }
+    }
+
+    /**
+     * Determine if the order should be auto-processed (confirmed → processing → OTO)
+     * or held at confirmed for manual admin review.
+     *
+     * Bank transfers: Always auto-process (admin already approved the payment manually)
+     * Electronic payments: Depends on the auto_confirm_electronic_payments setting
+     */
+    protected function shouldAutoProcess(Order $order): bool
+    {
+        $paymentMethod = $order->paymentMethod;
+        $gateway = $paymentMethod?->gateway ?? '';
+
+        // Bank transfer: admin already manually approved, so always auto-process
+        if ($gateway === 'bank_transfer') {
+            return true;
+        }
+
+        // Cash on delivery: auto-process (no payment confirmation needed)
+        if ($gateway === 'cash_on_delivery' || $gateway === 'cod') {
+            return true;
+        }
+
+        // Electronic payments: check admin setting
+        return (bool) Setting::get('auto_confirm_electronic_payments', true);
+    }
+
+    /**
+     * Handle automatic OTO shipping when order is ready for processing
+     */
+    protected function handleAutomaticOtoShipping(Order $order): void
+    {
+        // Only for home delivery orders without existing shipment
+        if ($order->delivery_method !== Order::DELIVERY_HOME) {
+            return;
+        }
+
+        if (!empty($order->oto_order_id) || $order->hasActiveShipment()) {
+            return;
+        }
+
+        Log::info('OrderObserver: Starting automatic OTO shipping', [
+            'order_id' => $order->id,
+            'order_number' => $order->order_number,
+            'status' => $order->status,
+            'payment_status' => $order->payment_status,
+        ]);
+
+        try {
+            $order->refresh();
+            $order->load(['location.city', 'items.product', 'items.productOption', 'user']);
+
+            if (!$order->location) {
+                Log::warning('OrderObserver: No location — skipping OTO shipping', [
+                    'order_id' => $order->id,
+                ]);
+                return;
+            }
+
+            $shippingService = app(\App\Services\Shipping\OtoShippingService::class);
+            $shipmentDto = $shippingService->createOrderAndShipment($order);
+            $order->refresh();
+
+            Log::info('OrderObserver: Automatic OTO shipping completed', [
+                'order_id' => $order->id,
+                'tracking_number' => $order->tracking_number,
+                'oto_order_id' => $order->oto_order_id,
+            ]);
+
+        } catch (\App\Services\Shipping\Oto\Exceptions\OtoValidationException $e) {
+            Log::warning('OrderObserver: OTO validation error — admin can create manually', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+            ]);
+        } catch (\App\Services\Shipping\Oto\Exceptions\OtoApiException $e) {
+            Log::error('OrderObserver: OTO API error — admin can create manually', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('OrderObserver: Unexpected OTO error — admin can create manually', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 
