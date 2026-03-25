@@ -76,9 +76,11 @@ class TicketNotification extends Notification implements ShouldQueue
             'ticket_id' => $this->ticket->id,
             'ticket_number' => $this->ticket->ticket_number,
             'type' => $this->type,
+            'type_label' => $this->type === 'created' ? __('New Ticket') : __('Ticket Update'),
             'title' => $title,
             'message' => $message,
             'status' => $this->ticket->status,
+            'status_label' => __($this->ticket->status),
         ];
 
         // Add frontend URL for users in database notification

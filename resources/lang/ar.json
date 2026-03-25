@@ -47,6 +47,23 @@
     "Ticket #": "تذكرة #",
     "has been updated.": "تم تحديثها.",
 
+    "Pending": "قيد الانتظار",
+    "Confirmed": "مؤكد",
+    "Processing": "قيد المعالجة",
+    "Shipped": "تم الشحن",
+    "Delivery in Progress": "قيد التوصيل",
+    "Delivered": "تم التسليم",
+    "Completed": "مكتمل",
+    "Cancelled": "ملغي",
+
+    "New Order": "طلب جديد",
+    "Status Update": "تحديث الحالة",
+    "Proof Uploaded": "تم الرفع",
+    "Requires Review": "يتطلب المراجعة",
+    "Approved": "تم القبول",
+    "Rejected": "مرفوض",
+    "New Ticket": "تذكرة جديدة",
+
     "Payment Proof Update": "تحديث إثبات الدفع",
 
     "New Order Received": "تم استلام طلب جديد",

@@ -81,9 +81,11 @@ class OrderNotification extends Notification implements ShouldQueue
             'order_id' => $this->order->id,
             'order_number' => $this->order->order_number,
             'type' => $this->type,
+            'type_label' => $this->type === 'created' ? __('New Order') : __('Status Update'),
             'title' => $title,
             'message' => $message,
             'status' => $this->order->status,
+            'status_label' => $statusLabel,
         ];
 
         // Add frontend URL for users in database notification

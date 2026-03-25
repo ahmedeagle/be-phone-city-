@@ -133,6 +133,13 @@ class PaymentProofNotification extends Notification implements ShouldQueue
             'order_id' => $order->id,
             'order_number' => $order->order_number,
             'type' => $this->type,
+            'type_label' => match($this->type) {
+                'uploaded' => __('Proof Uploaded'),
+                'uploaded_admin' => __('Requires Review'),
+                'approved' => __('Approved'),
+                'rejected' => __('Rejected'),
+                default => $this->type,
+            },
             'title' => $title,
             'message' => $message,
             'amount' => $this->transaction->amount,
