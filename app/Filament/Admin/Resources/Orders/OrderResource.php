@@ -56,31 +56,43 @@ class OrderResource extends Resource
         }
 
         if (auth()->user()->can('orders.show')) {
+            $items[] = \Filament\Navigation\NavigationItem::make('بانتظار المعالجة')
+                ->group('المبيعات والمدفوعات')
+                ->icon('heroicon-o-pause-circle')
+                ->sort(2)
+                ->url(static::getUrl('awaiting-processing'))
+                ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.orders.awaiting-processing'))
+                ->badge(fn () => Order::where(function ($q) {
+                    $q->where('status', Order::STATUS_CONFIRMED)
+                      ->where('payment_status', Order::PAYMENT_STATUS_PAID);
+                })->orWhere('payment_status', Order::PAYMENT_STATUS_AWAITING_REVIEW)->count() ?: null)
+                ->badgeColor('warning');
+
             $items[] = \Filament\Navigation\NavigationItem::make('جاهزة للشحن')
                 ->group('المبيعات والمدفوعات')
                 ->icon('heroicon-o-clock')
-                ->sort(2)
+                ->sort(3)
                 ->url(static::getUrl('ready-to-ship'))
                 ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.orders.ready-to-ship'));
 
             $items[] = \Filament\Navigation\NavigationItem::make('قيد التنفيذ (OTO)')
                 ->group('المبيعات والمدفوعات')
                 ->icon('heroicon-o-arrow-path')
-                ->sort(3)
+                ->sort(4)
                 ->url(static::getUrl('oto-in-progress'))
                 ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.orders.oto-in-progress'));
 
             $items[] = \Filament\Navigation\NavigationItem::make('قيد الشحن')
                 ->group('المبيعات والمدفوعات')
                 ->icon('heroicon-o-truck')
-                ->sort(4)
+                ->sort(5)
                 ->url(static::getUrl('shipped'))
                 ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.orders.shipped'));
 
             $items[] = \Filament\Navigation\NavigationItem::make('تم التسليم')
                 ->group('المبيعات والمدفوعات')
                 ->icon('heroicon-o-check-circle')
-                ->sort(5)
+                ->sort(6)
                 ->url(static::getUrl('delivered'))
                 ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.orders.delivered'));
         }
@@ -436,6 +448,7 @@ class OrderResource extends Resource
     {
         return [
             'index' => ListOrders::route('/'),
+            'awaiting-processing' => Pages\ListOrdersAwaitingProcessing::route('/awaiting-processing'),
             'ready-to-ship' => Pages\ListOrdersReadyToShip::route('/ready-to-ship'),
             'oto-in-progress' => Pages\ListOrdersOtoInProgress::route('/oto-in-progress'),
             'shipped' => Pages\ListOrdersShipped::route('/shipped'),

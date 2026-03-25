@@ -42,7 +42,11 @@ class ListOrdersOtoInProgress extends Page implements HasTable
         return OrdersTable::configure($table)
             ->query(Order::query()
                 ->whereNotNull('oto_order_id')
-                ->whereNull('tracking_number')
+                ->whereNotIn('status', [
+                    Order::STATUS_DELIVERED,
+                    Order::STATUS_COMPLETED,
+                    Order::STATUS_CANCELLED,
+                ])
             );
     }
 
