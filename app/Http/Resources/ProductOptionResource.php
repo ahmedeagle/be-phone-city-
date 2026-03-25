@@ -88,10 +88,13 @@ class ProductOptionResource extends JsonResource
     }
 
     /**
-     * Get minimal data for order items (includes images but excludes payment methods and unnecessary data)
+     * Get minimal data for order items (includes images and pricing for display)
      */
     public function forOrderItem(): array
     {
+        $originalPrice = $this->getOriginalPrice();
+        $finalPrice = $this->getFinalPrice();
+
         return [
             'id' => $this->id,
             'type' => $this->type,
@@ -99,6 +102,9 @@ class ProductOptionResource extends JsonResource
             'value_en' => $this->value_en,
             'value_ar' => $this->value_ar,
             'images' => ImageResource::collection($this->whenLoaded('images')),
+            'original_price' => number_format($originalPrice, 2),
+            'discounted_price' => $this->discounted_price ? number_format($this->discounted_price, 2) : null,
+            'final_price' => number_format($finalPrice, 2),
         ];
     }
 }
