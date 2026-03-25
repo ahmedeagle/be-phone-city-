@@ -65,8 +65,7 @@ class OrderResource extends Resource
                 ->badge(fn () => Order::where(function ($q) {
                     $q->where('status', Order::STATUS_CONFIRMED)
                       ->where('payment_status', Order::PAYMENT_STATUS_PAID);
-                })->orWhere('payment_status', Order::PAYMENT_STATUS_AWAITING_REVIEW)->count() ?: null)
-                ->badgeColor('warning');
+                })->orWhere('payment_status', Order::PAYMENT_STATUS_AWAITING_REVIEW)->count() ?: null);
 
             $items[] = \Filament\Navigation\NavigationItem::make('جاهزة للشحن')
                 ->group('المبيعات والمدفوعات')
