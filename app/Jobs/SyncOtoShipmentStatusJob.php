@@ -40,8 +40,8 @@ class SyncOtoShipmentStatusJob implements ShouldQueue
     {
         $this->order = $order;
 
-        // Use a queue for background processing
-        $this->onQueue('oto-sync');
+        // Use default queue (matches the queue:work cron on server)
+        $this->onQueue('default');
     }
 
     /**
