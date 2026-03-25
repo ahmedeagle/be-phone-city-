@@ -449,6 +449,7 @@ class OrderResource extends Resource
             'index' => ListOrders::route('/'),
             'awaiting-processing' => Pages\ListOrdersAwaitingProcessing::route('/awaiting-processing'),
             'ready-to-ship' => Pages\ListOrdersReadyToShip::route('/ready-to-ship'),
+            'no-shipment' => Pages\ListOrdersNoShipment::route('/no-shipment'),
             'oto-in-progress' => Pages\ListOrdersOtoInProgress::route('/oto-in-progress'),
             'shipped' => Pages\ListOrdersShipped::route('/shipped'),
             'delivered' => Pages\ListOrdersDelivered::route('/delivered'),

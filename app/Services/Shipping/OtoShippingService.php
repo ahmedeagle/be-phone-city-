@@ -10,6 +10,7 @@ use App\Services\Shipping\Oto\Exceptions\OtoConfigurationException;
 use App\Services\Shipping\Oto\Exceptions\OtoValidationException;
 use App\Services\Shipping\Oto\OtoHttpClient;
 use App\Services\Shipping\Oto\OtoStatusMapper;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -454,6 +455,8 @@ class OtoShippingService
             return;
         }
 
+        $previousTrackingStatus = $order->tracking_status;
+
         DB::transaction(function () use ($order, $statusDto) {
             // Map OTO status to Order status
             $newOrderStatus = OtoStatusMapper::mapToOrderStatus($statusDto->status);
@@ -518,6 +521,19 @@ class OtoShippingService
                 'shipping_payload' => $statusDto->rawPayload,
             ]);
         });
+
+        // Send delivery failure notification (outside transaction)
+        if (OtoStatusMapper::isFailed($statusDto->status)
+            && !OtoStatusMapper::isFailed($previousTrackingStatus ?? '')) {
+            try {
+                app(NotificationService::class)->notifyDeliveryFailed($order, $statusDto->status);
+            } catch (\Exception $e) {
+                Log::error('Failed to send delivery failure notification', [
+                    'order_id' => $order->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     /**

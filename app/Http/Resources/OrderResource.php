@@ -37,6 +37,11 @@ class OrderResource extends JsonResource
             'total' => (float) $this->total,
             'status' => $this->status,
             'payment_status' => $this->payment_status,
+            'tracking_number' => $this->tracking_number,
+            'tracking_url' => $this->tracking_url,
+            'tracking_status' => $this->tracking_status,
+            'shipping_eta' => $this->shipping_eta,
+            'shipping_status_updated_at' => $this->shipping_status_updated_at?->toISOString(),
             'items' => OrderItemResource::collection($this->whenLoaded('items')),
             'invoice' => $this->whenLoaded('invoice', function () {
                 return new InvoiceResource($this->invoice);

@@ -202,16 +202,19 @@ class OrderObserver
                 'order_id' => $order->id,
                 'error' => $e->getMessage(),
             ]);
+            app(\App\Services\NotificationService::class)->notifyShipmentCreationFailed($order, $e->getMessage());
         } catch (\App\Services\Shipping\Oto\Exceptions\OtoApiException $e) {
             Log::error('OrderObserver: OTO API error — admin can create manually', [
                 'order_id' => $order->id,
                 'error' => $e->getMessage(),
             ]);
+            app(\App\Services\NotificationService::class)->notifyShipmentCreationFailed($order, $e->getMessage());
         } catch (\Exception $e) {
             Log::error('OrderObserver: Unexpected OTO error — admin can create manually', [
                 'order_id' => $order->id,
                 'error' => $e->getMessage(),
             ]);
+            app(\App\Services\NotificationService::class)->notifyShipmentCreationFailed($order, $e->getMessage());
         }
     }
 

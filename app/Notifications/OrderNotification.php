@@ -16,11 +16,13 @@ class OrderNotification extends Notification implements ShouldQueue
 
     protected $order;
     protected $type;
+    protected $extraData;
 
-    public function __construct(Order $order, string $type = 'created')
+    public function __construct(Order $order, string $type = 'created', array $extraData = [])
     {
         $this->order = $order;
         $this->type = $type;
+        $this->extraData = $extraData;
     }
 
     public function via($notifiable): array
@@ -57,6 +59,23 @@ class OrderNotification extends Notification implements ShouldQueue
             $message->line(__('Your order has been successfully placed.'))
                 ->line(__('Order Number') . ': ' . $this->order->order_number)
                 ->line(__('Total') . ': ' . $this->order->total . ' SAR');
+        } elseif ($this->type === 'delivery_failed') {
+            $failureLabel = $this->extraData['failure_label'] ?? __('Delivery failed');
+            $isPermanent = $this->extraData['is_permanent'] ?? false;
+            $message->line(__('We are sorry, we could not deliver your order.'))
+                ->line(__('Order Number') . ': ' . $this->order->order_number)
+                ->line(__('Reason') . ': ' . $failureLabel);
+            if ($isPermanent) {
+                $message->line(__('Our team will contact you soon to arrange an alternative.'));
+            } else {
+                $message->line(__('A new delivery attempt will be made soon.'));
+            }
+        } elseif ($this->type === 'shipment_creation_failed') {
+            $errorMessage = $this->extraData['error'] ?? __('Unknown error');
+            $message->line('⚠️ ' . __('Automatic shipment creation failed for this order.'))
+                ->line(__('Order Number') . ': ' . $this->order->order_number)
+                ->line(__('Error') . ': ' . $errorMessage)
+                ->line(__('Please create the shipment manually from the admin panel.'));
         } else {
             $message->line(__('Your order status has been updated to') . ': ' . $statusLabel);
         }
@@ -72,16 +91,28 @@ class OrderNotification extends Notification implements ShouldQueue
         if ($this->type === 'created') {
             $title = __('New Order Created');
             $message = __('Order #') . $this->order->order_number . ' ' . __('has been placed successfully.');
+            $typeLabel = __('New Order');
+        } elseif ($this->type === 'delivery_failed') {
+            $failureLabel = $this->extraData['failure_label'] ?? __('Delivery failed');
+            $isPermanent = $this->extraData['is_permanent'] ?? false;
+            $title = $isPermanent ? __('Delivery Failed') : __('Delivery Attempt Failed');
+            $message = __('Order #') . $this->order->order_number . ' - ' . $failureLabel;
+            $typeLabel = __('Delivery Failed');
+        } elseif ($this->type === 'shipment_creation_failed') {
+            $title = __('Shipment Creation Failed');
+            $message = __('Order #') . $this->order->order_number . ' - ' . ($this->extraData['error'] ?? __('Unknown error'));
+            $typeLabel = __('Shipment Error');
         } else {
             $title = __('Order Status Updated');
             $message = __('Order #') . $this->order->order_number . ' ' . __('status is now') . ' ' . $statusLabel;
+            $typeLabel = __('Status Update');
         }
 
         $data = [
             'order_id' => $this->order->id,
             'order_number' => $this->order->order_number,
             'type' => $this->type,
-            'type_label' => $this->type === 'created' ? __('New Order') : __('Status Update'),
+            'type_label' => $typeLabel,
             'title' => $title,
             'message' => $message,
             'status' => $this->order->status,

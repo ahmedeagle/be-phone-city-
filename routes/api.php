@@ -198,6 +198,7 @@ Route::prefix('v1')->namespace('App\Http\Controllers\Api\V1')->group(function ()
             Route::post('/preview', [OrderController::class, 'preview']);
             Route::post('/', [OrderController::class, 'store']);
             Route::get('/{id}', [OrderController::class, 'show']);
+            Route::post('/{id}/shipping/refresh', [OrderController::class, 'refreshShipping']);
         });
 
         // Invoices routes

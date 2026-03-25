@@ -440,6 +440,41 @@ class OrderController extends Controller
     }
 
     /**
+     * Refresh shipping status from OTO for a specific order
+     */
+    public function refreshShipping(int $id)
+    {
+        $order = Order::where('user_id', Auth::id())
+            ->findOrFail($id);
+
+        if (empty($order->tracking_number) && empty($order->oto_order_id)) {
+            return Response::error(__('This order has no shipment to refresh'), 422);
+        }
+
+        try {
+            $shippingService = app(\App\Services\Shipping\OtoShippingService::class);
+            $shippingService->syncShipmentStatus($order);
+            $order->refresh();
+
+            return Response::success(
+                __('Shipping status updated'),
+                new OrderResource($order->load([
+                    'items.product.images',
+                    'items.product.categories',
+                    'items.productOption.images',
+                    'location.city',
+                    'paymentMethod',
+                    'discountCode',
+                    'invoice',
+                ])),
+                200
+            );
+        } catch (\Exception $e) {
+            return Response::error(__('Failed to refresh shipping status'), 500);
+        }
+    }
+
+    /**
      * Validate preview request
      *
      * @return array Validation errors

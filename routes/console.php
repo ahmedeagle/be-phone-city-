@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 // Sync OTO shipment statuses every 15 minutes
 Schedule::command('oto:sync-shipments')->everyFifteenMinutes();
+
+// Check for delayed shipments daily at 9 AM
+Schedule::command('oto:check-delayed')->dailyAt('09:00');

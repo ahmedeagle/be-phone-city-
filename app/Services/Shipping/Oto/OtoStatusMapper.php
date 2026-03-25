@@ -130,6 +130,42 @@ class OtoStatusMapper
     {
         $normalized = self::normalize($otoStatus);
         
-        return in_array($normalized, ['cancelled', 'failed', 'returned', 'return_to_sender']);
+        return in_array($normalized, ['cancelled', 'failed', 'returned', 'return_to_sender', 'delivery_failed', 'attempted_delivery']);
+    }
+
+    /**
+     * Check if status indicates a temporary delivery failure (can be retried)
+     */
+    public static function isTemporaryFailure(string $otoStatus): bool
+    {
+        $normalized = self::normalize($otoStatus);
+
+        return in_array($normalized, ['failed', 'delivery_failed', 'attempted_delivery']);
+    }
+
+    /**
+     * Check if status indicates a permanent failure (order won't be delivered)
+     */
+    public static function isPermanentFailure(string $otoStatus): bool
+    {
+        $normalized = self::normalize($otoStatus);
+
+        return in_array($normalized, ['cancelled', 'returned', 'return_to_sender']);
+    }
+
+    /**
+     * Get failure label for display
+     */
+    public static function getFailureLabel(string $otoStatus): string
+    {
+        $normalized = self::normalize($otoStatus);
+
+        return match ($normalized) {
+            'failed', 'delivery_failed', 'attempted_delivery' => 'محاولة توصيل فاشلة',
+            'cancelled' => 'تم إلغاء الشحنة',
+            'returned' => 'مرتجع',
+            'return_to_sender' => 'مرتجع للمرسل',
+            default => 'فشل التوصيل',
+        };
     }
 }

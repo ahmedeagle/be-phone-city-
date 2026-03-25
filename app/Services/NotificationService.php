@@ -13,6 +13,7 @@ use App\Notifications\ReviewNotification;
 use App\Notifications\ContactRequestNotification;
 use App\Notifications\PaymentProofNotification;
 use App\Models\PaymentTransaction;
+use App\Services\Shipping\Oto\OtoStatusMapper;
 use Filament\Notifications\Notification as FilamentNotification;
 use Filament\Actions\Action;
 use Illuminate\Support\Facades\Log;
@@ -204,6 +205,111 @@ class NotificationService
                 }
             }
         }
+    }
+
+    /**
+     * Notify about failed delivery (temporary or permanent)
+     */
+    public function notifyDeliveryFailed(Order $order, string $otoStatus): void
+    {
+        $isPermanent = OtoStatusMapper::isPermanentFailure($otoStatus);
+        $failureLabel = OtoStatusMapper::getFailureLabel($otoStatus);
+
+        $extraData = [
+            'failure_label' => $failureLabel,
+            'is_permanent' => $isPermanent,
+            'oto_status' => $otoStatus,
+        ];
+
+        // Notify customer
+        if ($order->user) {
+            $order->user->notify($this->forceArabicLocale(new OrderNotification($order, 'delivery_failed', $extraData)));
+        }
+
+        // Notify admins
+        $title = $isPermanent
+            ? '⚠️ ' . __('Delivery Failed Permanently')
+            : __('Delivery Attempt Failed');
+
+        $body = __('Order #') . $order->order_number . ' - ' . $failureLabel;
+
+        $this->notifyAdmins(
+            permission: 'orders.show',
+            notification: $this->forceArabicLocale(new OrderNotification($order, 'delivery_failed', $extraData)),
+            filamentTitle: $title,
+            filamentBody: $body,
+            filamentIcon: 'heroicon-o-exclamation-triangle',
+            filamentColor: 'danger',
+            actionUrl: route('filament.admin.resources.orders.view', ['record' => $order->id])
+        );
+
+        Log::warning('Delivery failure notification sent', [
+            'order_id' => $order->id,
+            'oto_status' => $otoStatus,
+            'is_permanent' => $isPermanent,
+        ]);
+    }
+
+    /**
+     * Notify admins about shipment creation failure
+     */
+    public function notifyShipmentCreationFailed(Order $order, string $errorMessage): void
+    {
+        $extraData = ['error' => $errorMessage];
+
+        // Only notify admins (not the customer)
+        $this->notifyAdmins(
+            permission: 'orders.show',
+            notification: $this->forceArabicLocale(new OrderNotification($order, 'shipment_creation_failed', $extraData)),
+            filamentTitle: '⚠️ ' . __('Shipment Creation Failed'),
+            filamentBody: __('Order #') . $order->order_number . ': ' . $errorMessage,
+            filamentIcon: 'heroicon-o-exclamation-circle',
+            filamentColor: 'danger',
+            actionUrl: route('filament.admin.resources.orders.view', ['record' => $order->id])
+        );
+
+        Log::error('Shipment creation failure notification sent', [
+            'order_id' => $order->id,
+            'error' => $errorMessage,
+        ]);
+    }
+
+    /**
+     * Notify admins about delayed shipments (past ETA)
+     */
+    public function notifyDelayedShipments(array $delayedOrders): void
+    {
+        if (empty($delayedOrders)) {
+            return;
+        }
+
+        $count = count($delayedOrders);
+        $orderNumbers = collect($delayedOrders)->pluck('order_number')->take(5)->implode(', ');
+        $suffix = $count > 5 ? ' ...' . __('and') . ' ' . ($count - 5) . ' ' . __('more') : '';
+
+        $admins = Admin::permission('orders.show')->get();
+        if ($admins->isEmpty()) {
+            return;
+        }
+
+        foreach ($admins as $admin) {
+            FilamentNotification::make()
+                ->title('⏰ ' . __('Delayed Shipments Alert'))
+                ->body($count . ' ' . __('orders past expected delivery date') . ': ' . $orderNumbers . $suffix)
+                ->icon('heroicon-o-clock')
+                ->color('warning')
+                ->actions([
+                    Action::make('view')
+                        ->label(__('View'))
+                        ->url(route('filament.admin.resources.orders.index')),
+                ])
+                ->sendToDatabase($admin);
+        }
+
+        Log::warning('Delayed shipments notification sent', [
+            'count' => $count,
+            'order_ids' => collect($delayedOrders)->pluck('id')->toArray(),
+        ]);
     }
 
     /**
