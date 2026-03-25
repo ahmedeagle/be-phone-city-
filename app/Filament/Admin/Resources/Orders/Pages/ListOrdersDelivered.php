@@ -24,9 +24,9 @@ class ListOrdersDelivered extends Page implements HasTable
 
     protected static ?string $slug = 'orders/delivered';
 
-    protected static ?string $title = 'طلبات تم تسليمها';
+    protected static ?string $title = 'طلبات تم توصيلها';
 
-    protected static ?string $navigationLabel = 'تم التسليم';
+    protected static ?string $navigationLabel = 'تم التوصيل';
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-check-circle';
 
@@ -34,7 +34,7 @@ class ListOrdersDelivered extends Page implements HasTable
 
     public static function getNavigationLabel(): string
     {
-        return 'تم التسليم';
+        return 'تم التوصيل';
     }
 
     public function table(Table $table): Table
@@ -52,7 +52,7 @@ class ListOrdersDelivered extends Page implements HasTable
     {
         return [
             OrderResource::getUrl('index') => 'الطلبات',
-            '#' => 'تم التسليم',
+            '#' => 'تم التوصيل',
         ];
     }
 }

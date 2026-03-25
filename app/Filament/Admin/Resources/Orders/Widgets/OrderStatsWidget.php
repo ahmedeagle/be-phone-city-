@@ -41,8 +41,8 @@ class OrderStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-shopping-cart')
                 ->color('primary'),
 
-            Stat::make('طلبات قيد التوصيل', $inProgressOrders)
-                ->description('طلبات قيد المعالجة والتوصيل')
+            Stat::make('طلبات جاري توصيلها', $inProgressOrders)
+                ->description('طلبات قيد التجهيز والتوصيل')
                 ->descriptionIcon('heroicon-m-truck')
                 ->color('warning'),
 

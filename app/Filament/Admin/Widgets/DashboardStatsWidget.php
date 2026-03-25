@@ -78,7 +78,7 @@ class DashboardStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-calendar')
                 ->color('info'),
 
-            Stat::make('طلبات قيد التوصيل', $inProgressOrders)
+            Stat::make('طلبات جاري توصيلها', $inProgressOrders)
                 ->description('طلبات تحتاج متابعة')
                 ->descriptionIcon('heroicon-m-truck')
                 ->color('warning')

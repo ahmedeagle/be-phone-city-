@@ -88,7 +88,7 @@ class OrderResource extends Resource
                 ->url(static::getUrl('shipped'))
                 ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.orders.shipped'));
 
-            $items[] = \Filament\Navigation\NavigationItem::make('تم التسليم')
+            $items[] = \Filament\Navigation\NavigationItem::make('تم التوصيل')
                 ->group('المبيعات والمدفوعات')
                 ->icon('heroicon-o-check-circle')
                 ->sort(6)
@@ -162,12 +162,12 @@ class OrderResource extends Resource
                                 default => 'gray',
                             })
                             ->formatStateUsing(fn (string $state): string => match ($state) {
-                                Order::STATUS_PENDING => 'قيد الانتظار',
-                                Order::STATUS_CONFIRMED => 'مؤكد',
-                                Order::STATUS_PROCESSING => 'قيد المعالجة',
+                                Order::STATUS_PENDING => 'بانتظار الدفع',
+                                Order::STATUS_CONFIRMED => 'تم تأكيد الطلب',
+                                Order::STATUS_PROCESSING => 'جاري تجهيز الطلب',
                                 Order::STATUS_SHIPPED => 'تم الشحن',
-                                Order::STATUS_IN_PROGRESS => 'قيد التوصيل',
-                                Order::STATUS_DELIVERED => 'تم التسليم',
+                                Order::STATUS_IN_PROGRESS => 'جاري التوصيل',
+                                Order::STATUS_DELIVERED => 'تم التوصيل',
                                 Order::STATUS_COMPLETED => 'مكتمل',
                                 Order::STATUS_CANCELLED => 'ملغي',
                                 default => $state,
