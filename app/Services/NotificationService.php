@@ -64,13 +64,27 @@ class NotificationService
 
     /**
      * Notify about order status change.
-     * Only notifies the customer (user) — admins are not notified for status updates.
+     * Notifies both the customer and admins.
      */
     public function notifyOrderStatusChanged(Order $order)
     {
+        $statusLabel = $order->getStatusDisplayName();
+
+        // Notify the customer
         if ($order->user) {
             $order->user->notify($this->forceArabicLocale(new OrderNotification($order, 'status_updated')));
         }
+
+        // Notify Admins with 'orders.show' permission
+        $this->notifyAdmins(
+            permission: 'orders.show',
+            notification: $this->forceArabicLocale(new OrderNotification($order, 'status_updated')),
+            filamentTitle: __('Order Status Updated'),
+            filamentBody: __('Order #') . $order->order_number . ' ' . __('status is now') . ' ' . $statusLabel,
+            filamentIcon: 'heroicon-o-truck',
+            filamentColor: 'info',
+            actionUrl: route('filament.admin.resources.orders.view', ['record' => $order->id])
+        );
     }
 
     /**
