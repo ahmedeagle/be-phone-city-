@@ -17,8 +17,7 @@ class OtoStatusMapper
      */
     public static function mapToOrderStatus(string $otoStatus): ?string
     {
-        // Normalize status (lowercase, replace spaces/dashes with underscore)
-        $normalized = strtolower(str_replace([' ', '-'], '_', $otoStatus));
+        $normalized = self::normalize($otoStatus);
 
         // Map OTO statuses to Order statuses
         return match ($normalized) {
@@ -34,8 +33,8 @@ class OtoStatusMapper
             // Cancelled/Failed -> keep current status (don't auto-cancel order)
             'cancelled', 'failed', 'returned', 'return_to_sender' => null,
             
-            // Pending/Processing -> keep as processing
-            'pending', 'processing', 'awaiting_pickup' => Order::STATUS_PROCESSING,
+            // Pending/Processing/Assigned -> keep as processing
+            'pending', 'processing', 'awaiting_pickup', 'assigned_to_warehouse' => Order::STATUS_PROCESSING,
             
             default => null,
         };
@@ -46,14 +45,14 @@ class OtoStatusMapper
      */
     public static function getBadgeColor(string $otoStatus): string
     {
-        $normalized = strtolower(str_replace([' ', '-'], '_', $otoStatus));
+        $normalized = self::normalize($otoStatus);
 
         return match ($normalized) {
             'delivered', 'completed', 'success' => 'success',
             'out_for_delivery', 'on_delivery', 'in_delivery', 'delivering' => 'warning',
             'created', 'picked_up', 'in_transit', 'shipped', 'at_warehouse' => 'info',
             'cancelled', 'failed', 'returned', 'return_to_sender' => 'danger',
-            'pending', 'processing', 'awaiting_pickup' => 'gray',
+            'pending', 'processing', 'awaiting_pickup', 'assigned_to_warehouse' => 'gray',
             default => 'gray',
         };
     }
@@ -63,7 +62,7 @@ class OtoStatusMapper
      */
     public static function getStatusLabel(string $otoStatus): string
     {
-        $normalized = strtolower(str_replace([' ', '-'], '_', $otoStatus));
+        $normalized = self::normalize($otoStatus);
 
         return match ($normalized) {
             'created' => 'تم إنشاء الشحنة',
@@ -71,6 +70,7 @@ class OtoStatusMapper
             'in_transit' => 'في الطريق',
             'shipped' => 'تم الشحن',
             'at_warehouse' => 'في المستودع',
+            'assigned_to_warehouse' => 'تم التسليم للمستودع',
             'out_for_delivery' => 'خارج للتوصيل',
             'on_delivery' => 'قيد التوصيل',
             'in_delivery' => 'قيد التوصيل',
@@ -92,9 +92,20 @@ class OtoStatusMapper
     /**
      * Check if status indicates shipment is in transit
      */
+    /**
+     * Normalize OTO status: handle camelCase, spaces, dashes → snake_case lowercase
+     */
+    private static function normalize(string $status): string
+    {
+        // Convert camelCase to snake_case first (e.g. assignedToWarehouse → assigned_to_warehouse)
+        $snaked = preg_replace('/([a-z])([A-Z])/', '$1_$2', $status);
+        // Replace spaces/dashes with underscore, then lowercase
+        return strtolower(str_replace([' ', '-'], '_', $snaked));
+    }
+
     public static function isInTransit(string $otoStatus): bool
     {
-        $normalized = strtolower(str_replace([' ', '-'], '_', $otoStatus));
+        $normalized = self::normalize($otoStatus);
         
         return in_array($normalized, [
             'picked_up', 'in_transit', 'shipped', 'at_warehouse', 
@@ -107,7 +118,7 @@ class OtoStatusMapper
      */
     public static function isComplete(string $otoStatus): bool
     {
-        $normalized = strtolower(str_replace([' ', '-'], '_', $otoStatus));
+        $normalized = self::normalize($otoStatus);
         
         return in_array($normalized, ['delivered', 'completed', 'success']);
     }
@@ -117,7 +128,7 @@ class OtoStatusMapper
      */
     public static function isFailed(string $otoStatus): bool
     {
-        $normalized = strtolower(str_replace([' ', '-'], '_', $otoStatus));
+        $normalized = self::normalize($otoStatus);
         
         return in_array($normalized, ['cancelled', 'failed', 'returned', 'return_to_sender']);
     }
