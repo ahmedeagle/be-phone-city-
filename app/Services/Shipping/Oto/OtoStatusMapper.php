@@ -41,6 +41,33 @@ class OtoStatusMapper
     }
 
     /**
+     * Status progression order — higher number = more advanced.
+     * Sync should never regress an order to a lower level.
+     */
+    private const STATUS_WEIGHT = [
+        Order::STATUS_PROCESSING   => 1,
+        Order::STATUS_SHIPPED      => 2,
+        Order::STATUS_IN_PROGRESS  => 3,
+        Order::STATUS_DELIVERED    => 4,
+        Order::STATUS_COMPLETED    => 5,
+    ];
+
+    /**
+     * Check if transitioning from current to new status is a progression (not regression).
+     */
+    public static function isProgression(?string $currentStatus, ?string $newStatus): bool
+    {
+        if (!$currentStatus || !$newStatus) {
+            return true;
+        }
+
+        $currentWeight = self::STATUS_WEIGHT[strtolower($currentStatus)] ?? 0;
+        $newWeight     = self::STATUS_WEIGHT[strtolower($newStatus)] ?? 0;
+
+        return $newWeight >= $currentWeight;
+    }
+
+    /**
      * Get badge color for OTO status display
      */
     public static function getBadgeColor(string $otoStatus): string

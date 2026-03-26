@@ -495,8 +495,8 @@ class OtoShippingService
                 $updates['shipping_eta'] = $statusDto->eta;
             }
 
-            // Update order status if mapped
-            if ($newOrderStatus) {
+            // Update order status if mapped AND it's a progression (never regress)
+            if ($newOrderStatus && OtoStatusMapper::isProgression($order->status, $newOrderStatus)) {
                 $updates['status'] = $newOrderStatus;
 
                 // Auto-complete on delivery if configured
