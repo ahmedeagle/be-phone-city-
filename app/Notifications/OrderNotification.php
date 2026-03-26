@@ -92,6 +92,27 @@ class OrderNotification extends Notification implements ShouldQueue
                 ->line(__('Please create the shipment manually from the admin panel.'));
         } else {
             $message->line(__('Your order status has been updated to') . ': ' . $statusLabel);
+
+            // Add tracking info when order is shipped
+            if ($this->order->tracking_number) {
+                $message->line('')
+                    ->line('📦 ' . __('Tracking Number') . ': ' . $this->order->tracking_number);
+                if ($this->order->shipping_eta) {
+                    $message->line('📅 ' . __('Expected Delivery') . ': ' . $this->order->shipping_eta);
+                }
+                if ($this->order->tracking_url) {
+                    $message->line('');
+                }
+            }
+        }
+
+        // If there's a tracking URL, add it as primary action instead of My Orders
+        if ($this->type === 'status_updated' && $this->order->tracking_url) {
+            return $message
+                ->action('📦 ' . __('Track Your Shipment'), $this->order->tracking_url)
+                ->line('')
+                ->line('[' . __('View Order') . '](' . $url . ')')
+                ->line(__('Thank you for shopping with us!'));
         }
 
         return $message->action(__('View Order'), $url)
@@ -132,6 +153,17 @@ class OrderNotification extends Notification implements ShouldQueue
             'status' => $this->order->status,
             'status_label' => $statusLabel,
         ];
+
+        // Add tracking info to notification data
+        if ($this->order->tracking_number) {
+            $data['tracking_number'] = $this->order->tracking_number;
+        }
+        if ($this->order->tracking_url) {
+            $data['tracking_url'] = $this->order->tracking_url;
+        }
+        if ($this->order->shipping_eta) {
+            $data['shipping_eta'] = $this->order->shipping_eta;
+        }
 
         // Add branch info for store pickup orders
         if ($this->order->delivery_method === \App\Models\Order::DELIVERY_STORE_PICKUP && $this->order->branch) {
