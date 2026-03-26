@@ -65,8 +65,7 @@ class OrderResource extends Resource
                 ->badge(fn () => Order::where(function ($q) {
                     $q->where('status', Order::STATUS_CONFIRMED)
                       ->where('payment_status', Order::PAYMENT_STATUS_PAID);
-                })->orWhere('payment_status', Order::PAYMENT_STATUS_AWAITING_REVIEW)->count() ?: null)
-                ->badgeColor('warning');
+                })->orWhere('payment_status', Order::PAYMENT_STATUS_AWAITING_REVIEW)->count() ?: null);
 
             $items[] = \Filament\Navigation\NavigationItem::make('جاهزة للشحن')
                 ->group('المبيعات والمدفوعات')
@@ -78,8 +77,7 @@ class OrderResource extends Resource
                     ->where('delivery_method', Order::DELIVERY_HOME)
                     ->whereNull('oto_order_id')
                     ->where(fn ($q) => $q->whereNull('tracking_number')->orWhere('tracking_number', ''))
-                    ->count() ?: null)
-                ->badgeColor('info');
+                    ->count() ?: null);
 
             $items[] = \Filament\Navigation\NavigationItem::make('قيد التنفيذ (OTO)')
                 ->group('المبيعات والمدفوعات')
@@ -89,8 +87,7 @@ class OrderResource extends Resource
                 ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.orders.oto-in-progress'))
                 ->badge(fn () => Order::whereNotNull('oto_order_id')
                     ->whereNotIn('status', [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED, Order::STATUS_CANCELLED])
-                    ->count() ?: null)
-                ->badgeColor('warning');
+                    ->count() ?: null);
 
             $items[] = \Filament\Navigation\NavigationItem::make('قيد الشحن')
                 ->group('المبيعات والمدفوعات')
@@ -108,8 +105,7 @@ class OrderResource extends Resource
                 ->url(static::getUrl('delivered'))
                 ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.orders.delivered'))
                 ->badge(fn () => Order::whereIn('status', [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED])
-                    ->count() ?: null)
-                ->badgeColor('success');
+                    ->count() ?: null);
         }
 
         return $items;
