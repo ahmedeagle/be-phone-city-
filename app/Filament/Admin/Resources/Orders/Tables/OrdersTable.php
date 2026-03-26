@@ -157,6 +157,15 @@ class OrdersTable
                     ->label('بانتظار مراجعة الدفع')
                     ->query(fn ($query) => $query->where('payment_status', 'awaiting_review'))
                     ->toggle(),
+                Filter::make('paid_without_shipment')
+                    ->label('مدفوع بدون شحنة')
+                    ->query(fn ($query) => $query
+                        ->where('payment_status', 'paid')
+                        ->where('delivery_method', Order::DELIVERY_HOME)
+                        ->whereNull('tracking_number')
+                        ->whereNotIn('status', [Order::STATUS_CANCELLED, Order::STATUS_COMPLETED, Order::STATUS_DELIVERED])
+                    )
+                    ->toggle(),
                 SelectFilter::make('delivery_method')
                     ->label('طريقة التوصيل')
                     ->options([
