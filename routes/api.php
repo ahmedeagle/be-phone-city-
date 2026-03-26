@@ -221,10 +221,10 @@ Route::prefix('v1')->namespace('App\Http\Controllers\Api\V1')->group(function ()
         Route::prefix('notifications')->group(function () {
             Route::get('/', [NotificationController::class, 'index']);
             Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
-            Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
             Route::post('/read-all', [NotificationController::class, 'markAllAsRead']);
-            Route::delete('/{id}', [NotificationController::class, 'destroy']);
             Route::delete('/clear-all', [NotificationController::class, 'clearAll']);
+            Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
+            Route::delete('/{id}', [NotificationController::class, 'destroy']);
         });
 
         // Payment routes (authenticated)
