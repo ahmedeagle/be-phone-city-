@@ -25,6 +25,9 @@ class OrderResource extends JsonResource
                 return new PaymentMethodResource($this->paymentMethod);
             }),
             'delivery_method' => $this->delivery_method,
+            'branch' => $this->whenLoaded('branch', function () {
+                return new BranchResource($this->branch);
+            }),
             'subtotal' => (float) $this->subtotal,
             'discount' => (float) $this->discount,
             'discount_code' => $this->whenLoaded('discountCode', function () {

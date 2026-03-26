@@ -59,6 +59,20 @@ class OrderNotification extends Notification implements ShouldQueue
             $message->line(__('Your order has been successfully placed.'))
                 ->line(__('Order Number') . ': ' . $this->order->order_number)
                 ->line(__('Total') . ': ' . $this->order->total . ' SAR');
+
+            // Add branch info for store pickup orders
+            if ($this->order->delivery_method === \App\Models\Order::DELIVERY_STORE_PICKUP && $this->order->branch) {
+                $branch = $this->order->branch;
+                $message->line('')
+                    ->line(__('Pickup Branch') . ': ' . $branch->name_ar)
+                    ->line(__('Address') . ': ' . $branch->address_ar);
+                if ($branch->phone) {
+                    $message->line(__('Phone') . ': ' . $branch->phone);
+                }
+                if ($branch->working_hours_ar) {
+                    $message->line(__('Working Hours') . ': ' . $branch->working_hours_ar);
+                }
+            }
         } elseif ($this->type === 'delivery_failed') {
             $failureLabel = $this->extraData['failure_label'] ?? __('Delivery failed');
             $isPermanent = $this->extraData['is_permanent'] ?? false;
@@ -118,6 +132,12 @@ class OrderNotification extends Notification implements ShouldQueue
             'status' => $this->order->status,
             'status_label' => $statusLabel,
         ];
+
+        // Add branch info for store pickup orders
+        if ($this->order->delivery_method === \App\Models\Order::DELIVERY_STORE_PICKUP && $this->order->branch) {
+            $data['branch_id'] = $this->order->branch->id;
+            $data['branch_name'] = $this->order->branch->name_ar;
+        }
 
         // Add frontend URL for users in database notification
         if ($notifiable instanceof User) {

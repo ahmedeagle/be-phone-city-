@@ -33,6 +33,13 @@ class StoreOrderRequest extends FormRequest
             ],
             'payment_method_id' => 'required|exists:payment_methods,id',
             'delivery_method' => ['required', Rule::in([Order::DELIVERY_HOME, Order::DELIVERY_STORE_PICKUP])],
+            'branch_id' => [
+                'nullable',
+                'exists:branches,id',
+                Rule::requiredIf(function () {
+                    return $this->delivery_method === Order::DELIVERY_STORE_PICKUP;
+                }),
+            ],
             'discount_code' => 'nullable|string|exists:discounts,code',
             'notes' => 'nullable|string|max:1000',
             'points_discount' => 'nullable|numeric|min:0',
@@ -53,6 +60,8 @@ class StoreOrderRequest extends FormRequest
             'payment_method_id.exists' => __('Selected payment method does not exist'),
             'delivery_method.required' => __('Delivery method is required'),
             'delivery_method.in' => __('Invalid delivery method'),
+            'branch_id.required' => __('Branch is required for store pickup'),
+            'branch_id.exists' => __('Selected branch does not exist'),
             'discount_code.exists' => __('Invalid discount code'),
         ];
     }

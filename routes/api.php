@@ -31,6 +31,7 @@ use App\Http\Controllers\Api\V1\BlogController;
 use App\Http\Controllers\Api\V1\CommentController;
 use App\Http\Controllers\Api\V1\TicketController;
 use App\Http\Controllers\Api\V1\ChatbotController;
+use App\Http\Controllers\Api\V1\BranchController;
 
 /*
 |--------------------------------------------------------------------------
@@ -64,6 +65,8 @@ Route::prefix('v1')->namespace('App\Http\Controllers\Api\V1')->group(function ()
 
     Route::get('cities', [CityController::class, 'index']);
     Route::get('cities/list', [CityController::class, 'activeList']);
+
+    Route::get('branches', [BranchController::class, 'index']);
 
     Route::get('products', [ProductController::class, 'index']);
     Route::get('products/new-arrivals', [ProductController::class, 'newArrivals']);

@@ -222,6 +222,40 @@ class OrderResource extends Resource
                     ])
                     ->columns(2)
                     ->visible(fn ($record) => $record->location),
+                \Filament\Schemas\Components\Section::make('معلومات الفرع (استلام من المعرض)')
+                    ->schema([
+                        \Filament\Infolists\Components\TextEntry::make('branch.name_ar')
+                            ->label('اسم الفرع')
+                            ->size('lg')
+                            ->weight('bold'),
+                        \Filament\Infolists\Components\TextEntry::make('branch.address_ar')
+                            ->label('العنوان')
+                            ->wrap(),
+                        \Filament\Infolists\Components\TextEntry::make('branch.city_ar')
+                            ->label('المدينة')
+                            ->placeholder('-'),
+                        \Filament\Infolists\Components\TextEntry::make('branch.phone')
+                            ->label('رقم الهاتف')
+                            ->copyable()
+                            ->placeholder('-'),
+                        \Filament\Infolists\Components\TextEntry::make('branch.phone2')
+                            ->label('رقم الهاتف الثاني')
+                            ->copyable()
+                            ->placeholder('-'),
+                        \Filament\Infolists\Components\TextEntry::make('branch.working_hours_ar')
+                            ->label('أوقات العمل')
+                            ->placeholder('-'),
+                        \Filament\Infolists\Components\TextEntry::make('branch.google_maps_url')
+                            ->label('رابط الخريطة')
+                            ->url(fn ($record) => $record->branch?->google_maps_url, shouldOpenInNewTab: true)
+                            ->color('primary')
+                            ->icon('heroicon-o-arrow-top-right-on-square')
+                            ->placeholder('-'),
+                    ])
+                    ->columns(2)
+                    ->icon('heroicon-o-building-storefront')
+                    ->iconColor('success')
+                    ->visible(fn ($record) => $record->branch_id && $record->branch),
                 \Filament\Schemas\Components\Section::make('معلومات الدفع')
                     ->schema([
                         \Filament\Infolists\Components\TextEntry::make('paymentMethod.name')

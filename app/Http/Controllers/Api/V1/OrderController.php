@@ -186,6 +186,7 @@ class OrderController extends Controller
             'user_id' => Auth::id(),
             'notes' => $request->notes,
             'location_id' => $location?->id,
+            'branch_id' => $request->delivery_method === Order::DELIVERY_STORE_PICKUP ? $request->branch_id : null,
             'payment_method_id' => $paymentMethod->id,
             'delivery_method' => $request->delivery_method,
             'subtotal' => $calculations['subtotal'],
@@ -217,7 +218,7 @@ class OrderController extends Controller
 
             // Prepare response with order and payment data
             $responseData = [
-                'order' => new OrderResource($order->fresh(['paymentMethod', 'location', 'items'])),
+                'order' => new OrderResource($order->fresh(['paymentMethod', 'location', 'branch', 'items'])),
                 'payment' => [
                     'success' => $paymentData['success'],
                     'status' => $paymentData['payment_status'],
@@ -426,6 +427,7 @@ class OrderController extends Controller
                 'items.product.categories',
                 'items.productOption.images',
                 'location.city',
+                'branch',
                 'paymentMethod',
                 'discountCode',
                 'invoice',
@@ -463,6 +465,7 @@ class OrderController extends Controller
                     'items.product.categories',
                     'items.productOption.images',
                     'location.city',
+                    'branch',
                     'paymentMethod',
                     'discountCode',
                     'invoice',
