@@ -104,6 +104,7 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
                 AdminOtpMiddleware::class,
             ])
-            ->databaseNotifications();
+            ->databaseNotifications()
+            ->databaseNotificationsPolling('30s');
     }
 }
