@@ -22,7 +22,7 @@ class TestTrackingData extends Command
         $order->update([
             'status' => Order::STATUS_SHIPPED,
             'tracking_number' => 'TEST-' . strtoupper(substr(md5(now()), 0, 8)),
-            'tracking_url' => 'https://tracking.oto.sa/track/' . $order->order_number,
+            'tracking_url' => null, // Real URL comes from OTO API (trackingUrl / printAWBURL)
             'tracking_status' => 'in_transit',
             'shipping_eta' => now()->addDays(2)->toDateString(),
             'shipping_status_updated_at' => now(),
