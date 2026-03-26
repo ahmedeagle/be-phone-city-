@@ -65,35 +65,51 @@ class OrderResource extends Resource
                 ->badge(fn () => Order::where(function ($q) {
                     $q->where('status', Order::STATUS_CONFIRMED)
                       ->where('payment_status', Order::PAYMENT_STATUS_PAID);
-                })->orWhere('payment_status', Order::PAYMENT_STATUS_AWAITING_REVIEW)->count() ?: null);
+                })->orWhere('payment_status', Order::PAYMENT_STATUS_AWAITING_REVIEW)->count() ?: null)
+                ->badgeColor('warning');
 
             $items[] = \Filament\Navigation\NavigationItem::make('جاهزة للشحن')
                 ->group('المبيعات والمدفوعات')
                 ->icon('heroicon-o-clock')
                 ->sort(3)
                 ->url(static::getUrl('ready-to-ship'))
-                ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.orders.ready-to-ship'));
+                ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.orders.ready-to-ship'))
+                ->badge(fn () => Order::where('status', Order::STATUS_PROCESSING)
+                    ->where('delivery_method', Order::DELIVERY_HOME)
+                    ->whereNull('oto_order_id')
+                    ->where(fn ($q) => $q->whereNull('tracking_number')->orWhere('tracking_number', ''))
+                    ->count() ?: null)
+                ->badgeColor('info');
 
             $items[] = \Filament\Navigation\NavigationItem::make('قيد التنفيذ (OTO)')
                 ->group('المبيعات والمدفوعات')
                 ->icon('heroicon-o-arrow-path')
                 ->sort(4)
                 ->url(static::getUrl('oto-in-progress'))
-                ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.orders.oto-in-progress'));
+                ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.orders.oto-in-progress'))
+                ->badge(fn () => Order::whereNotNull('oto_order_id')
+                    ->whereNotIn('status', [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED, Order::STATUS_CANCELLED])
+                    ->count() ?: null)
+                ->badgeColor('warning');
 
             $items[] = \Filament\Navigation\NavigationItem::make('قيد الشحن')
                 ->group('المبيعات والمدفوعات')
                 ->icon('heroicon-o-truck')
                 ->sort(5)
                 ->url(static::getUrl('shipped'))
-                ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.orders.shipped'));
+                ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.orders.shipped'))
+                ->badge(fn () => Order::whereIn('status', [Order::STATUS_SHIPPED, Order::STATUS_IN_PROGRESS])
+                    ->count() ?: null);
 
             $items[] = \Filament\Navigation\NavigationItem::make('تم التوصيل')
                 ->group('المبيعات والمدفوعات')
                 ->icon('heroicon-o-check-circle')
                 ->sort(6)
                 ->url(static::getUrl('delivered'))
-                ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.orders.delivered'));
+                ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.orders.delivered'))
+                ->badge(fn () => Order::whereIn('status', [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED])
+                    ->count() ?: null)
+                ->badgeColor('success');
         }
 
         return $items;
