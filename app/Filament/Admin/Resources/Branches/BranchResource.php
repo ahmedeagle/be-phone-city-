@@ -39,22 +39,22 @@ class BranchResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()->can('branches.show') || auth()->user()->hasRole('super_admin');
+        return true;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()->can('branches.create') || auth()->user()->hasRole('super_admin');
+        return true;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()->can('branches.update') || auth()->user()->hasRole('super_admin');
+        return true;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()->can('branches.delete') || auth()->user()->hasRole('super_admin');
+        return true;
     }
 
     public static function form(Schema $schema): Schema
