@@ -18,6 +18,15 @@ class DashboardStatsWidget extends BaseWidget
         $totalOrders = Order::count();
         $todayOrders = Order::whereDate('created_at', today())->count();
         $inProgressOrders = Order::where('status', Order::STATUS_IN_PROGRESS)->count();
+        $awaitingProcessing = Order::where(function ($q) {
+            $q->where(function ($q2) {
+                $q2->where('status', Order::STATUS_CONFIRMED)
+                   ->where('payment_status', Order::PAYMENT_STATUS_PAID);
+            })->orWhere('payment_status', Order::PAYMENT_STATUS_AWAITING_REVIEW);
+        })->count();
+        $activeOrders = Order::whereNotIn('status', [
+            Order::STATUS_PENDING, Order::STATUS_DELIVERED, Order::STATUS_COMPLETED, Order::STATUS_CANCELLED,
+        ])->count();
 
         // Revenue Stats
         $todayRevenue = DB::table('orders')
@@ -78,11 +87,17 @@ class DashboardStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-calendar')
                 ->color('info'),
 
-            Stat::make('طلبات جاري توصيلها', $inProgressOrders)
-                ->description('طلبات تحتاج متابعة')
-                ->descriptionIcon('heroicon-m-truck')
+            Stat::make('طلبات بانتظار المعالجة', $awaitingProcessing)
+                ->description('تحتاج مراجعة وتجهيز')
+                ->descriptionIcon('heroicon-m-clock')
                 ->color('warning')
-                ->url(OrderResource::getUrl('index') . '?filters[status][value]=' . urlencode(Order::STATUS_IN_PROGRESS)),
+                ->url(OrderResource::getUrl('awaiting-processing')),
+
+            Stat::make('طلبات قيد التجهيز والتوصيل', $activeOrders)
+                ->description('مؤكدة + تجهيز + شحن + توصيل')
+                ->descriptionIcon('heroicon-m-truck')
+                ->color('info')
+                ->url(OrderResource::getUrl('index')),
 
             Stat::make('إجمالي المنتجات', $totalProducts)
                 ->description('جميع المنتجات في المتجر')
