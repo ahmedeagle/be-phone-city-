@@ -33,7 +33,7 @@ class RevenueChartWidget extends ChartWidget
             // Revenue
             $revenue = DB::table('orders')
                 ->whereDate('created_at', $date->toDateString())
-                ->where('status', '!=', Order::STATUS_CANCELLED)
+                ->where('payment_status', Order::PAYMENT_STATUS_PAID)
                 ->selectRaw('COALESCE(SUM(total), 0) as total_revenue')
                 ->value('total_revenue') ?? 0;
             $revenueData[] = (float) $revenue;
