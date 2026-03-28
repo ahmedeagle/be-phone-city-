@@ -793,32 +793,12 @@ class OtoShippingService
             'currency' => 'SAR',
         ];
 
-        // Sender/warehouse — OTO uses senderId at root level to reference a registered warehouse
+        // Warehouse selection — if branch has OTO warehouse ID, send it at root level
         if ($branch && $branch->oto_warehouse_id) {
             $warehouseId = is_numeric($branch->oto_warehouse_id)
                 ? (int) $branch->oto_warehouse_id
                 : $branch->oto_warehouse_id;
-
-            // Try both: senderId at root AND senderInformation nested
             $payload['senderId'] = $warehouseId;
-            $payload['senderInformation'] = [
-                'senderId' => $warehouseId,
-                'senderFullName' => $branch->name_ar ?? $pickupConfig['name'],
-                'senderMobile' => $branch->phone ?? $pickupConfig['phone'],
-                'senderCountry' => 'SA',
-                'senderCity' => $branch->city_ar ?? $pickupConfig['city'],
-                'senderAddressLine1' => $branch->address_ar ?? $pickupConfig['address'],
-                'senderEmail' => $pickupConfig['email'],
-            ];
-        } else {
-            $payload['senderInformation'] = [
-                'senderFullName' => $pickupConfig['name'],
-                'senderMobile' => $pickupConfig['phone'],
-                'senderCountry' => $pickupConfig['country'] ?? 'SA',
-                'senderCity' => $pickupConfig['city'],
-                'senderAddressLine1' => $pickupConfig['address'],
-                'senderEmail' => $pickupConfig['email'],
-            ];
         }
 
         $payload += [
