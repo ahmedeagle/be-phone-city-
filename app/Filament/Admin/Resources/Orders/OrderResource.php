@@ -125,8 +125,7 @@ class OrderResource extends Resource
                 ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.orders.failed-delivery'))
                 ->badge(fn () => Order::whereIn('tracking_status', [
                     'failed', 'cancelled', 'returned', 'return_to_sender', 'delivery_failed', 'attempted_delivery',
-                ])->count() ?: null)
-                ->badgeColor('danger');
+                ])->count() ?: null);
         }
 
         return $items;
