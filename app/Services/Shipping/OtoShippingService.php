@@ -462,7 +462,7 @@ class OtoShippingService
             $newOrderStatus = OtoStatusMapper::mapToOrderStatus($statusDto->status);
 
             $updates = [
-                'tracking_status' => $statusDto->status,
+                'tracking_status' => OtoStatusMapper::normalize($statusDto->status),
                 'shipping_status_updated_at' => $statusDto->updatedAt,
                 'shipping_payload' => $statusDto->rawPayload,
             ];

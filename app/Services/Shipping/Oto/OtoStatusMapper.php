@@ -122,7 +122,11 @@ class OtoStatusMapper
     /**
      * Normalize OTO status: handle camelCase, spaces, dashes → snake_case lowercase
      */
-    private static function normalize(string $status): string
+    /**
+     * Normalize OTO status: handle camelCase, spaces, dashes → snake_case lowercase.
+     * Public so it can be used to normalize before DB storage.
+     */
+    public static function normalize(string $status): string
     {
         // Convert camelCase to snake_case first (e.g. assignedToWarehouse → assigned_to_warehouse)
         $snaked = preg_replace('/([a-z])([A-Z])/', '$1_$2', $status);

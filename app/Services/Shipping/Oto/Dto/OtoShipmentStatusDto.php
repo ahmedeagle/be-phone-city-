@@ -120,6 +120,6 @@ class OtoShipmentStatusDto
      */
     public function isDifferentFrom(?string $currentStatus): bool
     {
-        return $currentStatus !== $this->status;
+        return $currentStatus !== \App\Services\Shipping\Oto\OtoStatusMapper::normalize($this->status);
     }
 }
