@@ -68,7 +68,6 @@ class ListOrdersReadyToShip extends Page implements HasTable
                             ->options(
                                 Branch::query()
                                     ->where('is_active', true)
-                                    ->whereNotNull('oto_warehouse_id')
                                     ->pluck('name_ar', 'id')
                             )
                             ->required()
@@ -86,10 +85,10 @@ class ListOrdersReadyToShip extends Page implements HasTable
                     ->action(function (Order $record, array $data) {
                         $branch = Branch::find($data['branch_id']);
 
-                        if (!$branch || !$branch->oto_warehouse_id) {
+                        if (!$branch) {
                             \Filament\Notifications\Notification::make()
                                 ->title('خطأ')
-                                ->body('الفرع المحدد ليس لديه معرّف مستودع OTO.')
+                                ->body('الفرع المحدد غير موجود.')
                                 ->danger()
                                 ->send();
                             return;
