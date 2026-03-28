@@ -26,6 +26,7 @@ class Branch extends Model
         'working_hours_en',
         'is_active',
         'sort_order',
+        'oto_warehouse_id',
     ];
 
     protected $casts = [

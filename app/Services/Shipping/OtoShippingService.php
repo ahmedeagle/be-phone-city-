@@ -117,7 +117,7 @@ class OtoShippingService
      * @throws OtoValidationException
      * @throws OtoConfigurationException
      */
-    public function createOrderAndShipment(Order $order, ?string $notes = null, ?int $deliveryOptionId = null): OtoShipmentDto
+    public function createOrderAndShipment(Order $order, ?string $notes = null, ?int $deliveryOptionId = null, ?string $warehouseId = null): OtoShipmentDto
     {
         // Validate order eligibility
         $this->validateOrderForShipment($order);
@@ -125,9 +125,9 @@ class OtoShippingService
         // Load required relationships
         $order->load(['location.city', 'items.product', 'items.productOption', 'user']);
 
-        return DB::transaction(function () use ($order, $notes, $deliveryOptionId) {
+        return DB::transaction(function () use ($order, $notes, $deliveryOptionId, $warehouseId) {
             // Step 1: Create order in OTO with auto-shipment enabled
-            $orderPayload = $this->buildOrderPayload($order, $notes);
+            $orderPayload = $this->buildOrderPayload($order, $notes, $warehouseId);
 
             // If we have a specific delivery option, we create order first, then shipment
             // Otherwise, we let OTO handle it automatically in one step
@@ -764,7 +764,7 @@ class OtoShippingService
     /**
      * Build order payload for OTO API (based on official docs)
      */
-    protected function buildOrderPayload(Order $order, ?string $notes = null): array
+    protected function buildOrderPayload(Order $order, ?string $notes = null, ?string $warehouseId = null): array
     {
         $location = $order->location;
         $pickupConfig = config('services.oto.pickup');
@@ -786,17 +786,16 @@ class OtoShippingService
             'amount' => (float) $order->total,
             'amount_due' => 0,
             'currency' => 'SAR',
+        ];
 
-            // Sender information (your warehouse/store)
-            // 'senderInformation' => [
-            //     'senderId' => 1,
-            //     'senderFullName' => 'City Phones',
-            //     'senderMobile' => '99999999',
-            //     'senderCountry' => 'SA',
-            //     'senderCity' => 'test city',
-            //     'senderAddressLine1' => 'test address',
-            //     'senderEmail' => 'test@test.com',
-            // ],
+        // If a specific warehouse/branch is selected, include sender information
+        if ($warehouseId) {
+            $payload['senderInformation'] = [
+                'senderId' => $warehouseId,
+            ];
+        }
+
+        $payload += [
 
             // Receiver information (customer)
             'customer' => [

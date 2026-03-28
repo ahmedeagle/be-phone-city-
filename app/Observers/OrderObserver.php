@@ -76,8 +76,8 @@ class OrderObserver
                     $order->saveQuietly();
                     $statusChangedByUs = true;
 
-                    // Create OTO shipment for home delivery orders
-                    $this->handleAutomaticOtoShipping($order);
+                    // OTO shipment is NOT auto-created here.
+                    // Admin creates it manually from "جاهزة للشحن" page with branch selection.
                 } else {
                     // Manual review required: Hold at confirmed status
                     $order->status = Order::STATUS_CONFIRMED;
@@ -110,12 +110,8 @@ class OrderObserver
         if ($order->isDirty('status') && !$statusChangedByUs) {
             $this->notificationService->notifyOrderStatusChanged($order);
 
-            // When admin moves a confirmed order to processing, trigger OTO shipping
-            $originalStatus = $order->getOriginal('status');
-            if ($order->status === Order::STATUS_PROCESSING
-                && $originalStatus === Order::STATUS_CONFIRMED) {
-                $this->handleAutomaticOtoShipping($order);
-            }
+            // When admin moves confirmed → processing, order appears in "جاهزة للشحن" page
+            // Admin creates OTO shipment manually with branch selection from there.
 
             // Send review request email when order is completed
             if ($order->status === Order::STATUS_COMPLETED

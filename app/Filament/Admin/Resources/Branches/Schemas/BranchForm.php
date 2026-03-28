@@ -115,6 +115,18 @@ class BranchForm
                             ]),
                     ]),
 
+                Section::make('ربط OTO للشحن')
+                    ->description('معرّف المستودع في نظام OTO لإنشاء الشحنات من هذا الفرع')
+                    ->icon('heroicon-o-truck')
+                    ->schema([
+                        TextInput::make('oto_warehouse_id')
+                            ->maxLength(255)
+                            ->label('معرّف مستودع OTO')
+                            ->placeholder('مثال: WH-001')
+                            ->helperText('أدخل معرّف المستودع من حساب OTO. الفروع التي لها معرّف فقط ستظهر عند إنشاء الشحنات.')
+                            ->columnSpanFull(),
+                    ]),
+
                 Section::make('أوقات العمل والإعدادات')
                     ->description('ساعات العمل وترتيب العرض')
                     ->icon('heroicon-o-clock')
