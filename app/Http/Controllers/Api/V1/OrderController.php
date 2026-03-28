@@ -442,6 +442,44 @@ class OrderController extends Controller
     }
 
     /**
+     * Cancel an order (only if pending/confirmed/processing)
+     */
+    public function cancel(int $id)
+    {
+        $order = Order::where('user_id', Auth::id())
+            ->findOrFail($id);
+
+        $cancellableStatuses = [
+            Order::STATUS_PENDING,
+            Order::STATUS_CONFIRMED,
+            Order::STATUS_PROCESSING,
+        ];
+
+        if (!in_array($order->status, $cancellableStatuses)) {
+            return Response::error(__('This order cannot be cancelled'), 422);
+        }
+
+        $order->update([
+            'status' => Order::STATUS_CANCELLED,
+        ]);
+
+        return Response::success(
+            __('Order cancelled successfully'),
+            new OrderResource($order->load([
+                'items.product.images',
+                'items.product.categories',
+                'items.productOption.images',
+                'location.city',
+                'branch',
+                'paymentMethod',
+                'discountCode',
+                'invoice',
+            ])),
+            200
+        );
+    }
+
+    /**
      * Refresh shipping status from OTO for a specific order
      */
     public function refreshShipping(int $id)
