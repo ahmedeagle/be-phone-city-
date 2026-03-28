@@ -796,7 +796,7 @@ class OtoShippingService
         // Sender information — from branch if selected, otherwise from global config
         if ($branch && $branch->oto_warehouse_id) {
             $payload['senderInformation'] = [
-                'senderId' => $branch->oto_warehouse_id,
+                'senderId' => is_numeric($branch->oto_warehouse_id) ? (int) $branch->oto_warehouse_id : $branch->oto_warehouse_id,
                 'senderFullName' => $branch->name_ar ?? $pickupConfig['name'],
                 'senderMobile' => $branch->phone ?? $pickupConfig['phone'],
                 'senderCountry' => 'SA',

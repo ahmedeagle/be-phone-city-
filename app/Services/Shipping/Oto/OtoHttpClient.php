@@ -512,6 +512,32 @@ class OtoHttpClient
     }
 
     /**
+     * Get all registered senders/pickup locations from OTO
+     */
+    public function getSenders(): array
+    {
+        $endpoint = '/getSenders';
+        $this->logRequest('GET', $endpoint);
+
+        try {
+            $response = $this->client()->get($endpoint);
+            $this->logResponse('GET', $endpoint, $response);
+
+            if ($response->failed()) {
+                throw OtoApiException::fromResponse($response, 'get senders');
+            }
+
+            return $response->json();
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error('OTO API connection failed', [
+                'endpoint' => $endpoint,
+                'error' => $e->getMessage(),
+            ]);
+            throw OtoApiException::connectionFailed($e);
+        }
+    }
+
+    /**
      * Log API request
      */
     protected function logRequest(string $method, string $endpoint, ?array $payload = null): void
