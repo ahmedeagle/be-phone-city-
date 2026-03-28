@@ -124,6 +124,7 @@ class OtoStatusMapper
      */
     /**
      * Normalize OTO status: handle camelCase, spaces, dashes → snake_case lowercase.
+     * Also normalizes American→British spelling (canceled→cancelled).
      * Public so it can be used to normalize before DB storage.
      */
     public static function normalize(string $status): string
@@ -131,7 +132,14 @@ class OtoStatusMapper
         // Convert camelCase to snake_case first (e.g. assignedToWarehouse → assigned_to_warehouse)
         $snaked = preg_replace('/([a-z])([A-Z])/', '$1_$2', $status);
         // Replace spaces/dashes with underscore, then lowercase
-        return strtolower(str_replace([' ', '-'], '_', $snaked));
+        $normalized = strtolower(str_replace([' ', '-'], '_', $snaked));
+
+        // Normalize American spelling to British (OTO sends "Canceled" with one L)
+        if ($normalized === 'canceled') {
+            $normalized = 'cancelled';
+        }
+
+        return $normalized;
     }
 
     public static function isInTransit(string $otoStatus): bool
