@@ -100,7 +100,7 @@ return [
 
         'timeout' => env('OTO_API_TIMEOUT', 30),
         'retry_times' => env('OTO_API_RETRY_TIMES', 2),
-        'auto_complete_on_delivered' => env('OTO_AUTO_COMPLETE_ON_DELIVERED', false),
+        'auto_complete_on_delivered' => env('OTO_AUTO_COMPLETE_ON_DELIVERED', true),
 
         // Default pickup location (ship-from address)
         'pickup' => [

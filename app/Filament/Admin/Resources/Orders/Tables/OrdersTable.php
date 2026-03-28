@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\Orders\Tables;
 
 use App\Models\Order;
+use App\Services\Shipping\Oto\OtoStatusMapper;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
@@ -127,6 +128,13 @@ class OrdersTable
                     ->label('تاريخ الطلب')
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
+                TextColumn::make('tracking_status')
+                    ->label('حالة الشحنة')
+                    ->badge()
+                    ->color(fn (?string $state): string => $state ? OtoStatusMapper::getBadgeColor($state) : 'gray')
+                    ->formatStateUsing(fn (?string $state): string => $state ? OtoStatusMapper::getStatusLabel($state) : '-')
+                    ->sortable()
+                    ->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('status')
@@ -172,6 +180,18 @@ class OrdersTable
                         Order::DELIVERY_HOME => 'توصيل منزلي',
                         Order::DELIVERY_STORE_PICKUP => 'استلام من المتجر',
                     ]),
+                Filter::make('delivery_failed')
+                    ->label('⚠️ فشل التوصيل')
+                    ->query(fn ($query) => $query
+                        ->whereNotNull('tracking_status')
+                        ->where(function ($q) {
+                            $q->whereIn('tracking_status', [
+                                'failed', 'cancelled', 'returned', 'return_to_sender',
+                                'delivery_failed', 'attempted_delivery',
+                            ]);
+                        })
+                    )
+                    ->toggle(),
                 Filter::make('created_at')
                     ->label('تاريخ الطلب')
                     ->form([

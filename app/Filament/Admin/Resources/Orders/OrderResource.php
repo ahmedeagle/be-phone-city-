@@ -106,6 +106,16 @@ class OrderResource extends Resource
                 ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.orders.delivered'))
                 ->badge(fn () => Order::whereIn('status', [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED])
                     ->count() ?: null);
+
+            $items[] = \Filament\Navigation\NavigationItem::make('استلام من الفرع')
+                ->group('المبيعات والمدفوعات')
+                ->icon('heroicon-o-building-storefront')
+                ->sort(7)
+                ->url(static::getUrl('store-pickup'))
+                ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.orders.store-pickup'))
+                ->badge(fn () => Order::where('delivery_method', Order::DELIVERY_STORE_PICKUP)
+                    ->whereNotIn('status', [Order::STATUS_CANCELLED, Order::STATUS_COMPLETED])
+                    ->count() ?: null);
         }
 
         return $items;
@@ -499,6 +509,7 @@ class OrderResource extends Resource
             'oto-in-progress' => Pages\ListOrdersOtoInProgress::route('/oto-in-progress'),
             'shipped' => Pages\ListOrdersShipped::route('/shipped'),
             'delivered' => Pages\ListOrdersDelivered::route('/delivered'),
+            'store-pickup' => Pages\ListOrdersStorePickup::route('/store-pickup'),
             'view' => ViewOrder::route('/{record}'),
             'edit' => EditOrder::route('/{record}/edit'),
         ];
