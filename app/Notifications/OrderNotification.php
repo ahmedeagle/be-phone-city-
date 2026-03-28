@@ -73,6 +73,23 @@ class OrderNotification extends Notification implements ShouldQueue
                     $message->line(__('Working Hours') . ': ' . $branch->working_hours_ar);
                 }
             }
+        } elseif ($this->type === 'ready_for_pickup') {
+            $message->line('🎉 ' . __('Your order is ready for pickup!'))
+                ->line(__('Order Number') . ': ' . $this->order->order_number)
+                ->line(__('Total') . ': ' . $this->order->total . ' SAR');
+
+            if ($this->order->branch) {
+                $branch = $this->order->branch;
+                $message->line('')
+                    ->line('📍 ' . __('Pickup Branch') . ': ' . $branch->name_ar)
+                    ->line(__('Address') . ': ' . $branch->address_ar);
+                if ($branch->phone) {
+                    $message->line('📞 ' . __('Phone') . ': ' . $branch->phone);
+                }
+                if ($branch->working_hours_ar) {
+                    $message->line('🕐 ' . __('Working Hours') . ': ' . $branch->working_hours_ar);
+                }
+            }
         } elseif ($this->type === 'delivery_failed') {
             $failureLabel = $this->extraData['failure_label'] ?? __('Delivery failed');
             $isPermanent = $this->extraData['is_permanent'] ?? false;
@@ -127,6 +144,11 @@ class OrderNotification extends Notification implements ShouldQueue
             $title = __('New Order Created');
             $message = __('Order #') . $this->order->order_number . ' ' . __('has been placed successfully.');
             $typeLabel = __('New Order');
+        } elseif ($this->type === 'ready_for_pickup') {
+            $branchName = $this->order->branch?->name_ar ?? '';
+            $title = __('Order Ready for Pickup');
+            $message = __('Order #') . $this->order->order_number . ' ' . __('is ready for pickup from') . ' ' . $branchName;
+            $typeLabel = __('Ready for Pickup');
         } elseif ($this->type === 'delivery_failed') {
             $failureLabel = $this->extraData['failure_label'] ?? __('Delivery failed');
             $isPermanent = $this->extraData['is_permanent'] ?? false;

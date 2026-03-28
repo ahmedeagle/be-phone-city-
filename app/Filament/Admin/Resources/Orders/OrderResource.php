@@ -116,6 +116,17 @@ class OrderResource extends Resource
                 ->badge(fn () => Order::where('delivery_method', Order::DELIVERY_STORE_PICKUP)
                     ->whereNotIn('status', [Order::STATUS_CANCELLED, Order::STATUS_COMPLETED])
                     ->count() ?: null);
+
+            $items[] = \Filament\Navigation\NavigationItem::make('فشل التوصيل')
+                ->group('المبيعات والمدفوعات')
+                ->icon('heroicon-o-exclamation-triangle')
+                ->sort(8)
+                ->url(static::getUrl('failed-delivery'))
+                ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.orders.failed-delivery'))
+                ->badge(fn () => Order::whereIn('tracking_status', [
+                    'failed', 'cancelled', 'returned', 'return_to_sender', 'delivery_failed', 'attempted_delivery',
+                ])->count() ?: null)
+                ->badgeColor('danger');
         }
 
         return $items;
@@ -510,6 +521,7 @@ class OrderResource extends Resource
             'shipped' => Pages\ListOrdersShipped::route('/shipped'),
             'delivered' => Pages\ListOrdersDelivered::route('/delivered'),
             'store-pickup' => Pages\ListOrdersStorePickup::route('/store-pickup'),
+            'failed-delivery' => Pages\ListOrdersFailedDelivery::route('/failed-delivery'),
             'view' => ViewOrder::route('/{record}'),
             'edit' => EditOrder::route('/{record}/edit'),
         ];
