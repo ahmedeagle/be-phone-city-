@@ -190,6 +190,11 @@ class OtoShippingService
             // Refresh order to get the latest state from sync
             $order->refresh();
 
+            // Ensure tracking URL is set if we have a tracking number
+            if (!empty($order->tracking_number) && empty($order->tracking_url)) {
+                $order->update(['tracking_url' => $this->generateTrackingUrl($order->tracking_number)]);
+            }
+
             // Return a DTO representing the current state
             return new OtoShipmentDto(
                 shipmentReference: $order->shipping_reference ?? '',
@@ -483,8 +488,14 @@ class OtoShippingService
             if (isset($rawPayload['trackingUrl']) && empty($order->tracking_url)) {
                 $updates['tracking_url'] = $rawPayload['trackingUrl'];
             }
-            if (isset($rawPayload['printAWBURL']) && empty($order->tracking_url)) {
-                $updates['tracking_url'] = $rawPayload['printAWBURL'];
+
+            // Store AWB print URL in payload (NOT as tracking URL — that's for printing labels)
+            // printAWBURL is already stored in shipping_payload via rawPayload
+
+            // Generate tracking URL from tracking number if still empty
+            $trackingNumber = $updates['tracking_number'] ?? $order->tracking_number;
+            if (empty($updates['tracking_url']) && empty($order->tracking_url) && !empty($trackingNumber)) {
+                $updates['tracking_url'] = $this->generateTrackingUrl($trackingNumber);
             }
 
             // Update shipping reference if available
@@ -889,11 +900,18 @@ class OtoShippingService
      */
     protected function updateOrderWithShipment(Order $order, OtoShipmentDto $shipmentDto): void
     {
+        $trackingUrl = $shipmentDto->trackingUrl;
+
+        // Generate tracking URL from tracking number if OTO didn't provide one
+        if (empty($trackingUrl) && !empty($shipmentDto->trackingNumber)) {
+            $trackingUrl = $this->generateTrackingUrl($shipmentDto->trackingNumber);
+        }
+
         $updates = [
             'shipping_provider' => 'OTO',
             'shipping_reference' => $shipmentDto->shipmentReference,
             'tracking_number' => $shipmentDto->trackingNumber,
-            'tracking_url' => $shipmentDto->trackingUrl,
+            'tracking_url' => $trackingUrl,
             'tracking_status' => $shipmentDto->status,
             'shipping_eta' => $shipmentDto->eta,
             'shipping_status_updated_at' => now(),
@@ -906,5 +924,14 @@ class OtoShippingService
         }
 
         $order->update($updates);
+    }
+
+    /**
+     * Generate a customer-facing tracking URL from a tracking number
+     */
+    protected function generateTrackingUrl(string $trackingNumber): string
+    {
+        $baseUrl = rtrim(config('services.oto.tracking_base_url', 'https://tracking.tryoto.com/'), '/');
+        return $baseUrl . '/' . urlencode($trackingNumber);
     }
 }

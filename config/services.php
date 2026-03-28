@@ -101,6 +101,7 @@ return [
         'timeout' => env('OTO_API_TIMEOUT', 30),
         'retry_times' => env('OTO_API_RETRY_TIMES', 2),
         'auto_complete_on_delivered' => env('OTO_AUTO_COMPLETE_ON_DELIVERED', true),
+        'tracking_base_url' => env('OTO_TRACKING_BASE_URL', 'https://tracking.tryoto.com/'),
 
         // Default pickup location (ship-from address)
         'pickup' => [
