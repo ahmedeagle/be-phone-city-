@@ -136,7 +136,8 @@ class OtoShippingService
             Log::info('OTO: Creating order and requesting auto-shipment', [
                 'order_id' => $order->id,
                 'order_number' => $order->order_number,
-                'auto_ship' => $orderPayload['createShipment']
+                'auto_ship' => $orderPayload['createShipment'],
+                'payload' => $orderPayload,
             ]);
 
             $orderResponse = $this->client->createOrder($orderPayload);
@@ -774,6 +775,9 @@ class OtoShippingService
             throw OtoConfigurationException::missingPickupConfig('PHONE');
         }
 
+        $paymentMethod = $this->getPaymentMethod($order);
+        $codAmount = $this->getCodAmount($order);
+
         $payload = [
             // Order ID from your system (required)
             'orderId' => $order->order_number,
@@ -782,9 +786,9 @@ class OtoShippingService
             'createShipment' => true,
 
             // Payment information
-            'payment_method' => 'paid',
+            'payment_method' => $paymentMethod,
             'amount' => (float) $order->total,
-            'amount_due' => 0,
+            'amount_due' => $codAmount,
             'currency' => 'SAR',
         ];
 
