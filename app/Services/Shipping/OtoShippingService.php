@@ -2,6 +2,7 @@
 
 namespace App\Services\Shipping;
 
+use App\Models\Branch;
 use App\Models\Order;
 use App\Services\Shipping\Oto\Dto\OtoShipmentDto;
 use App\Services\Shipping\Oto\Dto\OtoShipmentStatusDto;
@@ -117,7 +118,7 @@ class OtoShippingService
      * @throws OtoValidationException
      * @throws OtoConfigurationException
      */
-    public function createOrderAndShipment(Order $order, ?string $notes = null, ?int $deliveryOptionId = null, ?string $warehouseId = null): OtoShipmentDto
+    public function createOrderAndShipment(Order $order, ?string $notes = null, ?int $deliveryOptionId = null, ?Branch $branch = null): OtoShipmentDto
     {
         // Validate order eligibility
         $this->validateOrderForShipment($order);
@@ -125,9 +126,9 @@ class OtoShippingService
         // Load required relationships
         $order->load(['location.city', 'items.product', 'items.productOption', 'user']);
 
-        return DB::transaction(function () use ($order, $notes, $deliveryOptionId, $warehouseId) {
+        return DB::transaction(function () use ($order, $notes, $deliveryOptionId, $branch) {
             // Step 1: Create order in OTO with auto-shipment enabled
-            $orderPayload = $this->buildOrderPayload($order, $notes, $warehouseId);
+            $orderPayload = $this->buildOrderPayload($order, $notes, $branch);
 
             // If we have a specific delivery option, we create order first, then shipment
             // Otherwise, we let OTO handle it automatically in one step
@@ -765,7 +766,7 @@ class OtoShippingService
     /**
      * Build order payload for OTO API (based on official docs)
      */
-    protected function buildOrderPayload(Order $order, ?string $notes = null, ?string $warehouseId = null): array
+    protected function buildOrderPayload(Order $order, ?string $notes = null, ?Branch $branch = null): array
     {
         $location = $order->location;
         $pickupConfig = config('services.oto.pickup');
@@ -792,10 +793,25 @@ class OtoShippingService
             'currency' => 'SAR',
         ];
 
-        // If a specific warehouse/branch is selected, include sender information
-        if ($warehouseId) {
+        // Sender information — from branch if selected, otherwise from global config
+        if ($branch && $branch->oto_warehouse_id) {
             $payload['senderInformation'] = [
-                'senderId' => $warehouseId,
+                'senderId' => $branch->oto_warehouse_id,
+                'senderFullName' => $branch->name_ar ?? $pickupConfig['name'],
+                'senderMobile' => $branch->phone ?? $pickupConfig['phone'],
+                'senderCountry' => 'SA',
+                'senderCity' => $branch->city_ar ?? $pickupConfig['city'],
+                'senderAddressLine1' => $branch->address_ar ?? $pickupConfig['address'],
+                'senderEmail' => $pickupConfig['email'],
+            ];
+        } else {
+            $payload['senderInformation'] = [
+                'senderFullName' => $pickupConfig['name'],
+                'senderMobile' => $pickupConfig['phone'],
+                'senderCountry' => $pickupConfig['country'] ?? 'SA',
+                'senderCity' => $pickupConfig['city'],
+                'senderAddressLine1' => $pickupConfig['address'],
+                'senderEmail' => $pickupConfig['email'],
             ];
         }
 

@@ -100,7 +100,7 @@ class ListOrdersReadyToShip extends Page implements HasTable
                             $shipmentDto = $shippingService->createOrderAndShipment(
                                 order: $record,
                                 notes: $data['notes'] ?? null,
-                                warehouseId: $branch->oto_warehouse_id,
+                                branch: $branch,
                             );
 
                             $record->refresh();
