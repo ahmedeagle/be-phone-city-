@@ -71,10 +71,17 @@ class OrderObserver
                 ]);
 
                 if ($shouldAutoProcess) {
-                    // Auto-confirm: Move to confirmed → processing and create OTO shipment
+                    // Auto-confirm: Move to processing (ready for shipping / ready for pickup)
                     $order->status = Order::STATUS_PROCESSING;
                     $order->saveQuietly();
                     $statusChangedByUs = true;
+
+                    // For store pickup orders, send "ready for pickup" notification immediately
+                    if ($order->delivery_method === Order::DELIVERY_STORE_PICKUP) {
+                        if ($order->user) {
+                            $order->user->notify(new \App\Notifications\OrderNotification($order, 'ready_for_pickup'));
+                        }
+                    }
 
                     // OTO shipment is NOT auto-created here.
                     // Admin creates it manually from "جاهزة للشحن" page with branch selection.
@@ -147,7 +154,12 @@ class OrderObserver
             return true;
         }
 
-        // Electronic payments: check admin setting
+        // BNPL gateways (Tabby, Tamara): payment confirmed by provider, always auto-process
+        if (in_array($gateway, ['tabby', 'tamara'])) {
+            return true;
+        }
+
+        // Other electronic payments: check admin setting
         return (bool) Setting::get('auto_confirm_electronic_payments', true);
     }
 

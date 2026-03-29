@@ -448,10 +448,16 @@ class Order extends Model
      */
     public function getStatusDisplayName(): string
     {
+        // For processing status, show delivery-method-aware label
+        if ($this->status === self::STATUS_PROCESSING) {
+            return $this->delivery_method === self::DELIVERY_STORE_PICKUP
+                ? __('Ready for Pickup')
+                : __('Ready for Shipping');
+        }
+
         return match($this->status) {
             self::STATUS_PENDING => __('Pending'),
             self::STATUS_CONFIRMED => __('Confirmed'),
-            self::STATUS_PROCESSING => __('Processing'),
             self::STATUS_SHIPPED => __('Shipped'),
             self::STATUS_IN_PROGRESS => __('Delivery in Progress'),
             self::STATUS_DELIVERED => __('Delivered'),
