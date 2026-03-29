@@ -64,13 +64,13 @@ class OrderNotification extends Notification implements ShouldQueue
             if ($this->order->delivery_method === \App\Models\Order::DELIVERY_STORE_PICKUP && $this->order->branch) {
                 $branch = $this->order->branch;
                 $message->line('')
-                    ->line(__('Pickup Branch') . ': ' . $branch->name_ar)
-                    ->line(__('Address') . ': ' . $branch->address_ar);
+                    ->line(__('Pickup Branch') . ': ' . $branch->name)
+                    ->line(__('Address') . ': ' . $branch->address);
                 if ($branch->phone) {
                     $message->line(__('Phone') . ': ' . $branch->phone);
                 }
-                if ($branch->working_hours_ar) {
-                    $message->line(__('Working Hours') . ': ' . $branch->working_hours_ar);
+                if ($branch->working_hours) {
+                    $message->line(__('Working Hours') . ': ' . $branch->working_hours);
                 }
             }
         } elseif ($this->type === 'ready_for_pickup') {
@@ -81,13 +81,13 @@ class OrderNotification extends Notification implements ShouldQueue
             if ($this->order->branch) {
                 $branch = $this->order->branch;
                 $message->line('')
-                    ->line('📍 ' . __('Pickup Branch') . ': ' . $branch->name_ar)
-                    ->line(__('Address') . ': ' . $branch->address_ar);
+                    ->line('📍 ' . __('Pickup Branch') . ': ' . $branch->name)
+                    ->line(__('Address') . ': ' . $branch->address);
                 if ($branch->phone) {
                     $message->line('📞 ' . __('Phone') . ': ' . $branch->phone);
                 }
-                if ($branch->working_hours_ar) {
-                    $message->line('🕐 ' . __('Working Hours') . ': ' . $branch->working_hours_ar);
+                if ($branch->working_hours) {
+                    $message->line('🕐 ' . __('Working Hours') . ': ' . $branch->working_hours);
                 }
             }
         } elseif ($this->type === 'delivery_failed') {
@@ -145,7 +145,7 @@ class OrderNotification extends Notification implements ShouldQueue
             $message = __('Order #') . $this->order->order_number . ' ' . __('has been placed successfully.');
             $typeLabel = __('New Order');
         } elseif ($this->type === 'ready_for_pickup') {
-            $branchName = $this->order->branch?->name_ar ?? '';
+            $branchName = $this->order->branch?->name ?? '';
             $title = __('Order Ready for Pickup');
             $message = __('Order #') . $this->order->order_number . ' ' . __('is ready for pickup from') . ' ' . $branchName;
             $typeLabel = __('Ready for Pickup');
@@ -190,7 +190,7 @@ class OrderNotification extends Notification implements ShouldQueue
         // Add branch info for store pickup orders
         if ($this->order->delivery_method === \App\Models\Order::DELIVERY_STORE_PICKUP && $this->order->branch) {
             $data['branch_id'] = $this->order->branch->id;
-            $data['branch_name'] = $this->order->branch->name_ar;
+            $data['branch_name'] = $this->order->branch->name;
         }
 
         // Add frontend URL for users in database notification

@@ -20,11 +20,11 @@ class AdminOtpNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('رمز التحقق - لوحة التحكم')
-            ->greeting('مرحباً ' . $this->name . '!')
-            ->line('رمز التحقق الخاص بك هو:')
+            ->subject(__('Verification Code - Admin Panel'))
+            ->greeting(__('Hello') . ' ' . $this->name . '!')
+            ->line(__('Your verification code is:'))
             ->line('**' . $this->code . '**')
-            ->line('صالح لمدة 10 دقائق.')
-            ->line('إذا لم تطلب هذا الرمز، يرجى تجاهل هذا البريد.');
+            ->line(__('Valid for 10 minutes.'))
+            ->line(__('If you did not request this code, please ignore this email.'));
     }
 }

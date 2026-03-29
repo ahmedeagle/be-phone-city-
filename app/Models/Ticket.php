@@ -237,45 +237,48 @@ class Ticket extends Model
     }
 
     /**
-     * Get status label in Arabic.
+     * Get status label (locale-aware).
      */
     public function getStatusLabelAttribute(): string
     {
+        $isArabic = app()->getLocale() === 'ar';
         return match($this->status) {
-            self::STATUS_PENDING => 'قيد الانتظار',
-            self::STATUS_IN_PROGRESS => 'قيد المعالجة',
-            self::STATUS_RESOLVED => 'تم الحل',
-            self::STATUS_CLOSED => 'مغلق',
+            self::STATUS_PENDING => $isArabic ? 'قيد الانتظار' : 'Pending',
+            self::STATUS_IN_PROGRESS => $isArabic ? 'قيد المعالجة' : 'In Progress',
+            self::STATUS_RESOLVED => $isArabic ? 'تم الحل' : 'Resolved',
+            self::STATUS_CLOSED => $isArabic ? 'مغلق' : 'Closed',
             default => $this->status,
         };
     }
 
     /**
-     * Get priority label in Arabic.
+     * Get priority label (locale-aware).
      */
     public function getPriorityLabelAttribute(): string
     {
+        $isArabic = app()->getLocale() === 'ar';
         return match($this->priority) {
-            self::PRIORITY_LOW => 'منخفض',
-            self::PRIORITY_MEDIUM => 'متوسط',
-            self::PRIORITY_HIGH => 'عالي',
-            self::PRIORITY_URGENT => 'عاجل',
+            self::PRIORITY_LOW => $isArabic ? 'منخفض' : 'Low',
+            self::PRIORITY_MEDIUM => $isArabic ? 'متوسط' : 'Medium',
+            self::PRIORITY_HIGH => $isArabic ? 'عالي' : 'High',
+            self::PRIORITY_URGENT => $isArabic ? 'عاجل' : 'Urgent',
             default => $this->priority,
         };
     }
 
     /**
-     * Get type label in Arabic.
+     * Get type label (locale-aware).
      */
     public function getTypeLabelAttribute(): string
     {
+        $isArabic = app()->getLocale() === 'ar';
         return match($this->type) {
-            self::TYPE_SUPPORT => 'دعم فني',
-            self::TYPE_COMPLAINT => 'شكوى',
-            self::TYPE_INQUIRY => 'استفسار',
-            self::TYPE_TECHNICAL => 'تقني',
-            self::TYPE_BILLING => 'فوترة',
-            self::TYPE_OTHER => 'أخرى',
+            self::TYPE_SUPPORT => $isArabic ? 'دعم فني' : 'Technical Support',
+            self::TYPE_COMPLAINT => $isArabic ? 'شكوى' : 'Complaint',
+            self::TYPE_INQUIRY => $isArabic ? 'استفسار' : 'Inquiry',
+            self::TYPE_TECHNICAL => $isArabic ? 'تقني' : 'Technical',
+            self::TYPE_BILLING => $isArabic ? 'فوترة' : 'Billing',
+            self::TYPE_OTHER => $isArabic ? 'أخرى' : 'Other',
             default => $this->type,
         };
     }

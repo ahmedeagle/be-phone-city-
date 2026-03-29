@@ -239,5 +239,21 @@
     "The password field format is invalid.": "تنسيق كلمة المرور غير صالح. يجب أن تحتوي على حرف كبير وصغير ورقم ورمز خاص.",
     "The email field must be a valid email address.": "يجب أن يكون البريد الإلكتروني عنوان بريد صالح.",
     "The code field is required.": "حقل الكود مطلوب.",
-    "The code field must be 6 characters.": "يجب أن يتكون الكود من 6 أحرف."
+    "The code field must be 6 characters.": "يجب أن يتكون الكود من 6 أحرف.",
+
+    "Pickup Branch": "فرع الاستلام",
+    "Address": "العنوان",
+    "Phone": "الهاتف",
+    "Working Hours": "ساعات العمل",
+    "Your order is ready for pickup!": "طلبك جاهز للاستلام!",
+    "Order Ready for Pickup": "الطلب جاهز للاستلام",
+    "is ready for pickup from": "جاهز للاستلام من",
+    "Ready for Pickup": "جاهز للاستلام",
+    "Track Your Shipment": "تتبع شحنتك",
+    "Tracking Number": "رقم التتبع",
+    "Expected Delivery": "التوصيل المتوقع",
+
+    "Verification Code - Admin Panel": "رمز التحقق - لوحة التحكم",
+    "Your verification code is": "رمز التحقق الخاص بك هو",
+    "Valid for 10 minutes.": "صالح لمدة 10 دقائق."
 }
