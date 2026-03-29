@@ -459,6 +459,10 @@ class OrderController extends Controller
             return Response::error(__('This order cannot be cancelled'), 422);
         }
 
+        if ($order->payment_status === Order::PAYMENT_STATUS_PAID) {
+            return Response::error(__('Paid orders cannot be cancelled. Please contact support.'), 422);
+        }
+
         $order->update([
             'status' => Order::STATUS_CANCELLED,
         ]);
