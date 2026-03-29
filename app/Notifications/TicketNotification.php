@@ -15,11 +15,13 @@ class TicketNotification extends Notification implements ShouldQueue
 
     protected $ticket;
     protected $type;
+    protected $adminReply;
 
-    public function __construct(Ticket $ticket, string $type = 'created')
+    public function __construct(Ticket $ticket, string $type = 'created', ?string $adminReply = null)
     {
         $this->ticket = $ticket;
         $this->type = $type;
+        $this->adminReply = $adminReply;
     }
 
     public function via($notifiable): array
@@ -53,6 +55,14 @@ class TicketNotification extends Notification implements ShouldQueue
         if ($this->type === 'created') {
             $message->line(__('A new support ticket has been created.'))
                 ->line(__('Subject') . ': ' . $this->ticket->subject);
+        } elseif ($this->type === 'replied') {
+            $message->line(__('You have received a reply on your support ticket.'))
+                ->line(__('Subject') . ': ' . $this->ticket->subject);
+            if ($this->adminReply) {
+                $message->line('---')
+                    ->line($this->adminReply)
+                    ->line('---');
+            }
         } else {
             $message->line(__('Your support ticket has been updated.'))
                 ->line(__('Status') . ': ' . __($this->ticket->status));
@@ -67,6 +77,9 @@ class TicketNotification extends Notification implements ShouldQueue
         if ($this->type === 'created') {
             $title = __('New Ticket Created');
             $message = __('Ticket #') . $this->ticket->ticket_number . ': ' . $this->ticket->subject;
+        } elseif ($this->type === 'replied') {
+            $title = __('Ticket Reply Received');
+            $message = __('Ticket #') . $this->ticket->ticket_number . ' ' . __('has received a reply.');
         } else {
             $title = __('Ticket Updated');
             $message = __('Ticket #') . $this->ticket->ticket_number . ' ' . __('has been updated.');

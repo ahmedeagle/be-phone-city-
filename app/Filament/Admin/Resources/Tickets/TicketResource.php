@@ -240,13 +240,63 @@ class TicketResource extends Resource
                             ->color('primary')
                             ->size('lg')
                             ->weight('bold'),
+                        TextEntry::make('status')
+                            ->label('الحالة')
+                            ->badge()
+                            ->formatStateUsing(fn (string $state): string => match($state) {
+                                Ticket::STATUS_PENDING => 'قيد الانتظار',
+                                Ticket::STATUS_IN_PROGRESS => 'قيد المعالجة',
+                                Ticket::STATUS_RESOLVED => 'تم الحل',
+                                Ticket::STATUS_CLOSED => 'مغلق',
+                                default => $state,
+                            })
+                            ->color(fn (string $state): string => match($state) {
+                                Ticket::STATUS_PENDING => 'warning',
+                                Ticket::STATUS_IN_PROGRESS => 'info',
+                                Ticket::STATUS_RESOLVED => 'success',
+                                Ticket::STATUS_CLOSED => 'gray',
+                                default => 'secondary',
+                            }),
+                        TextEntry::make('priority')
+                            ->label('الأولوية')
+                            ->badge()
+                            ->formatStateUsing(fn (string $state): string => match($state) {
+                                Ticket::PRIORITY_LOW => 'منخفض',
+                                Ticket::PRIORITY_MEDIUM => 'متوسط',
+                                Ticket::PRIORITY_HIGH => 'عالي',
+                                Ticket::PRIORITY_URGENT => 'عاجل',
+                                default => $state,
+                            })
+                            ->color(fn (string $state): string => match($state) {
+                                Ticket::PRIORITY_LOW => 'gray',
+                                Ticket::PRIORITY_MEDIUM => 'info',
+                                Ticket::PRIORITY_HIGH => 'warning',
+                                Ticket::PRIORITY_URGENT => 'danger',
+                                default => 'secondary',
+                            }),
+                        TextEntry::make('type')
+                            ->label('النوع')
+                            ->badge()
+                            ->formatStateUsing(fn (string $state): string => match($state) {
+                                Ticket::TYPE_SUPPORT => 'دعم فني',
+                                Ticket::TYPE_COMPLAINT => 'شكوى',
+                                Ticket::TYPE_INQUIRY => 'استفسار',
+                                Ticket::TYPE_TECHNICAL => 'تقني',
+                                Ticket::TYPE_BILLING => 'فوترة',
+                                Ticket::TYPE_OTHER => 'أخرى',
+                                default => $state,
+                            }),
+                        TextEntry::make('admin.name')
+                            ->label('موظف الدعم')
+                            ->placeholder('غير معين')
+                            ->icon('heroicon-o-user'),
                         TextEntry::make('created_at')
                             ->dateTime('d/m/Y H:i')
                             ->label('تاريخ الإنشاء')
                             ->icon('heroicon-o-calendar')
                             ->color('gray'),
                     ])
-                    ->columns(2)
+                    ->columns(3)
                     ->collapsible(false),
 
                 Section::make('معلومات العميل')
@@ -292,6 +342,10 @@ class TicketResource extends Resource
 
                 Section::make('الرسالة')
                     ->schema([
+                        TextEntry::make('subject')
+                            ->label('الموضوع')
+                            ->size('lg')
+                            ->weight('bold'),
                         TextEntry::make('description')
                             ->label('نص الرسالة')
                             ->html()
@@ -380,17 +434,65 @@ class TicketResource extends Resource
                         return $record->email ?? '-';
                     })
                     ->placeholder('-'),
-                TextColumn::make('phone')
-                    ->label('الهاتف')
-                    ->searchable()
+                TextColumn::make('status')
+                    ->label('الحالة')
+                    ->badge()
                     ->sortable()
-                    ->placeholder('-'),
+                    ->formatStateUsing(fn (string $state): string => match($state) {
+                        Ticket::STATUS_PENDING => 'قيد الانتظار',
+                        Ticket::STATUS_IN_PROGRESS => 'قيد المعالجة',
+                        Ticket::STATUS_RESOLVED => 'تم الحل',
+                        Ticket::STATUS_CLOSED => 'مغلق',
+                        default => $state,
+                    })
+                    ->color(fn (string $state): string => match($state) {
+                        Ticket::STATUS_PENDING => 'warning',
+                        Ticket::STATUS_IN_PROGRESS => 'info',
+                        Ticket::STATUS_RESOLVED => 'success',
+                        Ticket::STATUS_CLOSED => 'gray',
+                        default => 'secondary',
+                    }),
+                TextColumn::make('priority')
+                    ->label('الأولوية')
+                    ->badge()
+                    ->sortable()
+                    ->formatStateUsing(fn (string $state): string => match($state) {
+                        Ticket::PRIORITY_LOW => 'منخفض',
+                        Ticket::PRIORITY_MEDIUM => 'متوسط',
+                        Ticket::PRIORITY_HIGH => 'عالي',
+                        Ticket::PRIORITY_URGENT => 'عاجل',
+                        default => $state,
+                    })
+                    ->color(fn (string $state): string => match($state) {
+                        Ticket::PRIORITY_LOW => 'gray',
+                        Ticket::PRIORITY_MEDIUM => 'info',
+                        Ticket::PRIORITY_HIGH => 'warning',
+                        Ticket::PRIORITY_URGENT => 'danger',
+                        default => 'secondary',
+                    }),
+                TextColumn::make('type')
+                    ->label('النوع')
+                    ->badge()
+                    ->sortable()
+                    ->formatStateUsing(fn (string $state): string => match($state) {
+                        Ticket::TYPE_SUPPORT => 'دعم فني',
+                        Ticket::TYPE_COMPLAINT => 'شكوى',
+                        Ticket::TYPE_INQUIRY => 'استفسار',
+                        Ticket::TYPE_TECHNICAL => 'تقني',
+                        Ticket::TYPE_BILLING => 'فوترة',
+                        Ticket::TYPE_OTHER => 'أخرى',
+                        default => $state,
+                    }),
                 TextColumn::make('description')
                     ->label('الرسالة')
                     ->searchable()
-                    ->limit(100)
+                    ->limit(80)
                     ->wrap()
                     ->placeholder('-'),
+                TextColumn::make('created_at')
+                    ->label('تاريخ الإنشاء')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable(),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
@@ -435,6 +537,9 @@ class TicketResource extends Resource
                 ViewAction::make()
                     ->label('عرض')
                     ->visible(fn () => auth()->user()->can('tickets.show')),
+                EditAction::make()
+                    ->label('تعديل')
+                    ->visible(fn () => auth()->user()->can('tickets.update')),
                 DeleteAction::make()
                     ->label('حذف')
                     ->visible(fn () => auth()->user()->can('tickets.delete'))
