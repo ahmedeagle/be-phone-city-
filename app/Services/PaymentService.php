@@ -172,6 +172,11 @@ class PaymentService
 
             $newStatus = $this->mapGatewayStatusToTransactionStatus($statusResponse['status'] ?? 'unknown');
 
+            // Auto-capture for BNPL gateways (Tabby, Tamara) — no manual capture needed
+            if ($newStatus === PaymentTransaction::STATUS_SUCCESS) {
+                $this->autoCaptureIfNeeded($transaction, $order);
+            }
+
             // Update transaction
             $transaction->update([
                 'status' => $newStatus,
@@ -248,6 +253,12 @@ class PaymentService
 
                         // Update transaction status
                         $newStatus = $this->mapGatewayStatusToTransactionStatus($webhookResponse['status'] ?? 'unknown');
+
+                        // Auto-capture for BNPL gateways (Tabby, Tamara) — no manual capture needed
+                        if ($newStatus === PaymentTransaction::STATUS_SUCCESS) {
+                            $this->autoCaptureIfNeeded($transaction, $order);
+                        }
+
                         $transaction->update([
                             'status' => $newStatus,
                             'transaction_id' => $transaction->transaction_id, // Save updated ID if changed
@@ -747,6 +758,81 @@ class PaymentService
             'refunded' => PaymentTransaction::STATUS_REFUNDED,
             default => PaymentTransaction::STATUS_PENDING,
         };
+    }
+
+    /**
+     * Auto-capture payment for BNPL gateways (Tabby, Tamara)
+     *
+     * When payment is authorized/approved by the customer, automatically capture
+     * the funds so the admin doesn't need to manually capture from the provider dashboard.
+     */
+    protected function autoCaptureIfNeeded(PaymentTransaction $transaction, Order $order): void
+    {
+        $gateway = $transaction->gateway;
+
+        if (! in_array($gateway, ['tabby', 'tamara'])) {
+            return;
+        }
+
+        $transactionId = $transaction->transaction_id;
+
+        if (! $transactionId) {
+            Log::warning('Auto-capture: No transaction ID available', [
+                'order_id' => $order->id,
+                'gateway' => $gateway,
+            ]);
+            return;
+        }
+
+        try {
+            $gatewayInstance = PaymentGatewayFactory::make($gateway);
+
+            // Tamara requires authorisation before capture
+            if ($gateway === 'tamara' && method_exists($gatewayInstance, 'authoriseOrder')) {
+                Log::info('Auto-capture: Authorising Tamara order', [
+                    'order_id' => $order->id,
+                    'transaction_id' => $transactionId,
+                ]);
+                $authResult = $gatewayInstance->authoriseOrder($transactionId);
+                if (! ($authResult['success'] ?? false)) {
+                    Log::warning('Auto-capture: Tamara authorisation failed (may already be authorised)', [
+                        'order_id' => $order->id,
+                        'result' => $authResult,
+                    ]);
+                    // Continue anyway — it might already be authorised
+                }
+            }
+
+            Log::info('Auto-capture: Capturing payment', [
+                'order_id' => $order->id,
+                'gateway' => $gateway,
+                'transaction_id' => $transactionId,
+            ]);
+
+            $captureResult = $gatewayInstance->capturePayment($transactionId);
+
+            if ($captureResult['success'] ?? false) {
+                Log::info('Auto-capture: Payment captured successfully', [
+                    'order_id' => $order->id,
+                    'gateway' => $gateway,
+                    'transaction_id' => $transactionId,
+                ]);
+            } else {
+                Log::warning('Auto-capture: Capture failed (may already be captured)', [
+                    'order_id' => $order->id,
+                    'gateway' => $gateway,
+                    'result' => $captureResult,
+                ]);
+                // Don't throw — the payment is still authorized and the order should proceed
+            }
+        } catch (Exception $e) {
+            Log::error('Auto-capture: Exception during capture (order will still proceed)', [
+                'order_id' => $order->id,
+                'gateway' => $gateway,
+                'error' => $e->getMessage(),
+            ]);
+            // Don't throw — capture failure shouldn't block order processing
+        }
     }
 
     /**
