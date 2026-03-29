@@ -125,7 +125,7 @@ Route::prefix('v1')->namespace('App\Http\Controllers\Api\V1')->group(function ()
 
     // Reviews routes (public to view, protected to create/update/delete)
     Route::get('reviews', [ReviewController::class, 'index']);
-    Route::get('reviews/{id}', [ReviewController::class, 'show']);
+    Route::get('reviews/{id}', [ReviewController::class, 'show'])->where('id', '[0-9]+');
 
     // Protected routes
     Route::middleware('auth:sanctum')->group(function () {
@@ -168,10 +168,10 @@ Route::prefix('v1')->namespace('App\Http\Controllers\Api\V1')->group(function ()
 
         // Reviews routes (create, update, delete)
         Route::prefix('reviews')->group(function () {
+            Route::get('/my-reviews', [ReviewController::class, 'myReviews']);
             Route::post('/', [ReviewController::class, 'store']);
             Route::put('/{id}', [ReviewController::class, 'update']);
             Route::delete('/{id}', [ReviewController::class, 'destroy']);
-            Route::get('/my-reviews', [ReviewController::class, 'myReviews']);
         });
 
         // Comments routes (create, update, delete)
