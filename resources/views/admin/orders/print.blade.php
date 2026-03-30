@@ -352,8 +352,8 @@
             <tbody>
                 @foreach ($order->items as $index => $item)
                     @php
-                        $priceExclTax = $item->price * (1 - $taxPercentage / 100);
-                        $totalExclTax = $item->price * $item->quantity * (1 - $taxPercentage / 100);
+                        $priceExclTax = $item->price / (1 + $taxPercentage / 100);
+                        $totalExclTax = $item->price * $item->quantity / (1 + $taxPercentage / 100);
                     @endphp
                     <tr>
                         <td class="text-left">{{ number_format($totalExclTax, 2) }} ر.س</td>
@@ -382,9 +382,9 @@
         <div class="totals-section">
             <table class="totals-table">
                 @php
-                    $subtotalExclTax = $order->subtotal * (1 - $taxPercentage / 100);
-                    $discountExclTax = $order->discount * (1 - $taxPercentage / 100);
-                    $pointsDiscountExclTax = $order->points_discount * (1 - $taxPercentage / 100);
+                    $subtotalExclTax = $order->subtotal / (1 + $taxPercentage / 100);
+                    $discountExclTax = $order->discount / (1 + $taxPercentage / 100);
+                    $pointsDiscountExclTax = $order->points_discount / (1 + $taxPercentage / 100);
                 @endphp
                 <tr>
                     <td>المجموع الفرعي (غير شامل الضريبة)</td>
