@@ -7,6 +7,8 @@ use App\Http\Requests\StoreTicketRequest;
 use App\Http\Requests\UpdateTicketRequest;
 use App\Http\Resources\TicketResource;
 use App\Models\Ticket;
+use App\Models\TicketReply;
+use App\Services\NotificationService;
 use App\Traits\PaginatesResponses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,7 +33,7 @@ class TicketController extends Controller
             );
         }
 
-        $query = Ticket::with(['user', 'admin', 'images'])
+        $query = Ticket::with(['user', 'admin', 'images', 'replies.user', 'replies.admin'])
             ->where('user_id', $userId);
 
         // Filter by status
@@ -67,7 +69,7 @@ class TicketController extends Controller
             if ($sortBy === 'priority') {
                 $query->orderByPriority();
                 if ($sortOrder === 'asc') {
-                    $query->orderBy('priority', 'desc'); // Reverse for asc
+                    $query->orderBy('priority', 'desc');
                 }
             } else {
                 $query->orderBy($sortBy, $sortOrder);
@@ -102,7 +104,7 @@ class TicketController extends Controller
             );
         }
 
-        $ticket = Ticket::with(['user', 'admin', 'images'])
+        $ticket = Ticket::with(['user', 'admin', 'images', 'replies.user', 'replies.admin'])
             ->where('user_id', $userId)
             ->findOrFail($id);
 
@@ -124,7 +126,7 @@ class TicketController extends Controller
         }
 
         $ticket = Ticket::create([
-            'user_id' => Auth::id(), // Will be null for guest tickets
+            'user_id' => Auth::id(),
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
@@ -136,7 +138,14 @@ class TicketController extends Controller
         ]);
 
         // Load relationships
-        $ticket->load(['user', 'admin', 'images']);
+        $ticket->load(['user', 'admin', 'images', 'replies']);
+
+        // Send notifications to admins and user
+        try {
+            app(NotificationService::class)->notifyTicketCreated($ticket);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Ticket notification failed: ' . $e->getMessage());
+        }
 
         return Response::success(
             __('Ticket created successfully'),
@@ -173,15 +182,12 @@ class TicketController extends Controller
             $updateData['description'] = $request->description;
         }
 
-        // Users can only update subject and description
-        // Status, priority, type, and assignment are managed by admins only
-
         if (!empty($updateData)) {
             $ticket->update($updateData);
             $ticket->refresh();
         }
 
-        $ticket->load(['user', 'admin', 'images']);
+        $ticket->load(['user', 'admin', 'images', 'replies.user', 'replies.admin']);
 
         return Response::success(
             __('Ticket updated successfully'),
@@ -189,5 +195,67 @@ class TicketController extends Controller
         );
     }
 
+    /**
+     * Add a reply to a ticket (authenticated user only)
+     */
+    public function reply(Request $request, int $id)
+    {
+        $userId = Auth::id();
+
+        if (!$userId) {
+            return Response::error(
+                __('Authentication required'),
+                null,
+                401
+            );
+        }
+
+        $request->validate([
+            'message' => 'required|string|max:5000',
+        ]);
+
+        $ticket = Ticket::where('user_id', $userId)
+            ->findOrFail($id);
+
+        // Don't allow replies on closed tickets
+        if ($ticket->isClosed()) {
+            return Response::error(
+                __('Cannot reply to a closed ticket'),
+                null,
+                422
+            );
+        }
+
+        $reply = TicketReply::create([
+            'ticket_id' => $ticket->id,
+            'user_id' => $userId,
+            'admin_id' => null,
+            'message' => $request->message,
+            'is_admin' => false,
+        ]);
+
+        // Reopen ticket if it was resolved
+        if ($ticket->isResolved()) {
+            $ticket->update(['status' => Ticket::STATUS_IN_PROGRESS]);
+        }
+
+        $ticket->touch();
+        $reply->load(['user', 'admin']);
+
+        // Notify admins about new reply
+        try {
+            app(NotificationService::class)->notifyTicketCreated($ticket);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Ticket reply notification failed: ' . $e->getMessage());
+        }
+
+        $ticket->load(['user', 'admin', 'images', 'replies.user', 'replies.admin']);
+
+        return Response::success(
+            __('Reply added successfully'),
+            new TicketResource($ticket),
+            201
+        );
+    }
 }
 

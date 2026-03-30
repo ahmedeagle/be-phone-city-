@@ -38,10 +38,14 @@ class TicketNotification extends Notification implements ShouldQueue
             $locale = $notifiable->locale ?? app()->getLocale();
             $isArabic = $locale === 'ar' || str_starts_with($locale, 'ar');
             $localePrefix = $isArabic ? '/ar' : '/en';
-            $url = rtrim($frontendUrl, '/') . $localePrefix . '/mytickets/' . $this->ticket->id;
+            $url = rtrim($frontendUrl, '/') . $localePrefix . '/tickets';
         } else {
-            // For admins, use admin panel URL or fallback
-            $url = config('app.url') . '/tickets/' . $this->ticket->id;
+            // For admins, use Filament admin panel URL
+            try {
+                $url = route('filament.admin.resources.tickets.view', ['record' => $this->ticket->id]);
+            } catch (\Throwable $e) {
+                $url = rtrim(config('app.url'), '/') . '/dashboard/tickets/' . $this->ticket->id;
+            }
         }
 
         $greeting = ($notifiable instanceof User)
@@ -102,7 +106,7 @@ class TicketNotification extends Notification implements ShouldQueue
             $locale = $notifiable->locale ?? app()->getLocale();
             $isArabic = $locale === 'ar' || str_starts_with($locale, 'ar');
             $localePrefix = $isArabic ? '/ar' : '/en';
-            $data['url'] = rtrim($frontendUrl, '/') . $localePrefix . '/mytickets/' . $this->ticket->id;
+            $data['url'] = rtrim($frontendUrl, '/') . $localePrefix . '/tickets';
         }
 
         return $data;

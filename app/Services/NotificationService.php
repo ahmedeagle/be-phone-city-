@@ -134,8 +134,8 @@ class NotificationService
             filamentTitle: __('New Product Review'),
             filamentBody: __('New review for') . ' ' . $review->product->name,
             filamentIcon: 'heroicon-o-star',
-            filamentColor: 'warning'
-            // Add actionUrl if review resource exists in Filament
+            filamentColor: 'warning',
+            actionUrl: route('filament.admin.resources.reviews.view', ['record' => $review->id])
         );
     }
 
@@ -151,8 +151,8 @@ class NotificationService
             filamentTitle: __('New Contact Request'),
             filamentBody: __('From') . ': ' . $contactRequest->name,
             filamentIcon: 'heroicon-o-envelope',
-            filamentColor: 'primary'
-            // Add actionUrl if contact request resource exists in Filament
+            filamentColor: 'primary',
+            actionUrl: route('filament.admin.resources.contact-requests.view', ['record' => $contactRequest->id])
         );
     }
 

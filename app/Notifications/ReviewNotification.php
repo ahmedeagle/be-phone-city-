@@ -26,17 +26,29 @@ class ReviewNotification extends Notification implements ShouldQueue
 
     public function toMail($notifiable): MailMessage
     {
+        try {
+            $url = route('filament.admin.resources.reviews.view', ['record' => $this->review->id]);
+        } catch (\Exception $e) {
+            $url = config('app.url') . '/admin/reviews';
+        }
+
         return (new MailMessage)
             ->subject(__('New Product Review'))
             ->greeting(__('Hello') . ' ' . config('app.name'))
             ->line(__('A new review has been submitted for product') . ': ' . $this->review->product->name)
             ->line(__('Rating') . ': ' . $this->review->rating . '/5')
             ->line(__('Comment') . ': ' . $this->review->comment)
-            ->action(__('View Review'), config('app.url') . '/admin/reviews');
+            ->action(__('View Review'), $url);
     }
 
     public function toDatabase($notifiable): array
     {
+        try {
+            $url = route('filament.admin.resources.reviews.view', ['record' => $this->review->id]);
+        } catch (\Exception $e) {
+            $url = null;
+        }
+
         return [
             'review_id' => $this->review->id,
             'product_id' => $this->review->product_id,
@@ -45,6 +57,7 @@ class ReviewNotification extends Notification implements ShouldQueue
             'rating' => $this->review->rating,
             'title' => __('New Product Review'),
             'message' => __('New review for') . ' ' . $this->review->product->name . ' ' . __('by') . ' ' . $this->review->user->name,
+            'url' => $url,
         ];
     }
 }

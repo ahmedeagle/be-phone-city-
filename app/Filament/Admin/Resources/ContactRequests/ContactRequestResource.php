@@ -33,6 +33,8 @@ class ContactRequestResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     public static function getNavigationGroup(): ?string
     {
         return 'الدعم الفني';

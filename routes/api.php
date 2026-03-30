@@ -187,6 +187,7 @@ Route::prefix('v1')->namespace('App\Http\Controllers\Api\V1')->group(function ()
             Route::get('/', [TicketController::class, 'index']); // Returns user's own tickets
             Route::get('/{id}', [TicketController::class, 'show']); // Returns user's own ticket
             Route::put('/{id}', [TicketController::class, 'update']); // User can update their own ticket
+            Route::post('/{id}/reply', [TicketController::class, 'reply']); // Add reply to ticket
         });
 
         // Discounts routes

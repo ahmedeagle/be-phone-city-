@@ -42,8 +42,12 @@ class PaymentProofNotification extends Notification implements ShouldQueue
             $localePrefix = $isArabic ? '/ar' : '/en';
             $url = rtrim($frontendUrl, '/') . $localePrefix . '/myorder/';
         } else {
-            // For admins, use admin panel URL or fallback
-            $url = config('app.url') . '/dashboard/orders/' . $order->id;
+            // For admins, use Filament admin panel route
+            try {
+                $url = route('filament.admin.resources.orders.view', ['record' => $order->id]);
+            } catch (\Exception $e) {
+                $url = config('app.url') . '/dashboard/orders/' . $order->id;
+            }
         }
 
         $subject = match($this->type) {

@@ -47,6 +47,7 @@ class TicketResource extends JsonResource
             'resolution_notes' => $this->resolution_notes,
             'resolved_at' => $this->resolved_at?->toISOString(),
             'images' => ImageResource::collection($this->whenLoaded('images')),
+            'replies' => TicketReplyResource::collection($this->whenLoaded('replies')),
             'is_open' => $this->isOpen(),
             'is_resolved' => $this->isResolved(),
             'is_closed' => $this->isClosed(),
