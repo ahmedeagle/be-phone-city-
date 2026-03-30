@@ -138,7 +138,8 @@ class ViewTicket extends ViewRecord
                     ]);
 
                     // Send reply notification with admin message
-                    if ($this->record->user) {
+                    $this->record->loadMissing('user');
+                    if ($this->record->user_id && $this->record->user) {
                         $this->record->user->notify(
                             (new TicketNotification($this->record, 'replied', $data['message']))->locale('ar')
                         );

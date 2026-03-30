@@ -94,9 +94,11 @@ class NotificationService
     public function notifyTicketCreated(Ticket $ticket)
     {
         // Notify User if authenticated
-        if ($ticket->user) {
-            info($ticket->user);
-            $ticket->user->notify($this->forceArabicLocale(new TicketNotification($ticket, 'created')));
+        if ($ticket->user_id) {
+            $ticket->loadMissing('user');
+            if ($ticket->user) {
+                $ticket->user->notify($this->forceArabicLocale(new TicketNotification($ticket, 'created')));
+            }
         }
 
         // Notify Admins with 'tickets.show' permission
@@ -118,10 +120,16 @@ class NotificationService
     {
         $notification = $this->forceArabicLocale(new TicketNotification($ticket, 'updated'));
 
-        if ($ticket->user) {
-            $ticket->user->notify($notification);
-        } elseif ($ticket->email) {
-            // Guest ticket — send email directly
+        if ($ticket->user_id) {
+            $ticket->loadMissing('user');
+            if ($ticket->user) {
+                $ticket->user->notify($notification);
+                return;
+            }
+        }
+
+        // Guest ticket or user not found — send email directly
+        if ($ticket->email) {
             Notification::route('mail', $ticket->email)
                 ->notify($notification);
         }

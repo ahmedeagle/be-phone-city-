@@ -26,31 +26,39 @@ class TicketNotification extends Notification implements ShouldQueue
 
     public function via($notifiable): array
     {
-        return ['database', 'mail'];
+        // Only User models support the database channel;
+        // anonymous notifiables (guest email routes) only get mail.
+        if ($notifiable instanceof User) {
+            return ['database', 'mail'];
+        }
+
+        return ['mail'];
     }
 
     public function toMail($notifiable): MailMessage
     {
-        // Use frontend_url for users, admin URL for admins
+        $frontendUrl = config('app.frontend_url', config('app.url'));
+
         if ($notifiable instanceof User) {
-            $frontendUrl = config('app.frontend_url', config('app.url'));
-            // Use user's preferred locale or default to app locale
+            // Authenticated user — use frontend URL with locale
             $locale = $notifiable->locale ?? app()->getLocale();
             $isArabic = $locale === 'ar' || str_starts_with($locale, 'ar');
             $localePrefix = $isArabic ? '/ar' : '/en';
             $url = rtrim($frontendUrl, '/') . $localePrefix . '/tickets';
-        } else {
-            // For admins, use Filament admin panel URL
+            $greeting = __('Hello') . ' ' . $notifiable->name;
+        } elseif ($notifiable instanceof \App\Models\Admin) {
+            // Admin — use Filament admin panel URL
             try {
                 $url = route('filament.admin.resources.tickets.view', ['record' => $this->ticket->id]);
             } catch (\Throwable $e) {
                 $url = rtrim(config('app.url'), '/') . '/dashboard/tickets/' . $this->ticket->id;
             }
+            $greeting = __('Hello') . ' ' . $notifiable->name;
+        } else {
+            // Guest / anonymous notifiable — use frontend URL in Arabic
+            $url = rtrim($frontendUrl, '/') . '/ar/tickets';
+            $greeting = __('Hello') . ' ' . ($this->ticket->name ?? config('app.name'));
         }
-
-        $greeting = ($notifiable instanceof User)
-            ? __('Hello') . ' ' . $notifiable->name
-            : __('Hello') . ' ' . config('app.name');
 
         $message = (new MailMessage)
             ->subject(__('Ticket Update') . ': #' . $this->ticket->ticket_number)

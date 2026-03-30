@@ -125,8 +125,12 @@ class TicketController extends Controller
             $subject .= '...';
         }
 
+        // Resolve user from Sanctum guard even without middleware
+        // (store route is public for guests, but authenticated users should be linked)
+        $userId = auth('sanctum')->id();
+
         $ticket = Ticket::create([
-            'user_id' => Auth::id(),
+            'user_id' => $userId,
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
