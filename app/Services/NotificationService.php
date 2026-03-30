@@ -116,8 +116,14 @@ class NotificationService
      */
     public function notifyTicketUpdated(Ticket $ticket)
     {
+        $notification = $this->forceArabicLocale(new TicketNotification($ticket, 'updated'));
+
         if ($ticket->user) {
-            $ticket->user->notify($this->forceArabicLocale(new TicketNotification($ticket, 'updated')));
+            $ticket->user->notify($notification);
+        } elseif ($ticket->email) {
+            // Guest ticket — send email directly
+            Notification::route('mail', $ticket->email)
+                ->notify($notification);
         }
     }
 

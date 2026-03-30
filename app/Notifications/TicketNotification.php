@@ -68,8 +68,9 @@ class TicketNotification extends Notification implements ShouldQueue
                     ->line('---');
             }
         } else {
+            $statusLabel = $this->ticket->status_label;
             $message->line(__('Your support ticket has been updated.'))
-                ->line(__('Status') . ': ' . __($this->ticket->status));
+                ->line(__('Status') . ': ' . $statusLabel);
         }
 
         return $message->action(__('View Ticket'), $url)
@@ -85,8 +86,9 @@ class TicketNotification extends Notification implements ShouldQueue
             $title = __('Ticket Reply Received');
             $message = __('Ticket #') . $this->ticket->ticket_number . ' ' . __('has received a reply.');
         } else {
-            $title = __('Ticket Updated');
-            $message = __('Ticket #') . $this->ticket->ticket_number . ' ' . __('has been updated.');
+            $statusLabel = $this->ticket->status_label;
+            $title = __('Ticket Status Updated');
+            $message = __('Ticket #') . $this->ticket->ticket_number . ' - ' . __('Status') . ': ' . $statusLabel;
         }
 
         $data = [
