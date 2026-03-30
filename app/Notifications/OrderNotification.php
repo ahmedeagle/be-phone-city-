@@ -58,7 +58,17 @@ class OrderNotification extends Notification implements ShouldQueue
         if ($this->type === 'created') {
             $message->line(__('Your order has been successfully placed.'))
                 ->line(__('Order Number') . ': ' . $this->order->order_number)
-                ->line(__('Total') . ': ' . $this->order->total . ' SAR');
+                ->line(__('Subtotal') . ': ' . number_format($this->order->subtotal, 2) . ' SAR');
+
+            if ($this->order->discount > 0) {
+                $message->line(__('Discount') . ': -' . number_format($this->order->discount, 2) . ' SAR');
+            }
+
+            if ($this->order->shipping > 0) {
+                $message->line(__('Shipping') . ': ' . number_format($this->order->shipping, 2) . ' SAR');
+            }
+
+            $message->line(__('Total') . ': ' . number_format($this->order->total, 2) . ' SAR');
 
             // Add branch info for store pickup orders
             if ($this->order->delivery_method === \App\Models\Order::DELIVERY_STORE_PICKUP && $this->order->branch) {
