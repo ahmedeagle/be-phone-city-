@@ -37,7 +37,7 @@ class TicketNotification extends Notification implements ShouldQueue
 
     public function toMail($notifiable): MailMessage
     {
-        $frontendUrl = config('app.frontend_url', config('app.url'));
+        $frontendUrl = config('app.url');
 
         if ($notifiable instanceof User) {
             // Authenticated user — use frontend URL with locale
@@ -112,7 +112,7 @@ class TicketNotification extends Notification implements ShouldQueue
 
         // Add frontend URL for users in database notification
         if ($notifiable instanceof User) {
-            $frontendUrl = config('app.frontend_url', config('app.url'));
+            $frontendUrl = config('app.url');
             $locale = $notifiable->locale ?? app()->getLocale();
             $isArabic = $locale === 'ar' || str_starts_with($locale, 'ar');
             $localePrefix = $isArabic ? '/ar' : '/en';

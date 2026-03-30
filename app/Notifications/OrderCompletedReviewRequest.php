@@ -39,7 +39,7 @@ class OrderCompletedReviewRequest extends Notification implements ShouldQueue
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $frontendUrl = config('app.frontend_url', config('app.url'));
+        $frontendUrl = config('app.url');
         // Use user's preferred locale or default to app locale
         $locale = $notifiable->locale ?? app()->getLocale();
         $isArabic = $locale === 'ar' || str_starts_with($locale, 'ar');
