@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources\Tickets\Pages;
 
 use App\Filament\Admin\Resources\Tickets\TicketResource;
 use App\Models\Ticket;
+use App\Models\TicketReply;
 use App\Notifications\TicketNotification;
 use App\Services\NotificationService;
 use Filament\Actions\Action;
@@ -17,6 +18,11 @@ use Illuminate\Support\Facades\Mail;
 class ViewTicket extends ViewRecord
 {
     protected static string $resource = TicketResource::class;
+
+    protected function resolveRecord(int|string $key): \Illuminate\Database\Eloquent\Model
+    {
+        return Ticket::with(['user', 'admin', 'images', 'replies.user', 'replies.admin'])->findOrFail($key);
+    }
 
     protected function authorizeAccess(): void
     {
@@ -122,6 +128,15 @@ class ViewTicket extends ViewRecord
                         $this->record->refresh();
                     }
 
+                    // Save reply to database
+                    TicketReply::create([
+                        'ticket_id' => $this->record->id,
+                        'user_id' => null,
+                        'admin_id' => auth()->id(),
+                        'message' => $data['message'],
+                        'is_admin' => true,
+                    ]);
+
                     // Send reply notification with admin message
                     if ($this->record->user) {
                         $this->record->user->notify(
@@ -134,6 +149,8 @@ class ViewTicket extends ViewRecord
                                 (new TicketNotification($this->record, 'replied', $data['message']))->locale('ar')
                             );
                     }
+
+                    $this->record->load(['replies.user', 'replies.admin']);
 
                     Notification::make()
                         ->title('تم إرسال الرد بنجاح')

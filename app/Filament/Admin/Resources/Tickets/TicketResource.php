@@ -8,6 +8,7 @@ use App\Filament\Admin\Resources\Tickets\Pages\ListTickets;
 use App\Filament\Admin\Resources\Tickets\Pages\ViewTicket;
 use App\Models\Admin;
 use App\Models\Ticket;
+use App\Models\TicketReply;
 use App\Models\User;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -355,6 +356,31 @@ class TicketResource extends Resource
                     ])
                     ->collapsible(false)
                     ->icon('heroicon-o-chat-bubble-left-right'),
+
+                Section::make('المحادثة')
+                    ->schema([
+                        RepeatableEntry::make('replies')
+                            ->label('')
+                            ->schema([
+                                TextEntry::make('sender_name')
+                                    ->label('المرسل')
+                                    ->badge()
+                                    ->color(fn ($record) => $record && $record->is_admin ? 'info' : 'warning')
+                                    ->icon(fn ($record) => $record && $record->is_admin ? 'heroicon-o-shield-check' : 'heroicon-o-user'),
+                                TextEntry::make('message')
+                                    ->label('الرسالة')
+                                    ->columnSpan(2)
+                                    ->prose(),
+                                TextEntry::make('created_at')
+                                    ->label('التاريخ')
+                                    ->dateTime('d/m/Y H:i')
+                                    ->color('gray'),
+                            ])
+                            ->columns(4),
+                    ])
+                    ->collapsible(false)
+                    ->visible(fn ($record) => $record && $record->replies && $record->replies->count() > 0)
+                    ->icon('heroicon-o-chat-bubble-left-ellipsis'),
 
                 Section::make('ملاحظات الحل')
                     ->schema([
