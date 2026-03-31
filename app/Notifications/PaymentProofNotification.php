@@ -33,9 +33,9 @@ class PaymentProofNotification extends Notification implements ShouldQueue
     {
         $order = $this->transaction->order;
 
-        // Use app URL for users, admin URL for admins
+        // Use frontend URL for users, admin URL for admins
         if ($notifiable instanceof User) {
-            $frontendUrl = config('app.url');
+            $frontendUrl = config('app.frontend_url', config('app.url'));
             // Use user's preferred locale or default to app locale
             $locale = $notifiable->locale ?? app()->getLocale();
             $isArabic = $locale === 'ar' || str_starts_with($locale, 'ar');
@@ -153,7 +153,7 @@ class PaymentProofNotification extends Notification implements ShouldQueue
 
         // Add frontend URL for users in database notification (only for user-facing types)
         if ($notifiable instanceof User && in_array($this->type, ['uploaded', 'approved', 'rejected'])) {
-            $frontendUrl = config('app.url');
+            $frontendUrl = config('app.frontend_url', config('app.url'));
             $locale = $notifiable->locale ?? app()->getLocale();
             $isArabic = $locale === 'ar' || str_starts_with($locale, 'ar');
             $localePrefix = $isArabic ? '/ar' : '/en';

@@ -34,17 +34,21 @@ class OrderNotification extends Notification implements ShouldQueue
     {
         $statusLabel = $this->order->getStatusDisplayName();
 
-        // Use app URL for users, admin URL for admins
+        // Use frontend URL for users, admin URL for admins
         if ($notifiable instanceof User) {
-            $frontendUrl = config('app.url');
+            $frontendUrl = config('app.frontend_url', config('app.url'));
             // Use user's preferred locale or default to app locale
             $locale = $notifiable->locale ?? app()->getLocale();
             $isArabic = $locale === 'ar' || str_starts_with($locale, 'ar');
             $localePrefix = $isArabic ? '/ar' : '/en';
             $url = rtrim($frontendUrl, '/') . $localePrefix . '/myorder/';
         } else {
-            // For admins, use admin panel URL or fallback
-            $url = config('app.url') . '/dashboard/orders/' . $this->order->id;
+            // For admins, use Filament admin panel route
+            try {
+                $url = route('filament.admin.resources.orders.view', ['record' => $this->order->id]);
+            } catch (\Exception $e) {
+                $url = config('app.url') . '/dashboard/orders/' . $this->order->id;
+            }
         }
 
         $greeting = ($notifiable instanceof User)
@@ -205,7 +209,7 @@ class OrderNotification extends Notification implements ShouldQueue
 
         // Add frontend URL for users in database notification
         if ($notifiable instanceof User) {
-            $frontendUrl = config('app.url');
+            $frontendUrl = config('app.frontend_url', config('app.url'));
             $locale = $notifiable->locale ?? app()->getLocale();
             $isArabic = $locale === 'ar' || str_starts_with($locale, 'ar');
             $localePrefix = $isArabic ? '/ar' : '/en';
