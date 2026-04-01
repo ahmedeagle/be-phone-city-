@@ -58,14 +58,14 @@ class DiscountForm
                             ->required()
                             ->native(false)
                             ->displayFormat('d/m/Y H:i')
-                            ->minDate(now()),
+                            ->minDate(today()),
                         DateTimePicker::make('end')
                             ->label('تاريخ النهاية')
                             ->required()
                             ->native(false)
                             ->displayFormat('d/m/Y H:i')
                             ->after('start')
-                            ->minDate(now()),
+                            ->minDate(today()),
                     ])
                     ->columns(2),
                 Section::make('الوصف')
