@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\V1\CommentController;
 use App\Http\Controllers\Api\V1\TicketController;
 use App\Http\Controllers\Api\V1\ChatbotController;
 use App\Http\Controllers\Api\V1\BranchController;
+use App\Http\Controllers\Api\V1\SubscriberController;
 
 /*
 |--------------------------------------------------------------------------
@@ -115,6 +116,7 @@ Route::prefix('v1')->namespace('App\Http\Controllers\Api\V1')->group(function ()
     Route::get('comments/{id}', [CommentController::class, 'show']);
 
     Route::post('contact', [ContactRequestController::class, 'store']);
+    Route::post('subscribers', [SubscriberController::class, 'store']);
 
     // Tickets routes (public - guest tickets)
     Route::post('tickets', [TicketController::class, 'store']);
