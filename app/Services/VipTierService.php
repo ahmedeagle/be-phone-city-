@@ -101,11 +101,10 @@ class VipTierService
      */
     public function recalculate(User $user): void
     {
-        $completedStatuses = [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED];
-
+        // Count all paid orders that are not cancelled
         $stats = $user->orders()
-            ->whereIn('status', $completedStatuses)
             ->where('payment_status', Order::PAYMENT_STATUS_PAID)
+            ->whereNotIn('status', [Order::STATUS_CANCELLED])
             ->selectRaw('COUNT(*) as orders_count, COALESCE(SUM(total), 0) as orders_total')
             ->first();
 
