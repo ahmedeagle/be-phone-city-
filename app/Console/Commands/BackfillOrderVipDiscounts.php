@@ -45,7 +45,7 @@ class BackfillOrderVipDiscounts extends Command
             $query->where('id', $specificOrder);
         }
 
-        $orders = $query->with('user')->get();
+        $orders = $query->with(['user', 'items'])->get();
 
         if ($orders->isEmpty()) {
             $this->info('No orders with vip_discount=0 found.');
