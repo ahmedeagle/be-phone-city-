@@ -15,7 +15,8 @@ class OrderCalculationService
     public function __construct(
         protected DiscountService $discountService,
         protected ShippingService $shippingService,
-        protected PointsService $pointsService
+        protected PointsService $pointsService,
+        protected VipTierService $vipTierService
     ) {}
 
     /**
@@ -104,20 +105,38 @@ class OrderCalculationService
         }
         $pointsDiscount = $pointsData['discount_amount'];
 
+        // Calculate VIP tier discount (with max cap)
+        $vipDiscountData = $this->vipTierService->calculateVipDiscount(
+            \App\Models\User::find($userId),
+            $subtotal
+        );
+        $vipDiscount = $vipDiscountData['amount'];
+        $vipTier = $vipDiscountData['tier'];
+        $vipTierDiscountPercentage = $vipDiscountData['percentage'];
+        $vipMaxDiscount = $vipDiscountData['max_discount'];
+        $vipTierLabelAr = $vipDiscountData['tier_label_ar'];
+        $vipTierLabelEn = $vipDiscountData['tier_label_en'];
+
         // Calculate tax (inclusive)
         // Tax is already included in product prices, so it's part of the subtotal
         // We calculate it from the total items amount after discounts for reporting
-        $taxableItemsAmount = max(0, $subtotal - $discountAmount - $pointsDiscount);
+        $taxableItemsAmount = max(0, $subtotal - $discountAmount - $vipDiscount - $pointsDiscount);
         $taxAmount = $this->calculateTax($taxableItemsAmount, $taxPercentage);
 
         // Calculate final total (tax is already in subtotal)
-        $total = $subtotal - $discountAmount + $shippingAmount - $pointsDiscount;
+        $total = $subtotal - $discountAmount - $vipDiscount + $shippingAmount - $pointsDiscount;
         $total = max(0, $total); // Ensure total is not negative
 
         return [
             'subtotal' => $subtotal,
             'discount' => $discountAmount,
             'discount_model' => $discount,
+            'vip_discount' => $vipDiscount,
+            'vip_tier' => $vipTier,
+            'vip_tier_discount_percentage' => $vipTierDiscountPercentage,
+            'vip_max_discount' => $vipMaxDiscount,
+            'vip_tier_label_ar' => $vipTierLabelAr,
+            'vip_tier_label_en' => $vipTierLabelEn,
             'shipping' => $shippingAmount,
             'qualifies_for_free_shipping' => $qualifiesForFreeShipping,
             'tax' => $taxAmount,

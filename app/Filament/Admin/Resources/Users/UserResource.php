@@ -167,6 +167,58 @@ class UserResource extends Resource
                     ])
                     ->columnSpan(1),
 
+                // VIP Tier Section
+                Section::make('مستوى VIP')
+                    ->icon('heroicon-o-star')
+                    ->schema([
+                        Group::make()
+                            ->schema([
+                                TextEntry::make('vip_tier')
+                                    ->label('المستوى الحالي')
+                                    ->badge()
+                                    ->formatStateUsing(fn ($state) => match ($state) {
+                                        'bronze' => 'برونزي',
+                                        'silver' => 'فضي',
+                                        'gold' => 'ذهبي',
+                                        'platinum' => 'بلاتيني',
+                                        default => 'عادي',
+                                    })
+                                    ->color(fn ($state) => match ($state) {
+                                        'bronze' => 'warning',
+                                        'silver' => 'gray',
+                                        'gold' => 'warning',
+                                        'platinum' => 'info',
+                                        default => 'gray',
+                                    })
+                                    ->size(\Filament\Support\Enums\TextSize::Large),
+                                TextEntry::make('vip_tier_discount')
+                                    ->label('نسبة الخصم')
+                                    ->suffix('%')
+                                    ->color('success')
+                                    ->weight(FontWeight::Bold),
+                                TextEntry::make('vip_max_discount')
+                                    ->label('أعلى خصم')
+                                    ->suffix(' ر.س')
+                                    ->color('danger')
+                                    ->weight(FontWeight::Bold),
+                                TextEntry::make('completed_orders_count')
+                                    ->label('الطلبات المكتملة')
+                                    ->suffix(' طلب')
+                                    ->icon('heroicon-o-check-circle'),
+                                TextEntry::make('completed_orders_total')
+                                    ->label('إجمالي المشتريات المكتملة')
+                                    ->suffix(' ر.س')
+                                    ->icon('heroicon-o-currency-dollar'),
+                                TextEntry::make('vip_tier_updated_at')
+                                    ->label('آخر تحديث')
+                                    ->dateTime('Y-m-d H:i')
+                                    ->placeholder('لم يتم التحديث بعد'),
+                            ])
+                            ->columnSpan(1),
+                    ])
+                    ->columnSpan(2)
+                    ->collapsible(),
+
                 // Orders Section
                 Section::make('الطلبات')
                     ->icon('heroicon-o-shopping-cart')
@@ -308,6 +360,25 @@ class UserResource extends Resource
                     })
                     ->sortable()
                     ->color('success'),
+                TextColumn::make('vip_tier')
+                    ->label('مستوى VIP')
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'bronze' => 'برونزي',
+                        'silver' => 'فضي',
+                        'gold' => 'ذهبي',
+                        'platinum' => 'بلاتيني',
+                        default => 'عادي',
+                    })
+                    ->color(fn ($state) => match ($state) {
+                        'bronze' => 'warning',
+                        'silver' => 'gray',
+                        'gold' => 'warning',
+                        'platinum' => 'info',
+                        default => 'gray',
+                    })
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('email_verified_at')
                     ->dateTime()
                     ->sortable()

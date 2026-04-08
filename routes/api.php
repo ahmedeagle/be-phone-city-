@@ -129,6 +129,9 @@ Route::prefix('v1')->namespace('App\Http\Controllers\Api\V1')->group(function ()
     Route::get('reviews', [ReviewController::class, 'index']);
     Route::get('reviews/{id}', [ReviewController::class, 'show'])->where('id', '[0-9]+');
 
+    // VIP Tiers (public - show tier definitions)
+    Route::get('vip-tiers', [\App\Http\Controllers\Api\V1\VipTierController::class, 'index']);
+
     // Protected routes
     Route::middleware('auth:sanctum')->group(function () {
         // Cart routes

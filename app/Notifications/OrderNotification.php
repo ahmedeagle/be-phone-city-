@@ -41,7 +41,7 @@ class OrderNotification extends Notification implements ShouldQueue
             $locale = $notifiable->locale ?? app()->getLocale();
             $isArabic = $locale === 'ar' || str_starts_with($locale, 'ar');
             $localePrefix = $isArabic ? '/ar' : '/en';
-            $url = rtrim($frontendUrl, '/') . $localePrefix . '/myorder/';
+            $url = rtrim($frontendUrl, '/') . $localePrefix . '/myorder';
         } else {
             // For admins, use Filament admin panel route
             try {
@@ -66,6 +66,11 @@ class OrderNotification extends Notification implements ShouldQueue
 
             if ($this->order->discount > 0) {
                 $message->line(__('Discount') . ': -' . number_format($this->order->discount, 2) . ' SAR');
+            }
+
+            if ($this->order->vip_discount > 0) {
+                $tierLabel = $this->order->vip_tier_label ?? 'VIP';
+                $message->line(__('VIP Discount') . ' (' . $tierLabel . '): -' . number_format($this->order->vip_discount, 2) . ' SAR');
             }
 
             if ($this->order->shipping > 0) {
@@ -213,7 +218,7 @@ class OrderNotification extends Notification implements ShouldQueue
             $locale = $notifiable->locale ?? app()->getLocale();
             $isArabic = $locale === 'ar' || str_starts_with($locale, 'ar');
             $localePrefix = $isArabic ? '/ar' : '/en';
-            $data['url'] = rtrim($frontendUrl, '/') . $localePrefix . '/myorder/';
+            $data['url'] = rtrim($frontendUrl, '/') . $localePrefix . '/myorder';
         }
 
         return $data;

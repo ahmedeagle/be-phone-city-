@@ -28,6 +28,12 @@ class User extends Authenticatable
         'provider',
         'provider_id',
         'email_verified_at',
+        'vip_tier',
+        'vip_tier_discount',
+        'vip_max_discount',
+        'completed_orders_count',
+        'completed_orders_total',
+        'vip_tier_updated_at',
     ];
 
     protected $hidden = [
@@ -38,6 +44,11 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'vip_tier_discount' => 'decimal:2',
+        'vip_max_discount' => 'decimal:2',
+        'completed_orders_count' => 'integer',
+        'completed_orders_total' => 'decimal:2',
+        'vip_tier_updated_at' => 'datetime',
     ];
 
     public function verificationCodes()

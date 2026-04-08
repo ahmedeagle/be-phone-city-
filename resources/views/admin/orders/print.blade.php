@@ -385,6 +385,7 @@
                     $subtotalExclTax = $order->subtotal / (1 + $taxPercentage / 100);
                     $discountExclTax = $order->discount / (1 + $taxPercentage / 100);
                     $pointsDiscountExclTax = $order->points_discount / (1 + $taxPercentage / 100);
+                    $vipDiscountExclTax = ($order->vip_discount ?? 0) / (1 + $taxPercentage / 100);
                 @endphp
                 <tr>
                     <td>المجموع الفرعي (غير شامل الضريبة)</td>
@@ -399,6 +400,17 @@
                             @endif
                         </td>
                         <td>-{{ number_format($discountExclTax, 2) }} ر.س</td>
+                    </tr>
+                @endif
+                @if (($order->vip_discount ?? 0) > 0)
+                    <tr>
+                        <td>
+                            خصم VIP (غير شامل الضريبة)
+                            @if ($order->vip_tier_label)
+                                ({{ $order->vip_tier_label }})
+                            @endif
+                        </td>
+                        <td>-{{ number_format($vipDiscountExclTax, 2) }} ر.س</td>
                     </tr>
                 @endif
                 @if ($order->points_discount > 0)

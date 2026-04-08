@@ -33,6 +33,9 @@ class OrderResource extends JsonResource
             'discount_code' => $this->whenLoaded('discountCode', function () {
                 return new DiscountResource($this->discountCode);
             }),
+            'vip_discount' => (float) ($this->vip_discount ?? 0),
+            'vip_tier_at_order' => $this->vip_tier_at_order,
+            'vip_tier_label' => $this->vip_tier_label,
             'shipping' => (float) $this->shipping,
             // Tax is included in subtotal, hiding it from general API view as per request
             // 'tax' => (float) $this->tax,

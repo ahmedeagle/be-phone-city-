@@ -408,6 +408,15 @@ class OrderResource extends Resource
                                     ->badge()
                                     ->color('info')
                                     ->visible(fn ($record) => $record->discountCode),
+                                \Filament\Infolists\Components\TextEntry::make('vip_discount')
+                                    ->label(fn ($record) => 'خصم VIP' . ($record->vip_tier_label ? ' (' . $record->vip_tier_label . ')' : ''))
+                                    ->money('SAR')
+                                    ->placeholder('0.00 ر.س')
+                                    ->icon('heroicon-o-star')
+                                    ->iconColor('info')
+                                    ->color('info')
+                                    ->size('lg')
+                                    ->visible(fn ($record) => $record->vip_discount > 0),
                             ]),
                         \Filament\Schemas\Components\Grid::make(3)
                             ->schema([

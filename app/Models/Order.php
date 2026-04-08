@@ -45,6 +45,9 @@ class Order extends Model
         'subtotal',
         'discount',
         'discount_id',
+        'vip_discount',
+        'vip_tier_at_order',
+        'vip_tier_label',
         'shipping',
         'tax',
         'points_discount',
@@ -67,6 +70,7 @@ class Order extends Model
     protected $casts = [
         'subtotal' => 'decimal:2',
         'discount' => 'decimal:2',
+        'vip_discount' => 'decimal:2',
         'shipping' => 'decimal:2',
         'tax' => 'decimal:2',
         'points_discount' => 'decimal:2',

@@ -10,13 +10,15 @@ use App\Models\Setting;
 use App\Notifications\OrderCompletedReviewRequest;
 use App\Services\NotificationService;
 use App\Services\PointsService;
+use App\Services\VipTierService;
 use Illuminate\Support\Facades\Log;
 
 class OrderObserver
 {
     public function __construct(
         protected NotificationService $notificationService,
-        protected PointsService $pointsService
+        protected PointsService $pointsService,
+        protected VipTierService $vipTierService
     ) {}
 
     /**
@@ -125,6 +127,13 @@ class OrderObserver
                 && $originalStatus !== Order::STATUS_COMPLETED
                 && $order->user) {
                 $this->sendReviewRequest($order);
+            }
+
+            // Recalculate VIP tier when order reaches delivered/completed with paid status
+            if (in_array($order->status, [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED])
+                && $order->payment_status === Order::PAYMENT_STATUS_PAID
+                && $order->user) {
+                $this->vipTierService->recalculate($order->user);
             }
         } elseif ($statusChangedByUs) {
             // Manually trigger notification since we used saveQuietly
