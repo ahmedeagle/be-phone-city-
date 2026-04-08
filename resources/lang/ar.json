@@ -149,6 +149,8 @@
     "This product requires selecting an option": "هذا المنتج يتطلب اختيار خيار",
     "Product is out of stock": "المنتج غير متوفر في المخزون",
     "Insufficient stock": "الكمية المطلوبة غير متوفرة",
+    "Only :count items available": "يتوفر :count قطعة فقط",
+    "Only :count more items can be added (you already have :in_cart in cart)": "يمكن إضافة :count قطعة فقط (لديك :in_cart في السلة)",
     "Item added to cart successfully": "تم إضافة المنتج للسلة بنجاح",
     "Validation error": "خطأ في التحقق من البيانات",
     "Product not found": "المنتج غير موجود",

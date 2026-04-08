@@ -181,7 +181,11 @@ class CartController extends Controller
         }
 
         if ($availableQuantity < $request->quantity) {
-            return Response::error(__('Insufficient stock'), null, 400);
+            return Response::error(
+                __('Only :count items available', ['count' => $availableQuantity]),
+                ['available_quantity' => $availableQuantity],
+                400
+            );
         }
 
         $userId = Auth::id();
@@ -197,7 +201,12 @@ class CartController extends Controller
             $newQuantity = $cartItem->quantity + $request->quantity;
 
             if ($availableQuantity < $newQuantity) {
-                return Response::error(__('Insufficient stock'), null, 400);
+                $remaining = $availableQuantity - $cartItem->quantity;
+                return Response::error(
+                    __('Only :count more items can be added (you already have :in_cart in cart)', ['count' => max(0, $remaining), 'in_cart' => $cartItem->quantity]),
+                    ['available_quantity' => $availableQuantity, 'in_cart' => $cartItem->quantity],
+                    400
+                );
             }
 
             $cartItem->update([
@@ -401,7 +410,11 @@ class CartController extends Controller
         // Check stock
         $availableQuantity = $cartItem->productOption ? $cartItem->productOption->quantity : $cartItem->product->quantity;
         if ($availableQuantity < $request->quantity) {
-            return Response::error(__('Insufficient stock'), null, 400);
+            return Response::error(
+                __('Only :count items available', ['count' => $availableQuantity]),
+                ['available_quantity' => $availableQuantity],
+                400
+            );
         }
 
         $cartItem->update([
