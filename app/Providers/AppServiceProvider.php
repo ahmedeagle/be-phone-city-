@@ -34,6 +34,8 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\Ticket::observe(\App\Observers\TicketObserver::class);
         \App\Models\Review::observe(\App\Observers\ReviewObserver::class);
         \App\Models\ContactRequest::observe(\App\Observers\ContactRequestObserver::class);
+        \App\Models\Product::observe(\App\Observers\ProductObserver::class);
+        \App\Models\ProductOption::observe(\App\Observers\ProductOptionObserver::class);
 
         // Clear OTP verification on logout (forces re-verification on next login)
         Event::listen(Logout::class, function (Logout $event) {

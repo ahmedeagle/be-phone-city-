@@ -34,6 +34,7 @@ class User extends Authenticatable
         'completed_orders_count',
         'completed_orders_total',
         'vip_tier_updated_at',
+        'wishlist_share_token',
     ];
 
     protected $hidden = [

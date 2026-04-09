@@ -34,6 +34,9 @@ use App\Http\Controllers\Api\V1\ChatbotController;
 use App\Http\Controllers\Api\V1\BranchController;
 use App\Http\Controllers\Api\V1\SubscriberController;
 
+use App\Http\Controllers\Api\V1\StockNotificationController;
+use App\Http\Controllers\Api\V1\SharedWishlistController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -117,6 +120,12 @@ Route::prefix('v1')->namespace('App\Http\Controllers\Api\V1')->group(function ()
 
     Route::post('contact', [ContactRequestController::class, 'store']);
     Route::post('subscribers', [SubscriberController::class, 'store']);
+
+    // Back-in-stock notification (public - guest or logged in)
+    Route::post('stock-notifications/subscribe', [StockNotificationController::class, 'subscribe']);
+
+    // Shared wishlist (public view)
+    Route::get('shared-wishlist/{token}', [SharedWishlistController::class, 'show']);
 
     // Tickets routes (public - guest tickets)
     Route::post('tickets', [TicketController::class, 'store']);
@@ -248,6 +257,18 @@ Route::prefix('v1')->namespace('App\Http\Controllers\Api\V1')->group(function ()
         Route::prefix('chatbot')->group(function () {
             Route::get('/history/{sessionId}', [ChatbotController::class, 'history']);
             Route::delete('/clear/{sessionId}', [ChatbotController::class, 'clear']);
+        });
+
+        // Stock notification management (authenticated)
+        Route::prefix('stock-notifications')->group(function () {
+            Route::get('/check/{productId}', [StockNotificationController::class, 'check']);
+            Route::post('/unsubscribe', [StockNotificationController::class, 'unsubscribe']);
+        });
+
+        // Shared wishlist management (authenticated)
+        Route::prefix('wishlist-share')->group(function () {
+            Route::post('/generate', [SharedWishlistController::class, 'generateLink']);
+            Route::post('/regenerate', [SharedWishlistController::class, 'regenerateLink']);
         });
 
         // Admin-only: maintenance mode toggle (requires auth, policy enforced in controller)
