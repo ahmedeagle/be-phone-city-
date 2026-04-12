@@ -585,6 +585,12 @@ class OrderController extends Controller
     ): array {
         $settings = $calculations['settings'];
         $freeShippingThreshold = $settings->free_shipping_threshold ?? 0;
+        $minOrdersForFreeShipping = $settings->min_orders_for_free_shipping ?? 0;
+
+        // Get user's completed orders count
+        $userCompletedOrders = \App\Models\Order::where('user_id', auth()->id())
+            ->whereIn('status', [\App\Models\Order::STATUS_DELIVERED, \App\Models\Order::STATUS_COMPLETED])
+            ->count();
 
         // Prepare cart items data
         $items = $cartItems->map(function ($item) {
@@ -646,6 +652,8 @@ class OrderController extends Controller
                 'shipping_info' => $shippingInfo,
                 'qualifies_for_free_shipping' => $calculations['qualifies_for_free_shipping'],
                 'free_shipping_threshold' => number_format($freeShippingThreshold, 2),
+                'min_orders_for_free_shipping' => $minOrdersForFreeShipping,
+                'user_completed_orders' => $userCompletedOrders,
                 'amount_needed_for_free_shipping' => $freeShippingThreshold > $calculations['subtotal']
                     ? number_format($freeShippingThreshold - $calculations['subtotal'], 2)
                     : 0,
@@ -671,6 +679,7 @@ class OrderController extends Controller
             'settings' => [
                 'tax_percentage' => number_format($calculations['tax_percentage'], 2),
                 'free_shipping_threshold' => number_format($freeShippingThreshold, 2),
+                'min_orders_for_free_shipping' => $minOrdersForFreeShipping,
                 'point_value' => number_format($settings->point_value ?? 1.00, 2),
             ],
             'warnings' => $warnings,

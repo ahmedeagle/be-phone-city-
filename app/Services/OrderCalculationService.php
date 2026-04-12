@@ -77,6 +77,7 @@ class OrderCalculationService
         $settings = Setting::getSettings();
         $taxPercentage = $settings->tax_percentage ?? 0;
         $freeShippingThreshold = $settings->free_shipping_threshold ?? 0;
+        $minOrdersForFreeShipping = $settings->min_orders_for_free_shipping ?? 0;
         $pointValue = $settings->point_value ?? 1.00;
 
         // Calculate subtotal
@@ -88,12 +89,19 @@ class OrderCalculationService
         $discount = $discountData['discount'];
         $discountAmount = $discountData['amount'];
 
+        // Get user's completed orders count for free shipping check
+        $userCompletedOrders = \App\Models\Order::where('user_id', $userId)
+            ->whereIn('status', [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED])
+            ->count();
+
         // Calculate shipping
         $shippingData = $this->shippingService->calculateShipping(
             $deliveryMethod,
             $location,
             $subtotal,
-            $freeShippingThreshold
+            $freeShippingThreshold,
+            $minOrdersForFreeShipping,
+            $userCompletedOrders
         );
         $shippingAmount = $shippingData['amount'];
         $qualifiesForFreeShipping = $shippingData['qualifies_for_free'];

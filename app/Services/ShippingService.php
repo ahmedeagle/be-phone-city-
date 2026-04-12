@@ -65,13 +65,17 @@ class ShippingService
      * @param Location|null $location Location model with city relation loaded
      * @param float $subtotal Order subtotal for free shipping calculation
      * @param float $freeShippingThreshold Minimum amount for free shipping
+     * @param int $minOrdersForFreeShipping Minimum completed orders for free shipping
+     * @param int $userCompletedOrders Number of completed orders by the user
      * @return array ['amount' => float, 'qualifies_for_free' => bool]
      */
     public function calculateShipping(
         string $deliveryMethod,
         ?Location $location,
         float $subtotal,
-        float $freeShippingThreshold = 0
+        float $freeShippingThreshold = 0,
+        int $minOrdersForFreeShipping = 0,
+        int $userCompletedOrders = 0
     ): array {
         // Store pickup - no shipping
         if ($deliveryMethod !== Order::DELIVERY_HOME) {
@@ -89,8 +93,11 @@ class ShippingService
             ];
         }
 
-        // Check for free shipping threshold
-        if ($freeShippingThreshold > 0 && $subtotal >= $freeShippingThreshold) {
+        // Check for free shipping: both conditions must be met
+        $meetsAmountCondition = $freeShippingThreshold > 0 && $subtotal >= $freeShippingThreshold;
+        $meetsOrdersCondition = $minOrdersForFreeShipping <= 0 || $userCompletedOrders >= $minOrdersForFreeShipping;
+
+        if ($meetsAmountCondition && $meetsOrdersCondition) {
             return [
                 'amount' => 0,
                 'qualifies_for_free' => true,

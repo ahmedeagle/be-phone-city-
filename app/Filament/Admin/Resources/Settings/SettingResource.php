@@ -87,13 +87,22 @@ class SettingResource extends Resource
                     ->icon('heroicon-o-truck')
                     ->schema([
                         TextInput::make('free_shipping_threshold')
-                            ->label('حد الشحن المجاني')
+                            ->label('حد الشحن المجاني (المبلغ)')
                             ->numeric()
                             ->minValue(0)
                             ->prefix('ر.س')
                             ->default(0)
                             ->helperText('الحد الأدنى لمبلغ الطلب للحصول على شحن مجاني')
                             ->placeholder('0.00'),
+
+                        TextInput::make('min_orders_for_free_shipping')
+                            ->label('حد الشحن المجاني (عدد الطلبات)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->default(0)
+                            ->suffix('طلب')
+                            ->helperText('الحد الأدنى لعدد طلبات العميل المكتملة للحصول على شحن مجاني (0 = بدون شرط)')
+                            ->placeholder('0'),
 
                         TextInput::make('tax_percentage')
                             ->label('نسبة الضريبة')
@@ -270,8 +279,15 @@ class SettingResource extends Resource
                     ->icon('heroicon-o-truck')
                     ->schema([
                         TextEntry::make('free_shipping_threshold')
-                            ->label('حد الشحن المجاني')
+                            ->label('حد الشحن المجاني (المبلغ)')
                             ->state(fn ($record) => number_format($record->free_shipping_threshold ?? 0, 2) . ' ر.س')
+                            ->size('lg')
+                            ->weight('bold')
+                            ->color('success'),
+
+                        TextEntry::make('min_orders_for_free_shipping')
+                            ->label('حد الشحن المجاني (عدد الطلبات)')
+                            ->state(fn ($record) => ($record->min_orders_for_free_shipping ?? 0) . ' طلب')
                             ->size('lg')
                             ->weight('bold')
                             ->color('success'),

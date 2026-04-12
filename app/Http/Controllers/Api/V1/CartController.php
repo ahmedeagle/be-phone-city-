@@ -40,6 +40,15 @@ class CartController extends Controller
         }
 
         $freeShippingThreshold = $settings->free_shipping_threshold ?? 0;
+        $minOrdersForFreeShipping = $settings->min_orders_for_free_shipping ?? 0;
+
+        // Get user's completed orders count
+        $userCompletedOrders = 0;
+        if (auth()->check()) {
+            $userCompletedOrders = \App\Models\Order::where('user_id', auth()->id())
+                ->whereIn('status', [\App\Models\Order::STATUS_DELIVERED, \App\Models\Order::STATUS_COMPLETED])
+                ->count();
+        }
 
         // Fetch cities and force simple mode for the resource
         request()->merge(['simple' => true]);
@@ -80,6 +89,8 @@ class CartController extends Controller
                     // 'tax' => number_format($taxAmount, 2),
                     // 'tax_percentage' => number_format($taxPercentage, 2),
                     'free_shipping_threshold' => number_format($freeShippingThreshold, 2),
+                    'min_orders_for_free_shipping' => $minOrdersForFreeShipping,
+                    'user_completed_orders' => $userCompletedOrders,
                     'amount_needed_for_free_shipping' => $freeShippingThreshold > $subtotal
                         ? number_format($freeShippingThreshold - $subtotal, 2)
                         : 0,
