@@ -116,6 +116,14 @@ class ReviewController extends Controller
         $review = Review::where('user_id', Auth::id())
             ->findOrFail($id);
 
+        if ($review->isApproved()) {
+            return Response::error(
+                __('لا يمكن تعديل التقييم بعد اعتماده من الإدارة'),
+                null,
+                403
+            );
+        }
+
         $updateData = [];
 
         if ($request->filled('comment')) {
@@ -148,6 +156,14 @@ class ReviewController extends Controller
     {
         $review = Review::where('user_id', Auth::id())
             ->findOrFail($id);
+
+        if ($review->isApproved()) {
+            return Response::error(
+                __('لا يمكن حذف التقييم بعد اعتماده من الإدارة'),
+                null,
+                403
+            );
+        }
 
         $review->delete();
 
