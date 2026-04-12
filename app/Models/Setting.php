@@ -15,7 +15,7 @@ class Setting extends Model
         'logo',
         'maintenance_mode',
         'free_shipping_threshold',
-        'min_orders_for_free_shipping',
+        'min_items_for_free_shipping',
         'tax_percentage',
         'points_days_expired',
         'point_value',
@@ -39,7 +39,7 @@ class Setting extends Model
     protected $casts = [
         'maintenance_mode' => 'boolean',
         'free_shipping_threshold' => 'decimal:2',
-        'min_orders_for_free_shipping' => 'integer',
+        'min_items_for_free_shipping' => 'integer',
         'tax_percentage' => 'decimal:2',
         'point_value' => 'decimal:2',
         'show_new_arrivals_section' => 'boolean',

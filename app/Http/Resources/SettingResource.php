@@ -23,7 +23,7 @@ class SettingResource extends JsonResource
 
             // Shipping and Tax Settings
             'free_shipping_threshold' => (float) $this->free_shipping_threshold,
-            'min_orders_for_free_shipping' => (int) $this->min_orders_for_free_shipping,
+            'min_items_for_free_shipping' => (int) $this->min_items_for_free_shipping,
             'tax_percentage' => (float) $this->tax_percentage,
 
             // Points Settings

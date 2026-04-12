@@ -95,13 +95,13 @@ class SettingResource extends Resource
                             ->helperText('الحد الأدنى لمبلغ الطلب للحصول على شحن مجاني')
                             ->placeholder('0.00'),
 
-                        TextInput::make('min_orders_for_free_shipping')
-                            ->label('حد الشحن المجاني (عدد الطلبات)')
+                        TextInput::make('min_items_for_free_shipping')
+                            ->label('حد الشحن المجاني (عدد المنتجات)')
                             ->numeric()
                             ->minValue(0)
                             ->default(0)
-                            ->suffix('طلب')
-                            ->helperText('الحد الأدنى لعدد طلبات العميل المكتملة للحصول على شحن مجاني (0 = بدون شرط)')
+                            ->suffix('منتج')
+                            ->helperText('الحد الأدنى لعدد المنتجات في السلة للحصول على شحن مجاني (0 = بدون شرط)')
                             ->placeholder('0'),
 
                         TextInput::make('tax_percentage')
@@ -285,9 +285,9 @@ class SettingResource extends Resource
                             ->weight('bold')
                             ->color('success'),
 
-                        TextEntry::make('min_orders_for_free_shipping')
-                            ->label('حد الشحن المجاني (عدد الطلبات)')
-                            ->state(fn ($record) => ($record->min_orders_for_free_shipping ?? 0) . ' طلب')
+                        TextEntry::make('min_items_for_free_shipping')
+                            ->label('حد الشحن المجاني (عدد المنتجات)')
+                            ->state(fn ($record) => ($record->min_items_for_free_shipping ?? 0) . ' منتج')
                             ->size('lg')
                             ->weight('bold')
                             ->color('success'),
