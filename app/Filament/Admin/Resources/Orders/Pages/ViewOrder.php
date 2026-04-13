@@ -163,6 +163,17 @@ class ViewOrder extends ViewRecord
                     && auth()->user()->can('orders.update')
                 ),
 
+            Action::make('print_awb')
+                ->label('طباعة بوليصة الشحن')
+                ->icon('heroicon-o-truck')
+                ->color('info')
+                ->url(fn () => $this->record->shipping_payload['printAWBURL'] ?? '#')
+                ->openUrlInNewTab()
+                ->visible(fn () =>
+                    !empty($this->record->shipping_payload['printAWBURL'])
+                    && auth()->user()->can('orders.show')
+                ),
+
             Action::make('print')
                 ->label('طباعة الطلب')
                 ->icon('heroicon-o-printer')
