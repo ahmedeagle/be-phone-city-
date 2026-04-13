@@ -113,6 +113,13 @@ class SettingResource extends Resource
                             ->default(0)
                             ->helperText('نسبة الضريبة المضافة (مثال: 15 لضريبة 15%)')
                             ->placeholder('0.00'),
+
+                        TextInput::make('tax_number')
+                            ->label('الرقم الضريبي')
+                            ->maxLength(255)
+                            ->placeholder('مثال: 300000000000003')
+                            ->helperText('الرقم الضريبي للمنشأة (يظهر في الفواتير)')
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
 
@@ -298,6 +305,13 @@ class SettingResource extends Resource
                             ->size('lg')
                             ->weight('bold')
                             ->color('info'),
+
+                        TextEntry::make('tax_number')
+                            ->label('الرقم الضريبي')
+                            ->size('lg')
+                            ->weight('bold')
+                            ->color('info')
+                            ->default('غير محدد'),
                     ])
                     ->columns(2),
 

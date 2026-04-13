@@ -25,6 +25,7 @@ class SettingResource extends JsonResource
             'free_shipping_threshold' => (float) $this->free_shipping_threshold,
             'min_items_for_free_shipping' => (int) $this->min_items_for_free_shipping,
             'tax_percentage' => (float) $this->tax_percentage,
+            'tax_number' => $this->tax_number,
 
             // Points Settings
             'points_days_expired' => (int) $this->points_days_expired,

@@ -17,6 +17,7 @@ class Setting extends Model
         'free_shipping_threshold',
         'min_items_for_free_shipping',
         'tax_percentage',
+        'tax_number',
         'points_days_expired',
         'point_value',
         // Bank Account Details for Bank Transfer Payment

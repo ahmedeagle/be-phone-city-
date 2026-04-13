@@ -277,15 +277,21 @@
     <div class="invoice-container">
         @php
             $taxPercentage = \App\Models\Setting::get('tax_percentage', 0);
+            $taxNumber = \App\Models\Setting::get('tax_number');
+            $settingsModel = \App\Models\Setting::getSettings();
+            $logoUrl = $settingsModel->logo_url;
         @endphp
         <!-- Header -->
         <div class="invoice-header">
             <div class="company-details">
+                @if($logoUrl)
+                    <img src="{{ $logoUrl }}" alt="Logo" style="max-width: 120px; max-height: 80px; margin-bottom: 10px;">
+                @endif
                 <h1>{{ config('app.name', 'اسم الشركة') }}</h1>
-                <p>{{ config('company.address', '123 شارع الأعمال') }}</p>
-                <p>{{ config('company.city', 'المدينة') }}، {{ config('company.country', 'الدولة') }}</p>
-                <p>الهاتف: {{ config('company.phone', '+1234567890') }}</p>
-                <p>البريد الإلكتروني: {{ config('company.email', 'info@company.com') }}</p>
+                <p>المملكة العربية السعودية</p>
+                @if($taxNumber)
+                    <p>الرقم الضريبي: {{ $taxNumber }}</p>
+                @endif
             </div>
             <div class="invoice-meta">
                 <h2>فاتورة</h2>
@@ -419,12 +425,10 @@
                         <td>-{{ number_format($pointsDiscountExclTax, 2) }} ر.س</td>
                     </tr>
                 @endif
-                @if ($order->shipping > 0)
-                    <tr>
-                        <td>الشحن</td>
-                        <td>{{ number_format($order->shipping, 2) }} ر.س</td>
-                    </tr>
-                @endif
+                <tr>
+                    <td>الشحن</td>
+                    <td>{{ $order->shipping > 0 ? number_format($order->shipping, 2) . ' ر.س' : 'مجاني' }}</td>
+                </tr>
                 @if ($order->tax > 0)
                     <tr>
                         <td>الضريبة ({{ $taxPercentage }}%)</td>

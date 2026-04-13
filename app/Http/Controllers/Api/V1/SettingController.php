@@ -77,6 +77,7 @@ class SettingController extends Controller
                 'free_shipping_threshold' => (float) $settings->free_shipping_threshold,
                 'min_items_for_free_shipping' => (int) $settings->min_items_for_free_shipping,
                 'tax_percentage' => (float) $settings->tax_percentage,
+                'tax_number' => $settings->tax_number,
             ]
         );
     }
