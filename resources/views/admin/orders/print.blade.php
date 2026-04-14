@@ -14,24 +14,25 @@
 
         body {
             font-family: 'Arial', 'Tahoma', sans-serif;
-            color: #333;
+            color: #222;
+            font-size: 13px;
             line-height: 1.6;
             padding: 20px;
             direction: rtl;
         }
 
         .invoice-container {
-            max-width: 800px;
+            max-width: 780px;
             margin: 0 auto;
             background: white;
-            padding: 40px;
+            padding: 30px 36px;
         }
 
         .print-button {
             position: fixed;
             top: 20px;
             left: 20px;
-            background: #3498db;
+            background: #1a7a4c;
             color: white;
             border: none;
             padding: 12px 24px;
@@ -45,143 +46,150 @@
         }
 
         .print-button:hover {
-            background: #2980b9;
+            background: #15673f;
             transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
         }
 
-        .print-button:active {
-            transform: translateY(0);
-        }
-
+        /* Header */
         .invoice-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 40px;
-            padding-bottom: 20px;
-            border-bottom: 3px solid #2c3e50;
+            margin-bottom: 18px;
         }
 
-        .company-details h1 {
-            color: #2c3e50;
-            font-size: 28px;
-            margin-bottom: 10px;
+        .invoice-header .company-side h1 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #222;
+            margin-bottom: 2px;
         }
 
-        .company-details p {
-            color: #7f8c8d;
-            font-size: 14px;
+        .invoice-header .company-side p {
+            font-size: 12px;
+            color: #666;
         }
 
-        .invoice-meta {
+        .invoice-header .title-side {
             text-align: left;
         }
 
-        .invoice-meta h2 {
-            color: #e74c3c;
-            font-size: 32px;
-            margin-bottom: 10px;
+        .invoice-header .title-side h2 {
+            font-size: 22px;
+            font-weight: 800;
+            color: #222;
+            margin-bottom: 4px;
         }
 
-        .invoice-meta p {
-            font-size: 14px;
-            margin: 5px 0;
+        .invoice-header .title-side p {
+            font-size: 12px;
+            color: #666;
         }
 
-        .invoice-meta strong {
-            color: #2c3e50;
+        .divider {
+            border: none;
+            border-top: 2px solid #e0e0e0;
+            margin: 0 0 18px 0;
         }
 
-        .invoice-details {
+        /* Info section */
+        .info-section {
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 40px;
-            gap: 20px;
+            gap: 28px;
+            margin-bottom: 18px;
         }
 
-        .detail-block {
+        .info-section .info-col {
             flex: 1;
         }
 
-        .detail-block h3 {
-            color: #2c3e50;
-            font-size: 16px;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
         }
 
-        .detail-block p {
-            font-size: 14px;
-            margin: 5px 0;
+        .info-table tr:nth-child(even) {
+            background: #f7f7f7;
         }
 
+        .info-table td {
+            padding: 5px 8px;
+        }
+
+        .info-table td:first-child {
+            color: #888;
+            white-space: nowrap;
+        }
+
+        .info-table td:last-child {
+            font-weight: 600;
+        }
+
+        /* Items table */
         .items-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 30px;
-            direction: rtl;
+            margin-bottom: 20px;
+            font-size: 13px;
         }
 
-        .items-table thead {
-            background: #34495e;
-            color: white;
+        .items-table thead tr {
+            background: #f0f0f0;
         }
 
         .items-table th {
-            padding: 12px;
+            padding: 10px 8px;
             text-align: right;
-            font-weight: 600;
-            font-size: 14px;
-            direction: rtl;
+            font-weight: 700;
+            border-bottom: 2px solid #ddd;
         }
 
-        .items-table td {
-            padding: 12px;
-            border-bottom: 1px solid #ecf0f1;
-            font-size: 14px;
-            text-align: right;
-            direction: rtl;
-        }
-
-        .items-table tbody tr:hover {
-            background: #f8f9fa;
-        }
-
-        .text-left {
-            text-align: left;
-        }
-
-        .text-center {
+        .items-table th.center {
             text-align: center;
         }
 
-        .totals-section {
+        .items-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .items-table td.center {
+            text-align: center;
+        }
+
+        .items-table tbody tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        .items-table .option-text {
+            color: #999;
+            font-size: 11px;
+        }
+
+        /* Totals */
+        .totals-wrapper {
             display: flex;
             justify-content: flex-start;
-            margin-bottom: 40px;
-            direction: rtl;
+            margin-bottom: 20px;
         }
 
         .totals-table {
-            width: 350px;
-            direction: rtl;
+            width: 340px;
+            border-collapse: collapse;
+            font-size: 13px;
         }
 
         .totals-table tr {
-            border-bottom: 1px solid #ecf0f1;
+            border-bottom: 1px solid #eee;
         }
 
         .totals-table td {
-            padding: 10px;
-            font-size: 14px;
+            padding: 7px 10px;
         }
 
         .totals-table td:first-child {
-            color: #7f8c8d;
-            font-weight: 500;
-            text-align: right;
+            color: #555;
         }
 
         .totals-table td:last-child {
@@ -189,66 +197,85 @@
             font-weight: 600;
         }
 
-        .totals-table .total-row {
-            background: #2c3e50;
-            color: white;
-            font-size: 18px;
-            font-weight: bold;
+        .totals-table .discount-row td {
+            color: #16a34a;
         }
 
-        .totals-table .total-row td {
-            padding: 15px 10px;
+        .totals-table .vip-row td {
+            color: #2563eb;
+        }
+
+        .totals-table .shipping-free td:last-child {
+            color: #16a34a;
+        }
+
+        .totals-table .grand-total {
+            background: #f0f0f0;
+        }
+
+        .totals-table .grand-total td {
+            padding: 10px;
             border: none;
         }
 
+        .totals-table .grand-total td:first-child {
+            font-weight: 800;
+            font-size: 15px;
+            color: #222;
+        }
+
+        .totals-table .grand-total td:last-child {
+            font-weight: 800;
+            font-size: 16px;
+            color: #222;
+        }
+
+        .grand-total-sub {
+            font-size: 11px;
+            font-weight: 400;
+            color: #888;
+        }
+
+        /* Notes */
         .notes-section {
-            margin-bottom: 30px;
-            padding: 20px;
+            margin-bottom: 16px;
+            padding: 12px 16px;
             background: #f8f9fa;
-            border-right: 4px solid #3498db;
+            border-radius: 8px;
+            border-right: 3px solid #1a7a4c;
         }
 
         .notes-section h3 {
-            color: #2c3e50;
-            font-size: 16px;
-            margin-bottom: 10px;
+            font-size: 14px;
+            color: #222;
+            margin-bottom: 6px;
         }
 
         .notes-section p {
-            font-size: 14px;
-            color: #7f8c8d;
+            font-size: 12px;
+            color: #666;
         }
 
-        .footer {
+        /* Footer */
+        .footer-bar {
+            background: #1a7a4c;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
             text-align: center;
-            padding-top: 20px;
-            border-top: 2px solid #ecf0f1;
-            color: #7f8c8d;
             font-size: 12px;
+            margin-top: 14px;
         }
 
-        .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
+        .footer-bar span {
+            margin: 0 14px;
         }
 
-        .badge-completed {
-            background: #27ae60;
-            color: white;
-        }
-
-        .badge-progress {
-            background: #3498db;
-            color: white;
-        }
-
-        .badge-cancelled {
-            background: #e74c3c;
-            color: white;
+        .footer-note {
+            text-align: center;
+            font-size: 11px;
+            color: #aaa;
+            margin-top: 10px;
         }
 
         @media print {
@@ -263,6 +290,11 @@
             .no-print,
             .print-button {
                 display: none !important;
+            }
+
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
         }
     </style>
@@ -281,65 +313,77 @@
             $settingsModel = \App\Models\Setting::getSettings();
             $logoUrl = $settingsModel->logo_url;
         @endphp
+
         <!-- Header -->
         <div class="invoice-header">
-            <div class="company-details">
+            <div class="company-side">
                 @if($logoUrl)
-                    <img src="{{ $logoUrl }}" alt="Logo" style="max-width: 120px; max-height: 80px; margin-bottom: 10px;">
+                    <img src="{{ $logoUrl }}" alt="Logo" style="max-width: 130px; max-height: 70px; margin-bottom: 6px; display: block;">
                 @endif
-                <h1>{{ config('app.name', 'اسم الشركة') }}</h1>
+                <h1>{{ config('app.name', 'City Phones') }}</h1>
                 <p>المملكة العربية السعودية</p>
-                @if($taxNumber)
-                    <p>الرقم الضريبي: {{ $taxNumber }}</p>
-                @endif
             </div>
-            <div class="invoice-meta">
-                <h2>فاتورة</h2>
-                @if ($order->invoice)
-                    <p><strong>رقم الفاتورة:</strong> {{ $order->invoice->invoice_number }}</p>
-                    <p><strong>تاريخ الفاتورة:</strong> {{ $order->invoice->invoice_date->format('Y/m/d') }}</p>
-                @endif
-                <p><strong>رقم الطلب:</strong> {{ $order->order_number }}</p>
-                <p><strong>تاريخ الطلب:</strong> {{ $order->created_at->format('Y/m/d') }}</p>
-
+            <div class="title-side">
+                <h2>فاتورة ضريبة مبسطة</h2>
+                <p>فاتورة إلكترونية</p>
             </div>
         </div>
 
-        <!-- Invoice Details -->
-        <div class="invoice-details">
-            <!-- Bill To -->
-            <div class="detail-block">
-                <h3>الفاتورة إلى</h3>
-                <p><strong>{{ $order->user->name }}</strong></p>
-                <p>{{ $order->user->email }}</p>
-                <p>{{ $order->user->phone }}</p>
+        <hr class="divider">
+
+        <!-- Info Section -->
+        <div class="info-section">
+            <div class="info-col">
+                <table class="info-table">
+                    <tr>
+                        <td>الاسم التجاري</td>
+                        <td>{{ config('app.name', 'City Phones') }}</td>
+                    </tr>
+                    @if($taxNumber)
+                    <tr>
+                        <td>الرقم الضريبي</td>
+                        <td>{{ $taxNumber }}</td>
+                    </tr>
+                    @endif
+                    <tr>
+                        <td>رقم الفاتورة</td>
+                        <td>{{ $order->invoice ? $order->invoice->invoice_number : $order->order_number }}</td>
+                    </tr>
+                    <tr>
+                        <td>طريقة الدفع</td>
+                        <td>{{ $order->paymentMethod->name }}</td>
+                    </tr>
+                    <tr>
+                        <td>التاريخ</td>
+                        <td>{{ $order->invoice ? $order->invoice->invoice_date->format('Y/m/d') : $order->created_at->format('Y/m/d') }}</td>
+                    </tr>
+                </table>
             </div>
-
-            <!-- Ship To -->
-            @if ($order->location)
-                <div class="detail-block">
-                    <h3>الشحن إلى</h3>
-                    <p><strong>{{ $order->location->first_name }} {{ $order->location->last_name }}</strong></p>
-                    <p>{{ $order->location->street_address }}</p>
-                    <p>{{ $order->location->city->name }}، {{ $order->location->country }}</p>
-                    <p>{{ $order->location->phone }}</p>
-                    @if ($order->location->email)
-                        <p>{{ $order->location->email }}</p>
+            <div class="info-col">
+                <table class="info-table">
+                    <tr>
+                        <td>اسم العميل</td>
+                        <td>{{ $order->user->name }}</td>
+                    </tr>
+                    <tr>
+                        <td>رقم الطلب</td>
+                        <td>{{ $order->order_number }}</td>
+                    </tr>
+                    <tr>
+                        <td>قيمة الطلب</td>
+                        <td>{{ number_format($order->total, 2) }} ر.س</td>
+                    </tr>
+                    @if ($order->location)
+                    <tr>
+                        <td>العنوان</td>
+                        <td>{{ $order->location->city->name ?? '' }}{{ $order->location->street_address ? '، ' . $order->location->street_address : '' }}</td>
+                    </tr>
                     @endif
-                </div>
-            @endif
-
-            <!-- Payment Info -->
-            <div class="detail-block">
-                <h3>معلومات الدفع</h3>
-                <p><strong>طريقة الدفع:</strong> {{ $order->paymentMethod->name }}</p>
-                <p><strong>طريقة التوصيل:</strong>
-                    @if ($order->delivery_method === 'home_delivery')
-                        توصيل منزلي
-                    @else
-                        استلام من المتجر
-                    @endif
-                </p>
+                    <tr>
+                        <td>الهاتف</td>
+                        <td>{{ $order->user->phone ?? '-' }}</td>
+                    </tr>
+                </table>
             </div>
         </div>
 
@@ -347,96 +391,88 @@
         <table class="items-table">
             <thead>
                 <tr>
-                    <th class="text-left">المجموع</th>
-                    <th class="text-left">السعر</th>
-                    <th class="text-center">الكمية</th>
-                    <th>الخيار</th>
-                    <th>المنتج</th>
-                    <th>#</th>
+                    <th>الصنف</th>
+                    <th class="center">الكمية</th>
+                    <th class="center">السعر بدون ضريبة</th>
+                    <th class="center">الضريبة %</th>
+                    <th class="center">السعر شامل الضريبة</th>
+                    <th class="center">الإجمالي</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach ($order->items as $index => $item)
                     @php
-                        $priceExclTax = $item->price / (1 + $taxPercentage / 100);
-                        $totalExclTax = $item->price * $item->quantity / (1 + $taxPercentage / 100);
+                        $unitPriceInclTax = $item->price;
+                        $unitPriceExclTax = $unitPriceInclTax / (1 + $taxPercentage / 100);
+                        $lineTotal = $item->price * $item->quantity;
                     @endphp
                     <tr>
-                        <td class="text-left">{{ number_format($totalExclTax, 2) }} ر.س</td>
-                        <td class="text-left">{{ number_format($priceExclTax, 2) }} ر.س</td>
-                        <td class="text-center">{{ $item->quantity }}</td>
-                        <td>
-                            @if ($item->productOption)
-                                @php
-                                    $optionType = $item->productOption->type === 'color' ? 'اللون' : 'الحجم';
-                                @endphp
-                                {{ $optionType }}: {{ $item->productOption->value }}
-                            @else
-                                -
-                            @endif
-                        </td>
                         <td>
                             <strong>{{ $item->product->name }}</strong>
+                            @if ($item->productOption)
+                                <br><span class="option-text">{{ $item->productOption->value }}</span>
+                            @endif
                         </td>
-                        <td>{{ $index + 1 }}</td>
+                        <td class="center">{{ $item->quantity }}</td>
+                        <td class="center">{{ number_format($unitPriceExclTax, 2) }} ر.س</td>
+                        <td class="center">{{ $taxPercentage }}%</td>
+                        <td class="center">{{ number_format($unitPriceInclTax, 2) }} ر.س</td>
+                        <td class="center" style="font-weight: 600;">{{ number_format($lineTotal, 2) }} ر.س</td>
                     </tr>
                 @endforeach
             </tbody>
         </table>
 
         <!-- Totals -->
-        <div class="totals-section">
+        <div class="totals-wrapper">
             <table class="totals-table">
                 @php
                     $subtotalExclTax = $order->subtotal / (1 + $taxPercentage / 100);
-                    $discountExclTax = $order->discount / (1 + $taxPercentage / 100);
-                    $pointsDiscountExclTax = $order->points_discount / (1 + $taxPercentage / 100);
-                    $vipDiscountExclTax = ($order->vip_discount ?? 0) / (1 + $taxPercentage / 100);
                 @endphp
                 <tr>
-                    <td>المجموع الفرعي (غير شامل الضريبة)</td>
+                    <td>الإجمالي</td>
                     <td>{{ number_format($subtotalExclTax, 2) }} ر.س</td>
                 </tr>
                 @if ($order->discount > 0)
-                    <tr>
+                    <tr class="discount-row">
                         <td>
-                            الخصم (غير شامل الضريبة)
+                            قسيمة / خصم
                             @if ($order->discountCode)
                                 ({{ $order->discountCode->code }})
                             @endif
                         </td>
-                        <td>-{{ number_format($discountExclTax, 2) }} ر.س</td>
+                        <td>-{{ number_format($order->discount, 2) }} ر.س</td>
                     </tr>
                 @endif
                 @if (($order->vip_discount ?? 0) > 0)
-                    <tr>
+                    <tr class="vip-row">
                         <td>
-                            خصم VIP (غير شامل الضريبة)
+                            خصم VIP
                             @if ($order->vip_tier_label)
                                 ({{ $order->vip_tier_label }})
                             @endif
                         </td>
-                        <td>-{{ number_format($vipDiscountExclTax, 2) }} ر.س</td>
+                        <td>-{{ number_format($order->vip_discount, 2) }} ر.س</td>
                     </tr>
                 @endif
                 @if ($order->points_discount > 0)
-                    <tr>
-                        <td>خصم النقاط (غير شامل الضريبة)</td>
-                        <td>-{{ number_format($pointsDiscountExclTax, 2) }} ر.س</td>
+                    <tr class="discount-row">
+                        <td>خصم النقاط</td>
+                        <td>-{{ number_format($order->points_discount, 2) }} ر.س</td>
                     </tr>
                 @endif
-                <tr>
-                    <td>الشحن</td>
+                <tr class="{{ $order->shipping > 0 ? '' : 'shipping-free' }}">
+                    <td>رسوم الشحن</td>
                     <td>{{ $order->shipping > 0 ? number_format($order->shipping, 2) . ' ر.س' : 'مجاني' }}</td>
                 </tr>
                 @if ($order->tax > 0)
                     <tr>
-                        <td>الضريبة ({{ $taxPercentage }}%)</td>
+                        <td>ضريبة القيمة المضافة ({{ $taxPercentage }}%)</td>
                         <td>{{ number_format($order->tax, 2) }} ر.س</td>
                     </tr>
                 @endif
-                <tr class="total-row">
-                    <td>الإجمالي</td>
+                <tr class="grand-total">
+                    <td>الإجمالي النهائي<br><span class="grand-total-sub">شامل الضريبة</span></td>
                     <td>{{ number_format($order->total, 2) }} ر.س</td>
                 </tr>
             </table>
@@ -456,15 +492,16 @@
         @endif
 
         <!-- Footer -->
-        <div class="footer">
-            <p>شكراً لتعاملكم معنا!</p>
-            <p>هذه فاتورة إلكترونية صالحة بدون توقيع.</p>
-            <p>تم الإنشاء في {{ now()->locale('ar')->translatedFormat('j F Y الساعة h:i A') }}</p>
+        <div class="footer-bar">
+            <span>info@cityphonesa.com</span>
+            <span>cityphonesa.com</span>
+        </div>
+        <div class="footer-note">
+            هذه فاتورة إلكترونية صالحة بدون توقيع
         </div>
     </div>
 
     <script>
-        // Print keyboard shortcut
         document.addEventListener('keydown', function(e) {
             if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
                 e.preventDefault();
