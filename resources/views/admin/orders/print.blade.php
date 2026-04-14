@@ -50,41 +50,7 @@
             transform: translateY(-2px);
         }
 
-        /* Header */
-        .invoice-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 18px;
-        }
-
-        .invoice-header .company-side h1 {
-            font-size: 18px;
-            font-weight: 700;
-            color: #222;
-            margin-bottom: 2px;
-        }
-
-        .invoice-header .company-side p {
-            font-size: 12px;
-            color: #666;
-        }
-
-        .invoice-header .title-side {
-            text-align: left;
-        }
-
-        .invoice-header .title-side h2 {
-            font-size: 22px;
-            font-weight: 800;
-            color: #222;
-            margin-bottom: 4px;
-        }
-
-        .invoice-header .title-side p {
-            font-size: 12px;
-            color: #666;
-        }
+        /* Header is inline-styled (centered) */
 
         .divider {
             border: none;
@@ -315,18 +281,15 @@
         @endphp
 
         <!-- Header -->
-        <div class="invoice-header">
-            <div class="company-side">
-                @if($logoUrl)
-                    <img src="{{ $logoUrl }}" alt="Logo" style="max-width: 130px; max-height: 70px; margin-bottom: 6px; display: block;">
-                @endif
-                <h1>{{ config('app.name', 'City Phones') }}</h1>
-                <p>المملكة العربية السعودية</p>
-            </div>
-            <div class="title-side">
-                <h2>فاتورة ضريبة مبسطة</h2>
-                <p>فاتورة إلكترونية</p>
-            </div>
+        <div style="text-align:center; margin-bottom:18px;">
+            @if($logoUrl)
+                <img src="{{ $logoUrl }}" alt="Logo" style="max-width: 130px; max-height: 70px; margin: 0 auto 8px auto; display: block;">
+            @endif
+            <div style="font-size:13px; color:#666; margin-bottom:2px;">المملكة العربية السعودية</div>
+            <div style="font-size:16px; font-weight:700; color:#222; margin-bottom:2px;">مدينة الهواتف</div>
+            <div style="font-size:14px; font-weight:600; color:#444; margin-bottom:6px;">City Phones</div>
+            <div style="font-size:22px; font-weight:800; color:#222; margin-top:10px;">فاتورة ضريبة مبسطة</div>
+            <div style="font-size:12px; color:#666;">فاتورة إلكترونية</div>
         </div>
 
         <hr class="divider">

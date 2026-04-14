@@ -817,7 +817,11 @@ class OtoShippingService
             // Receiver information (customer)
             'customer' => [
                 'name' => trim(($location->first_name ?? '') . ' ' . ($location->last_name ?? '')),
-                'address' => $location->street_address,
+                'address' => implode(', ', array_filter([
+                    $location->street_address,
+                    $location->city->name ?? $location->city->name_ar ?? '',
+                    $location->national_address,
+                ])),
                 'city' => $location->city->name ?? $location->city->name_ar ?? '',
                 'mobile' => $location->phone,
                 'email' => $location->email ?? $order->user->email ?? '',
