@@ -281,16 +281,27 @@
         @endphp
 
         <!-- Header -->
-        <div style="text-align:center; margin-bottom:18px;">
-            @if($logoUrl)
-                <img src="{{ $logoUrl }}" alt="Logo" style="max-width: 130px; max-height: 70px; margin: 0 auto 8px auto; display: block;">
-            @endif
-            <div style="font-size:13px; color:#666; margin-bottom:2px;">المملكة العربية السعودية</div>
-            <div style="font-size:16px; font-weight:700; color:#222; margin-bottom:2px;">مدينة الهواتف</div>
-            <div style="font-size:14px; font-weight:600; color:#444; margin-bottom:6px;">City Phones</div>
-            <div style="font-size:22px; font-weight:800; color:#222; margin-top:10px;">فاتورة ضريبة مبسطة</div>
-            <div style="font-size:12px; color:#666;">فاتورة إلكترونية</div>
-        </div>
+        <table style="width:100%; margin-bottom:18px; border-collapse:collapse;" cellpadding="0" cellspacing="0">
+            <tr>
+                <!-- Right side: company info -->
+                <td style="width:33%; text-align:right; vertical-align:middle;">
+                    <div style="font-size:13px; color:#666; margin-bottom:2px;">المملكة العربية السعودية</div>
+                    <div style="font-size:16px; font-weight:700; color:#222; margin-bottom:2px;">مدينة الهواتف</div>
+                    <div style="font-size:14px; font-weight:600; color:#444;">City Phones</div>
+                </td>
+                <!-- Center: logo -->
+                <td style="width:34%; text-align:center; vertical-align:middle;">
+                    @if($logoUrl)
+                        <img src="{{ $logoUrl }}" alt="Logo" style="max-width:130px; max-height:70px; margin:0 auto; display:block;">
+                    @endif
+                </td>
+                <!-- Left side: invoice type -->
+                <td style="width:33%; text-align:left; vertical-align:middle;">
+                    <div style="font-size:22px; font-weight:800; color:#222; margin-bottom:4px;">فاتورة ضريبة مبسطة</div>
+                    <div style="font-size:12px; color:#666;">فاتورة إلكترونية</div>
+                </td>
+            </tr>
+        </table>
 
         <hr class="divider">
 
