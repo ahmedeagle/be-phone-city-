@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\SettingResource;
+use App\Models\PointsTier;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
@@ -95,6 +96,26 @@ class SettingController extends Controller
                 'points_days_expired' => (int) $settings->points_days_expired,
                 'point_value' => (float) $settings->point_value,
             ]
+        );
+    }
+
+    /**
+     * Get points tiers configuration
+     */
+    public function pointsTiers()
+    {
+        $tiers = PointsTier::getActiveTiers();
+
+        return Response::success(
+            __('Points tiers fetched successfully'),
+            $tiers->map(function ($tier) {
+                return [
+                    'id' => $tier->id,
+                    'min_amount' => (float) $tier->min_amount,
+                    'max_amount' => $tier->max_amount ? (float) $tier->max_amount : null,
+                    'points_awarded' => (int) $tier->points_awarded,
+                ];
+            })
         );
     }
 

@@ -73,6 +73,10 @@ class OrderNotification extends Notification implements ShouldQueue
                 $message->line(__('VIP Discount') . ' (' . $tierLabel . '): -' . number_format($this->order->vip_discount, 2) . ' SAR');
             }
 
+            if ($this->order->points_discount > 0) {
+                $message->line(__('Points Discount') . ': -' . number_format($this->order->points_discount, 2) . ' SAR');
+            }
+
             if ($this->order->shipping > 0) {
                 $message->line(__('Shipping') . ': ' . number_format($this->order->shipping, 2) . ' SAR');
             }

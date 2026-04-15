@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\Point;
+use App\Models\PointsTier;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Auth;
 
@@ -65,7 +66,7 @@ class PointsService
     }
 
     /**
-     * Award points to user from cart items
+     * Award points to user based on invoice total tier
      *
      * @param int $userId User ID
      * @param int $orderId Order ID
@@ -78,42 +79,39 @@ class PointsService
         $pointsDaysExpired = $settings->points_days_expired ?? 365;
         $expireAt = now()->addDays($pointsDaysExpired);
 
-        $totalPointsAwarded = 0;
-
+        // Calculate total invoice amount from cart items
+        $invoiceTotal = 0;
         foreach ($cartItems as $cartItem) {
-            $product = $cartItem->product;
-
-            // Check if product has points
-            if (!$product->points || $product->points <= 0) {
-                continue;
-            }
-
-            // Calculate total points for this product (points * quantity)
-            $productPoints = $product->points * $cartItem->quantity;
-
-            // Create point record for the user
-            Point::create([
-                'user_id' => $userId,
-                'order_id' => $orderId,
-                'product_id' => $product->id,
-                'points_count' => $productPoints,
-                'status' => Point::STATUS_AVAILABLE,
-                'expire_at' => $expireAt,
-                'description' => __('Points earned from product: :product_name', [
-                    'product_name' => $product->name,
-                ]),
-            ]);
-
-            $totalPointsAwarded += $productPoints;
+            $invoiceTotal += ($cartItem->product->price ?? 0) * ($cartItem->quantity ?? 1);
         }
 
-        return $totalPointsAwarded;
+        // Find matching tier
+        $tier = PointsTier::findTierForAmount($invoiceTotal);
+
+        if (!$tier || $tier->points_awarded <= 0) {
+            return 0;
+        }
+
+        // Award single points record based on tier
+        Point::create([
+            'user_id' => $userId,
+            'order_id' => $orderId,
+            'product_id' => null,
+            'points_count' => $tier->points_awarded,
+            'status' => Point::STATUS_AVAILABLE,
+            'expire_at' => $expireAt,
+            'description' => __('Points earned from order total: :amount SAR', [
+                'amount' => number_format($invoiceTotal, 2),
+            ]),
+        ]);
+
+        return $tier->points_awarded;
     }
 
     /**
-     * Award points to user from order items (when order is paid)
+     * Award points to user based on order total tier (when order is paid)
      *
-     * @param Order $order Paid order with items
+     * @param Order $order Paid order
      * @return int Total points awarded
      */
     public function awardPointsFromOrder(Order $order): int
@@ -131,34 +129,30 @@ class PointsService
         $pointsDaysExpired = $settings->points_days_expired ?? 365;
         $expireAt = now()->addDays($pointsDaysExpired);
 
-        $totalPointsAwarded = 0;
-        $orderItems = $order->items()->with('product')->get();
+        // Use order total for tier matching
+        $invoiceTotal = (float) $order->total;
 
-        foreach ($orderItems as $orderItem) {
-            $product = $orderItem->product;
+        // Find matching tier
+        $tier = PointsTier::findTierForAmount($invoiceTotal);
 
-            if (!$product || !$product->points || $product->points <= 0) {
-                continue;
-            }
-
-            $productPoints = $product->points * $orderItem->quantity;
-
-            Point::create([
-                'user_id' => $order->user_id,
-                'order_id' => $order->id,
-                'product_id' => $product->id,
-                'points_count' => $productPoints,
-                'status' => Point::STATUS_AVAILABLE,
-                'expire_at' => $expireAt,
-                'description' => __('Points earned from product: :product_name', [
-                    'product_name' => $product->name,
-                ]),
-            ]);
-
-            $totalPointsAwarded += $productPoints;
+        if (!$tier || $tier->points_awarded <= 0) {
+            return 0;
         }
 
-        return $totalPointsAwarded;
+        // Award single points record based on tier
+        Point::create([
+            'user_id' => $order->user_id,
+            'order_id' => $order->id,
+            'product_id' => null,
+            'points_count' => $tier->points_awarded,
+            'status' => Point::STATUS_AVAILABLE,
+            'expire_at' => $expireAt,
+            'description' => __('Points earned from order total: :amount SAR', [
+                'amount' => number_format($invoiceTotal, 2),
+            ]),
+        ]);
+
+        return $tier->points_awarded;
     }
 
     /**
