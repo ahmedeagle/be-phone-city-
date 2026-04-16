@@ -28,6 +28,9 @@ class OrderResource extends JsonResource
             'branch' => $this->whenLoaded('branch', function () {
                 return new BranchResource($this->branch);
             }),
+            'shipping_company' => $this->whenLoaded('shippingCompany', function () {
+                return new ShippingCompanyResource($this->shippingCompany);
+            }),
             'subtotal' => (float) $this->subtotal,
             'discount' => (float) $this->discount,
             'discount_code' => $this->whenLoaded('discountCode', function () {

@@ -65,6 +65,7 @@ class Order extends Model
         'shipping_payload',
         'oto_order_id',
         'branch_id',
+        'shipping_company_id',
     ];
 
     protected $casts = [
@@ -137,6 +138,14 @@ class Order extends Model
     public function branch()
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    /**
+     * Get the shipping company for the order
+     */
+    public function shippingCompany()
+    {
+        return $this->belongsTo(ShippingCompany::class);
     }
 
     /**

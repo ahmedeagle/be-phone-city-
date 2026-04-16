@@ -105,6 +105,7 @@ class OrderService
             'points_discount' => $orderData['points_discount'] ?? 0,
             'total' => $orderData['total'],
             'status' => $orderData['status'] ?? Order::STATUS_PENDING,
+            'shipping_company_id' => $orderData['shipping_company_id'] ?? null,
         ]);
     }
 

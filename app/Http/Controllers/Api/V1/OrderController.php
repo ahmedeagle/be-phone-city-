@@ -203,6 +203,7 @@ class OrderController extends Controller
             'points_to_consume' => $calculations['points_to_consume'],
             'total' => $calculations['total'],
             'status' => Order::STATUS_PENDING,
+            'shipping_company_id' => $request->shipping_company_id,
         ];
 
         try {

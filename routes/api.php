@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\V1\CommentController;
 use App\Http\Controllers\Api\V1\TicketController;
 use App\Http\Controllers\Api\V1\ChatbotController;
 use App\Http\Controllers\Api\V1\BranchController;
+use App\Http\Controllers\Api\V1\ShippingCompanyController;
 use App\Http\Controllers\Api\V1\SubscriberController;
 
 use App\Http\Controllers\Api\V1\StockNotificationController;
@@ -71,6 +72,7 @@ Route::prefix('v1')->namespace('App\Http\Controllers\Api\V1')->group(function ()
     Route::get('cities/list', [CityController::class, 'activeList']);
 
     Route::get('branches', [BranchController::class, 'index']);
+    Route::get('shipping-companies', [ShippingCompanyController::class, 'index']);
 
     Route::get('products', [ProductController::class, 'index']);
     Route::get('products/new-arrivals', [ProductController::class, 'newArrivals']);
@@ -108,7 +110,6 @@ Route::prefix('v1')->namespace('App\Http\Controllers\Api\V1')->group(function ()
     Route::get('settings/website/info', [SettingController::class, 'websiteInfo']);
     Route::get('settings/shipping/tax', [SettingController::class, 'shippingTax']);
     Route::get('settings/points', [SettingController::class, 'points']);
-    Route::get('settings/points/tiers', [SettingController::class, 'pointsTiers']);
     Route::get('settings/bank/details', [SettingController::class, 'bankDetails']);
     Route::get('settings/products/sections', [SettingController::class, 'productSections']);
     Route::get('settings/{key}', [SettingController::class, 'show']);

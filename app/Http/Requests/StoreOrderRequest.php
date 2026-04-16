@@ -44,6 +44,7 @@ class StoreOrderRequest extends FormRequest
             'notes' => 'nullable|string|max:1000',
             'points_discount' => 'nullable|numeric|min:0',
             'use_point' => 'nullable|boolean',
+            'shipping_company_id' => 'nullable|exists:shipping_companies,id',
         ];
     }
 
