@@ -72,6 +72,7 @@ class OrderCalculationService
         $paymentMethod = $params['payment_method'];
         $usePoints = $params['use_points'] ?? false;
         $userId = $params['user_id'];
+        $shippingCompanyId = $params['shipping_company_id'] ?? null;
 
         // Get settings
         $settings = Setting::getSettings();
@@ -89,6 +90,17 @@ class OrderCalculationService
         $discount = $discountData['discount'];
         $discountAmount = $discountData['amount'];
 
+        // Look up shipping company cost if selected
+        $shippingCompanyCost = null;
+        if ($shippingCompanyId) {
+            $shippingCompany = \App\Models\ShippingCompany::where('id', $shippingCompanyId)
+                ->where('is_active', true)
+                ->first();
+            if ($shippingCompany) {
+                $shippingCompanyCost = (float) $shippingCompany->cost;
+            }
+        }
+
         // Calculate shipping
         $shippingData = $this->shippingService->calculateShipping(
             $deliveryMethod,
@@ -96,7 +108,8 @@ class OrderCalculationService
             $subtotal,
             $freeShippingThreshold,
             $minItemsForFreeShipping,
-            $cartItemsCount
+            $cartItemsCount,
+            $shippingCompanyCost
         );
         $shippingAmount = $shippingData['amount'];
         $qualifiesForFreeShipping = $shippingData['qualifies_for_free'];

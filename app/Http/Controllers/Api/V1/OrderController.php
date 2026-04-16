@@ -179,6 +179,7 @@ class OrderController extends Controller
             'payment_method' => $paymentMethod,
             'use_points' => $request->boolean('use_point'),
             'user_id' => Auth::id(),
+            'shipping_company_id' => $request->shipping_company_id,
         ]);
 
         // Prepare order data
@@ -393,6 +394,7 @@ class OrderController extends Controller
             'payment_method' => $paymentMethod,
             'use_points' => $request->boolean('use_point'),
             'user_id' => Auth::id(),
+            'shipping_company_id' => $request->shipping_company_id,
         ]);
 
         // Check stock availability

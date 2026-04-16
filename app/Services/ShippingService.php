@@ -67,6 +67,7 @@ class ShippingService
      * @param float $freeShippingThreshold Minimum amount for free shipping
      * @param int $minItemsForFreeShipping Minimum number of items in cart for free shipping
      * @param int $cartItemsCount Number of items currently in cart
+     * @param float|null $shippingCompanyCost Optional cost from selected shipping company
      * @return array ['amount' => float, 'qualifies_for_free' => bool]
      */
     public function calculateShipping(
@@ -75,7 +76,8 @@ class ShippingService
         float $subtotal,
         float $freeShippingThreshold = 0,
         int $minItemsForFreeShipping = 0,
-        int $cartItemsCount = 0
+        int $cartItemsCount = 0,
+        ?float $shippingCompanyCost = null
     ): array {
         // Store pickup - no shipping
         if ($deliveryMethod !== Order::DELIVERY_HOME) {
@@ -104,9 +106,11 @@ class ShippingService
             ];
         }
 
-        // Apply city shipping fee
+        // Use shipping company cost if provided, otherwise fall back to city shipping fee
+        $amount = $shippingCompanyCost !== null ? $shippingCompanyCost : ($location->city->shipping_fee ?? 0);
+
         return [
-            'amount' => $location->city->shipping_fee ?? 0,
+            'amount' => $amount,
             'qualifies_for_free' => false,
         ];
     }
