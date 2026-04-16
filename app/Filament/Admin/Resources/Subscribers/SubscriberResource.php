@@ -8,7 +8,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Actions\BulkAction;
+use Filament\Actions\BulkAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -106,7 +106,7 @@ class SubscriberResource extends Resource
                 DeleteBulkAction::make(),
             ])
             ->headerActions([
-                \Filament\Tables\Actions\Action::make('export_all_active')
+                \Filament\Actions\Action::make('export_all_active')
                     ->label('تصدير جميع الأرقام النشطة')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('success')
