@@ -11,13 +11,14 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Pages\Page;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\DB;
 
 class DailyAccountingReport extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-calculator';
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::Calculator;
     protected static ?string $navigationLabel = 'التقرير اليومي';
     protected static ?string $title = 'التقرير المحاسبي اليومي';
     protected static ?int $navigationSort = 10;
