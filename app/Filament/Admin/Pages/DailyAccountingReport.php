@@ -20,8 +20,12 @@ class DailyAccountingReport extends Page implements HasForms
     protected static ?string $navigationIcon = 'heroicon-o-calculator';
     protected static ?string $navigationLabel = 'التقرير اليومي';
     protected static ?string $title = 'التقرير المحاسبي اليومي';
-    protected static ?string $navigationGroup = 'المبيعات والمدفوعات';
     protected static ?int $navigationSort = 10;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'المبيعات والمدفوعات';
+    }
     protected static string $view = 'filament.admin.pages.daily-accounting-report';
 
     public ?string $report_date = null;
