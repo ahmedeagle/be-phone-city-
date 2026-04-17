@@ -23,7 +23,7 @@ class ViewOrder extends ViewRecord
     protected function mutateFormDataBeforeFill(array $data): array
     {
         // Load relationships for infolist
-        $this->record->load(['user', 'location', 'branch', 'paymentMethod', 'discountCode', 'items.product', 'items.productOption', 'invoice']);
+        $this->record->load(['user', 'location', 'branch', 'paymentMethod', 'discountCode', 'items.product', 'items.productOption', 'invoice', 'currentPaymentTransaction']);
 
         return $data;
     }

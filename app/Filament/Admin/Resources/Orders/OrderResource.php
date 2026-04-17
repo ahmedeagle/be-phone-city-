@@ -336,6 +336,45 @@ class OrderResource extends Resource
                                 : null),
                     ])
                     ->columns(2),
+                \Filament\Schemas\Components\Section::make('إيصال التحويل البنكي')
+                    ->schema([
+                        \Filament\Infolists\Components\ViewEntry::make('payment_proof_viewer')
+                            ->label('')
+                            ->view('filament.infolists.order-payment-proof')
+                            ->columnSpanFull(),
+                        \Filament\Infolists\Components\TextEntry::make('currentPaymentTransaction.created_at')
+                            ->label('تاريخ الرفع')
+                            ->dateTime('d/m/Y H:i')
+                            ->placeholder('-'),
+                        \Filament\Infolists\Components\TextEntry::make('currentPaymentTransaction.status')
+                            ->label('حالة المراجعة')
+                            ->badge()
+                            ->color(fn ($state) => match ($state) {
+                                'success' => 'success',
+                                'processing' => 'warning',
+                                'pending' => 'gray',
+                                'failed' => 'danger',
+                                default => 'gray',
+                            })
+                            ->formatStateUsing(fn ($state) => match ($state) {
+                                'success' => 'تمت الموافقة',
+                                'processing' => 'بانتظار المراجعة',
+                                'pending' => 'معلق',
+                                'failed' => 'مرفوض',
+                                default => $state ?? '-',
+                            }),
+                        \Filament\Infolists\Components\TextEntry::make('currentPaymentTransaction.review_notes')
+                            ->label('ملاحظات المراجعة')
+                            ->placeholder('-')
+                            ->wrap()
+                            ->visible(fn ($record) => $record->currentPaymentTransaction?->review_notes),
+                    ])
+                    ->columns(2)
+                    ->icon('heroicon-o-photo')
+                    ->iconColor('info')
+                    ->visible(fn ($record) => $record->currentPaymentTransaction
+                        && $record->currentPaymentTransaction->gateway === 'bank_transfer'
+                        && $record->currentPaymentTransaction->payment_proof_path),
                 \Filament\Schemas\Components\Section::make('معلومات الشحن (OTO)')
                     ->schema([
                         \Filament\Infolists\Components\TextEntry::make('shipping_provider')
