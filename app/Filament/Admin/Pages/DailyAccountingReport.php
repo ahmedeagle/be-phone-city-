@@ -27,7 +27,7 @@ class DailyAccountingReport extends Page implements HasForms
     {
         return 'المبيعات والمدفوعات';
     }
-    protected static string $view = 'filament.admin.pages.daily-accounting-report';
+    protected string $view = 'filament.admin.pages.daily-accounting-report';
 
     public ?string $report_date = null;
 
