@@ -167,7 +167,7 @@ class ViewOrder extends ViewRecord
                 ->label('طباعة بوليصة الشحن')
                 ->icon('heroicon-o-truck')
                 ->color('info')
-                ->url(fn () => $this->record->shipping_payload['printAWBURL'] ?? '#')
+                ->url(fn () => route('admin.orders.awb', $this->record))
                 ->openUrlInNewTab()
                 ->visible(fn () =>
                     !empty($this->record->shipping_payload['printAWBURL'])

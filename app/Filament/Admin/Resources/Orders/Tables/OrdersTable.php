@@ -246,6 +246,16 @@ class OrdersTable
                     ->url(fn (Order $record) => route('admin.orders.print', $record))
                     ->openUrlInNewTab()
                     ->visible(fn () => auth()->user()->can('orders.show')),
+                Action::make('print_awb')
+                    ->label('بوليصة الشحن')
+                    ->icon('heroicon-o-truck')
+                    ->color('info')
+                    ->url(fn (Order $record) => route('admin.orders.awb', $record))
+                    ->openUrlInNewTab()
+                    ->visible(fn (Order $record) =>
+                        !empty($record->shipping_payload['printAWBURL'])
+                        && auth()->user()->can('orders.show')
+                    ),
                 DeleteAction::make()
                     ->visible(fn () => auth()->user()->can('orders.delete'))
                     ->requiresConfirmation()

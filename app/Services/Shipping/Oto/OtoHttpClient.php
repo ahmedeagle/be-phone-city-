@@ -538,6 +538,43 @@ class OtoHttpClient
     }
 
     /**
+     * Fetch AWB PDF from OTO using authenticated client
+     * The printAWBURL from orderStatus requires Bearer token authentication
+     */
+    public function fetchAwbPdf(string $awbUrl): string
+    {
+        Log::info('OTO API: Fetching AWB PDF', ['url' => $awbUrl]);
+
+        try {
+            $token = $this->getAccessToken();
+
+            $response = Http::timeout($this->timeout)
+                ->withHeaders([
+                    'Authorization' => "Bearer {$token}",
+                    'Accept' => 'application/pdf',
+                ])
+                ->get($awbUrl);
+
+            if ($response->failed()) {
+                Log::error('OTO API: AWB PDF fetch failed', [
+                    'url' => $awbUrl,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+                throw OtoApiException::fromResponse($response, 'fetch AWB PDF');
+            }
+
+            return $response->body();
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error('OTO API connection failed for AWB fetch', [
+                'url' => $awbUrl,
+                'error' => $e->getMessage(),
+            ]);
+            throw OtoApiException::connectionFailed($e);
+        }
+    }
+
+    /**
      * Log API request
      */
     protected function logRequest(string $method, string $endpoint, ?array $payload = null): void

@@ -15,6 +15,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/orders/{order}/print', [\App\Http\Controllers\Admin\OrderPrintController::class, 'print'])
         ->name('orders.print');
 
+    // AWB (Shipping Label) Print Route - Proxies PDF from OTO API
+    Route::get('/orders/{order}/awb', [\App\Http\Controllers\Admin\OrderAwbController::class, 'print'])
+        ->name('orders.awb');
+
     // Payment Proof Route - Protected by Filament auth (handled in controller)
     Route::get('/payment-transactions/{transaction}/proof', [\App\Http\Controllers\Admin\PaymentProofController::class, 'show'])
         ->name('payment-transactions.proof');
