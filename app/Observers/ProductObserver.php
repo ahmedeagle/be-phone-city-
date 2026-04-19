@@ -7,9 +7,45 @@ use App\Models\StockNotification;
 use App\Notifications\BackInStockNotification;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 
 class ProductObserver
 {
+    /**
+     * Clean up related data before product is deleted.
+     */
+    public function deleting(Product $product): void
+    {
+        // Delete image files from storage and remove image records
+        $product->images->each(function ($image) {
+            if ($image->path && Storage::exists($image->path)) {
+                Storage::delete($image->path);
+            }
+            $image->delete();
+        });
+
+        // Delete main product image from storage
+        if ($product->main_image && Storage::exists($product->main_image)) {
+            Storage::delete($product->main_image);
+        }
+
+        // Delete option images
+        $product->options->each(function ($option) {
+            $option->images->each(function ($image) {
+                if ($image->path && Storage::exists($image->path)) {
+                    Storage::delete($image->path);
+                }
+                $image->delete();
+            });
+        });
+
+        // Detach offers (polymorphic many-to-many)
+        $product->offers()->detach();
+
+        // Detach categories
+        $product->categories()->detach();
+    }
+
     /**
      * When product quantity is updated from 0 to > 0, notify subscribers.
      */

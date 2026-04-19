@@ -77,6 +77,7 @@ Route::prefix('v1')->namespace('App\Http\Controllers\Api\V1')->group(function ()
     Route::get('products', [ProductController::class, 'index']);
     Route::get('products/new-arrivals', [ProductController::class, 'newArrivals']);
     Route::get('products/featured', [ProductController::class, 'featured']);
+    Route::post('products/check-existence', [ProductController::class, 'checkExistence']);
     Route::get('products/{product}', [ProductController::class, 'show']);
 
     Route::get('offers', [OfferController::class, 'index']);

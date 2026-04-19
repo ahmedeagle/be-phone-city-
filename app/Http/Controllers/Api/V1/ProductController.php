@@ -135,4 +135,22 @@ class ProductController extends Controller
             $products
         );
     }
+
+    /**
+     * Check which product IDs still exist (for recently viewed cleanup).
+     */
+    public function checkExistence(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array|max:20',
+            'ids.*' => 'integer',
+        ]);
+
+        $existingIds = Product::whereIn('id', $request->ids)->pluck('id');
+
+        return Response::success(
+            __('Product existence checked'),
+            ['existing_ids' => $existingIds]
+        );
+    }
 }

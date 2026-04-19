@@ -55,20 +55,26 @@ class DailyAccountingReport extends Page implements HasForms
         $date = Carbon::parse($this->report_date);
 
         // All orders for the day
-        $orders = Order::with(['user', 'currentPaymentTransaction', 'items.product', 'shippingCompany'])
+        $orders = Order::with(['user', 'currentPaymentTransaction', 'items.product', 'items.productOption', 'shippingCompany', 'location', 'branch'])
             ->whereDate('created_at', $date)
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Summary stats
+        // ---- Summary (all orders) ----
         $totalOrders = $orders->count();
-        $totalRevenue = $orders->where('payment_status', Order::PAYMENT_STATUS_PAID)->sum('total');
-        $totalSubtotal = $orders->where('payment_status', Order::PAYMENT_STATUS_PAID)->sum('subtotal');
-        $totalDiscount = $orders->where('payment_status', Order::PAYMENT_STATUS_PAID)->sum('discount');
-        $totalVipDiscount = $orders->where('payment_status', Order::PAYMENT_STATUS_PAID)->sum('vip_discount');
-        $totalPointsDiscount = $orders->where('payment_status', Order::PAYMENT_STATUS_PAID)->sum('points_discount');
-        $totalShipping = $orders->where('payment_status', Order::PAYMENT_STATUS_PAID)->sum('shipping');
-        $totalTax = $orders->where('payment_status', Order::PAYMENT_STATUS_PAID)->sum('tax');
+        $paidOrders = $orders->where('payment_status', Order::PAYMENT_STATUS_PAID);
+        $allOrders = $orders; // keep reference for "all" stats
+
+        $totalRevenue = $paidOrders->sum('total');
+        $totalSubtotal = $paidOrders->sum('subtotal');
+        $totalDiscount = $paidOrders->sum('discount');
+        $totalVipDiscount = $paidOrders->sum('vip_discount');
+        $totalPointsDiscount = $paidOrders->sum('points_discount');
+        $totalShipping = $paidOrders->sum('shipping');
+        $totalTax = $paidOrders->sum('tax');
+
+        // All orders revenue (regardless of payment status) for context
+        $allOrdersTotal = $orders->sum('total');
 
         // Orders by status
         $statusCounts = [];
@@ -155,6 +161,8 @@ class DailyAccountingReport extends Page implements HasForms
             'date' => $date,
             'orders' => $orders,
             'totalOrders' => $totalOrders,
+            'paidOrdersCount' => $paidOrders->count(),
+            'allOrdersTotal' => $allOrdersTotal,
             'totalRevenue' => $totalRevenue,
             'totalSubtotal' => $totalSubtotal,
             'totalDiscount' => $totalDiscount,
