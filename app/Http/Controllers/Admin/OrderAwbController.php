@@ -39,7 +39,10 @@ class OrderAwbController extends Controller
         }
 
         if (!$awbUrl) {
-            abort(404, 'بوليصة الشحن غير متوفرة حالياً. قد تكون الشحنة لم تُعالج بعد من قبل OTO.');
+            return response()->view('admin.orders.awb-not-ready', [
+                'order' => $order,
+                'status' => $order->tracking_status ?? $order->shipping_payload['status'] ?? 'unknown',
+            ], 404);
         }
 
         try {
@@ -60,7 +63,11 @@ class OrderAwbController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            abort(502, 'فشل تحميل بوليصة الشحن من OTO. يرجى المحاولة لاحقاً.');
+            return response()->view('admin.orders.awb-not-ready', [
+                'order' => $order,
+                'status' => 'error',
+                'errorMessage' => $e->getMessage(),
+            ], 502);
         }
     }
 }
