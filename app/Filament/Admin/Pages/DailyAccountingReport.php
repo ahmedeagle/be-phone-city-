@@ -54,27 +54,61 @@ class DailyAccountingReport extends Page implements HasForms
     {
         $date = Carbon::parse($this->report_date);
 
-        // All orders for the day
-        $orders = Order::with(['user', 'currentPaymentTransaction', 'items.product', 'items.productOption', 'shippingCompany', 'location', 'branch'])
+        // All orders for the day with all needed relations
+        $orders = Order::with([
+            'user', 'currentPaymentTransaction', 'items.product', 'items.productOption',
+            'shippingCompany', 'location', 'branch', 'discountCode',
+        ])
             ->whereDate('created_at', $date)
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // ---- Summary (all orders) ----
         $totalOrders = $orders->count();
         $paidOrders = $orders->where('payment_status', Order::PAYMENT_STATUS_PAID);
-        $allOrders = $orders; // keep reference for "all" stats
+        $allOrdersTotal = $orders->sum('total');
 
+        // Financial totals (paid orders only)
         $totalRevenue = $paidOrders->sum('total');
         $totalSubtotal = $paidOrders->sum('subtotal');
         $totalDiscount = $paidOrders->sum('discount');
         $totalVipDiscount = $paidOrders->sum('vip_discount');
         $totalPointsDiscount = $paidOrders->sum('points_discount');
+        $totalAllDiscounts = $totalDiscount + $totalVipDiscount + $totalPointsDiscount;
         $totalShipping = $paidOrders->sum('shipping');
         $totalTax = $paidOrders->sum('tax');
 
-        // All orders revenue (regardless of payment status) for context
-        $allOrdersTotal = $orders->sum('total');
+        // Coupon usage breakdown (paid orders)
+        $couponUsage = $paidOrders->filter(fn ($o) => $o->discount > 0 && $o->discountCode)
+            ->groupBy('discount_id')
+            ->map(function ($group) {
+                $discount = $group->first()->discountCode;
+                return [
+                    'code' => $discount->code,
+                    'type' => $discount->type,
+                    'value' => $discount->value,
+                    'times_used' => $group->count(),
+                    'total_discount' => $group->sum('discount'),
+                ];
+            })->values()->toArray();
+
+        // VIP tier breakdown (paid orders)
+        $vipUsage = $paidOrders->filter(fn ($o) => $o->vip_discount > 0)
+            ->groupBy('vip_tier_at_order')
+            ->map(function ($group, $tier) {
+                return [
+                    'tier' => $tier,
+                    'label' => $group->first()->vip_tier_label ?? $tier,
+                    'count' => $group->count(),
+                    'total_discount' => $group->sum('vip_discount'),
+                ];
+            })->values()->toArray();
+
+        // Points usage (paid orders)
+        $pointsOrders = $paidOrders->filter(fn ($o) => $o->points_discount > 0);
+        $pointsUsage = [
+            'count' => $pointsOrders->count(),
+            'total_discount' => $pointsOrders->sum('points_discount'),
+        ];
 
         // Orders by status
         $statusCounts = [];
@@ -85,6 +119,7 @@ class DailyAccountingReport extends Page implements HasForms
                     'status' => $status,
                     'label' => $this->getStatusLabel($status),
                     'count' => $count,
+                    'total' => $orders->where('status', $status)->sum('total'),
                     'color' => $this->getStatusColor($status),
                 ];
             }
@@ -115,8 +150,7 @@ class DailyAccountingReport extends Page implements HasForms
             }
         }
 
-        // Payment gateway breakdown (from paid orders)
-        $paidOrders = $orders->where('payment_status', Order::PAYMENT_STATUS_PAID);
+        // Payment gateway breakdown (paid orders)
         $gatewayBreakdown = [];
         $gateways = [
             PaymentTransaction::GATEWAY_CASH => 'الدفع عند الاستلام',
@@ -140,22 +174,20 @@ class DailyAccountingReport extends Page implements HasForms
             }
         }
 
-        // Delivery method breakdown
-        $homeDelivery = $orders->where('delivery_method', Order::DELIVERY_HOME)->count();
-        $storePickup = $orders->where('delivery_method', Order::DELIVERY_STORE_PICKUP)->count();
+        // Delivery method
+        $homeDelivery = $orders->where('delivery_method', Order::DELIVERY_HOME);
+        $storePickup = $orders->where('delivery_method', Order::DELIVERY_STORE_PICKUP);
 
-        // Items sold count
+        // Items sold
         $itemsSold = 0;
         foreach ($paidOrders as $order) {
             $itemsSold += $order->items->sum('quantity');
         }
 
-        // Awaiting action
+        // Alerts
         $awaitingReview = $orders->where('payment_status', Order::PAYMENT_STATUS_AWAITING_REVIEW)->count();
         $pendingOrders = $orders->where('status', Order::STATUS_PENDING)->count();
         $cancelledOrders = $orders->where('status', Order::STATUS_CANCELLED);
-        $cancelledTotal = $cancelledOrders->sum('total');
-        $cancelledCount = $cancelledOrders->count();
 
         return [
             'date' => $date,
@@ -168,18 +200,24 @@ class DailyAccountingReport extends Page implements HasForms
             'totalDiscount' => $totalDiscount,
             'totalVipDiscount' => $totalVipDiscount,
             'totalPointsDiscount' => $totalPointsDiscount,
+            'totalAllDiscounts' => $totalAllDiscounts,
             'totalShipping' => $totalShipping,
             'totalTax' => $totalTax,
+            'couponUsage' => $couponUsage,
+            'vipUsage' => $vipUsage,
+            'pointsUsage' => $pointsUsage,
             'statusCounts' => $statusCounts,
             'paymentStatusCounts' => $paymentStatusCounts,
             'gatewayBreakdown' => $gatewayBreakdown,
-            'homeDelivery' => $homeDelivery,
-            'storePickup' => $storePickup,
+            'homeDeliveryCount' => $homeDelivery->count(),
+            'homeDeliveryTotal' => $homeDelivery->sum('total'),
+            'storePickupCount' => $storePickup->count(),
+            'storePickupTotal' => $storePickup->sum('total'),
             'itemsSold' => $itemsSold,
             'awaitingReview' => $awaitingReview,
             'pendingOrders' => $pendingOrders,
-            'cancelledCount' => $cancelledCount,
-            'cancelledTotal' => $cancelledTotal,
+            'cancelledCount' => $cancelledOrders->count(),
+            'cancelledTotal' => $cancelledOrders->sum('total'),
         ];
     }
 
