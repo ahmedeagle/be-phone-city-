@@ -253,7 +253,7 @@ class OrdersTable
                     ->url(fn (Order $record) => route('admin.orders.awb', $record))
                     ->openUrlInNewTab()
                     ->visible(fn (Order $record) =>
-                        !empty($record->shipping_payload['printAWBURL'])
+                        !empty($record->oto_order_id)
                         && auth()->user()->can('orders.show')
                     ),
                 DeleteAction::make()

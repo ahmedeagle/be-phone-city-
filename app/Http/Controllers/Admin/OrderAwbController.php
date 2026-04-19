@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Services\Shipping\Oto\OtoHttpClient;
+use App\Services\Shipping\OtoShippingService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -16,10 +17,29 @@ class OrderAwbController extends Controller
             return redirect()->to('/dashboard/login');
         }
 
+        if (!$order->oto_order_id) {
+            abort(404, 'هذا الطلب غير مرتبط بشحنة OTO');
+        }
+
         $awbUrl = $order->shipping_payload['printAWBURL'] ?? null;
 
+        // If AWB URL not stored, fetch it from OTO in real-time
         if (!$awbUrl) {
-            abort(404, 'رابط بوليصة الشحن غير متوفر لهذا الطلب');
+            try {
+                $shippingService = app(OtoShippingService::class);
+                $shippingService->syncShipmentStatus($order);
+                $order->refresh();
+                $awbUrl = $order->shipping_payload['printAWBURL'] ?? null;
+            } catch (\Exception $e) {
+                Log::warning('AWB: Real-time sync failed, AWB URL not available', [
+                    'order_id' => $order->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        if (!$awbUrl) {
+            abort(404, 'بوليصة الشحن غير متوفرة حالياً. قد تكون الشحنة لم تُعالج بعد من قبل OTO.');
         }
 
         try {

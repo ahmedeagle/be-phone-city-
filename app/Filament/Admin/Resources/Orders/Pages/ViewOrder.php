@@ -170,7 +170,7 @@ class ViewOrder extends ViewRecord
                 ->url(fn () => route('admin.orders.awb', $this->record))
                 ->openUrlInNewTab()
                 ->visible(fn () =>
-                    !empty($this->record->shipping_payload['printAWBURL'])
+                    !empty($this->record->oto_order_id)
                     && auth()->user()->can('orders.show')
                 ),
 
