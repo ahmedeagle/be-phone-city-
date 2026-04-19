@@ -273,7 +273,7 @@ class ProductForm
                                 }]),
                         ]),
 
-                    Grid::make(3)
+                    Grid::make(2)
                         ->schema([
                             TextInput::make('quantity')
                                 ->required()
@@ -282,14 +282,6 @@ class ProductForm
                                 ->default(0)
                                 ->label('الكمية')
                                 ->placeholder('0'),
-
-                            TextInput::make('points')
-                                ->numeric()
-                                ->minValue(0)
-                                ->default(0)
-                                ->label('النقاط')
-                                ->placeholder('0')
-                                ->helperText('نقاط المكافآت للمنتج'),
 
                             TextInput::make('capacity')
                                 ->maxLength(255)

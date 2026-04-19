@@ -71,18 +71,12 @@ class ProductInfolist
                                                             ->color('success'),
                                                     ]),
 
-                                                Grid::make(5)
+                                                Grid::make(4)
                                                     ->schema([
                                                         TextEntry::make('capacity')
                                                             ->label('السعة')
                                                             ->icon('heroicon-o-cube')
                                                             ->default('غير محدد'),
-
-                                                        TextEntry::make('points')
-                                                            ->label('نقاط المكافآت')
-                                                            ->icon('heroicon-o-star')
-                                                            ->suffix(' نقطة')
-                                                            ->color('warning'),
 
                                                         TextEntry::make('is_new')
                                                             ->label('منتج جديد؟')
