@@ -144,11 +144,11 @@ class PointController extends Controller
                 'summary' => [
                     'total_points' => $totalPoints,
                     'available_points' => $availablePoints,
-                    'available_points_value' => number_format($availablePointsValue, 2),
+                    'available_points_value' => round($availablePointsValue, 2),
                     'used_points' => $usedPoints,
                     'expired_points' => $expiredPoints,
                     'expiring_soon_points' => $expiringSoonPoints,
-                    'point_value' => number_format($pointValue, 2),
+                    'point_value' => round($pointValue, 2),
                 ],
                 'expiring_dates' => $expiringDates,
             ],
