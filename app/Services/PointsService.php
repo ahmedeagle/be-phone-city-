@@ -21,7 +21,7 @@ class PointsService
      * @param float|null $pointValue Value of one point (defaults to setting value)
      * @return array ['discount_amount' => float, 'points_to_consume' => int, 'available_points' => int]
      */
-    public function calculatePointsDiscount(int $userId, float $subtotal, ?float $pointValue = null): array
+    public function calculatePointsDiscount(int $userId, float $subtotal, ?float $pointValue = null, ?float $requestedAmount = null): array
     {
         // Get point value from settings if not provided
         if ($pointValue === null) {
@@ -45,6 +45,11 @@ class PointsService
 
         // Calculate discount (can't exceed subtotal)
         $discountAmount = min($maxDiscountFromPoints, $subtotal);
+
+        // If a specific amount was requested, cap to that (but never exceed max)
+        if ($requestedAmount !== null && $requestedAmount > 0) {
+            $discountAmount = min($requestedAmount, $discountAmount);
+        }
 
         // Calculate how many points are needed for this discount
         $pointsToConsume = (int) ceil($discountAmount / $pointValue);

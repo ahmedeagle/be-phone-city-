@@ -71,6 +71,7 @@ class OrderCalculationService
         $location = $params['location'] ?? null;
         $paymentMethod = $params['payment_method'];
         $usePoints = $params['use_points'] ?? false;
+        $requestedPointsDiscount = $params['requested_points_discount'] ?? null;
         $userId = $params['user_id'];
         $shippingCompanyId = $params['shipping_company_id'] ?? null;
 
@@ -117,7 +118,7 @@ class OrderCalculationService
         // Calculate points discount
         $pointsData = ['discount_amount' => 0, 'points_to_consume' => 0, 'available_points' => 0];
         if ($usePoints) {
-            $pointsData = $this->pointsService->calculatePointsDiscount($userId, $subtotal, $pointValue);
+            $pointsData = $this->pointsService->calculatePointsDiscount($userId, $subtotal, $pointValue, $requestedPointsDiscount);
         }
         $pointsDiscount = $pointsData['discount_amount'];
 

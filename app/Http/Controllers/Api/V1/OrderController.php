@@ -178,6 +178,7 @@ class OrderController extends Controller
             'location' => $location,
             'payment_method' => $paymentMethod,
             'use_points' => $request->boolean('use_point'),
+            'requested_points_discount' => $request->filled('points_discount') ? (float) $request->points_discount : null,
             'user_id' => Auth::id(),
             'shipping_company_id' => $request->shipping_company_id,
         ]);
@@ -393,6 +394,7 @@ class OrderController extends Controller
             'location' => $location,
             'payment_method' => $paymentMethod,
             'use_points' => $request->boolean('use_point'),
+            'requested_points_discount' => $request->filled('points_discount') ? (float) $request->points_discount : null,
             'user_id' => Auth::id(),
             'shipping_company_id' => $request->shipping_company_id,
         ]);
