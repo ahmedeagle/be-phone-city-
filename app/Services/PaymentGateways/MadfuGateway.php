@@ -20,16 +20,31 @@ class MadfuGateway extends AbstractPaymentGateway
     protected string $gateway = 'madfu';
 
     /**
+     * Build the Authorization header value.
+     * Prefers pre-built Basic auth token from Madfu portal, falls back to Bearer api_key.
+     */
+    protected function buildAuthHeader(): ?string
+    {
+        $basicAuth = $this->getConfig('basic_auth');
+        if ($basicAuth) {
+            return 'Basic ' . ltrim(preg_replace('/^Basic\s+/i', '', $basicAuth));
+        }
+        $apiKey = $this->getConfig('api_key');
+        return $apiKey ? 'Bearer ' . $apiKey : null;
+    }
+
+    /**
      * Create a payment session for the order
      */
     public function createPayment(Order $order): array
     {
         try {
-            $apiKey = $this->getConfig('api_key');
             $merchantId = $this->getConfig('merchant_id');
+            $appCode = $this->getConfig('app_code');
+            $authHeader = $this->buildAuthHeader();
             $baseUrl = rtrim($this->getConfig('api_url', 'https://api.madfu.com.sa'), '/');
 
-            if (! $apiKey || ! $merchantId) {
+            if (! $authHeader || ! $merchantId) {
                 return [
                     'success' => false,
                     'message' => __('Madfu configuration is incomplete'),
@@ -45,6 +60,7 @@ class MadfuGateway extends AbstractPaymentGateway
 
             $paymentData = [
                 'merchant_id' => $merchantId,
+                'app_code' => $appCode,
                 'order_id' => $order->order_number,
                 'amount' => number_format($order->total, 2, '.', ''),
                 'currency' => strtoupper($order->currency ?? config('payment-gateways.currency', 'SAR')),
@@ -78,7 +94,7 @@ class MadfuGateway extends AbstractPaymentGateway
                 $baseUrl . '/v1/transactions/create',
                 $paymentData,
                 [
-                    'Authorization' => 'Bearer ' . $apiKey,
+                    'Authorization' => $authHeader,
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
                 ]
@@ -129,10 +145,10 @@ class MadfuGateway extends AbstractPaymentGateway
     public function capturePayment(string $transactionId): array
     {
         try {
-            $apiKey = $this->getConfig('api_key');
+            $authHeader = $this->buildAuthHeader();
             $baseUrl = rtrim($this->getConfig('api_url', 'https://api.madfu.com.sa'), '/');
 
-            if (! $apiKey) {
+            if (! $authHeader) {
                 return [
                     'success' => false,
                     'message' => __('Madfu API key is not configured'),
@@ -143,7 +159,7 @@ class MadfuGateway extends AbstractPaymentGateway
                 $baseUrl . '/v1/transactions/' . $transactionId . '/capture',
                 [],
                 [
-                    'Authorization' => 'Bearer ' . $apiKey,
+                    'Authorization' => $authHeader,
                     'Content-Type' => 'application/json',
                 ]
             );
@@ -181,10 +197,10 @@ class MadfuGateway extends AbstractPaymentGateway
     public function refundPayment(string $transactionId, float $amount): array
     {
         try {
-            $apiKey = $this->getConfig('api_key');
+            $authHeader = $this->buildAuthHeader();
             $baseUrl = rtrim($this->getConfig('api_url', 'https://api.madfu.com.sa'), '/');
 
-            if (! $apiKey) {
+            if (! $authHeader) {
                 return [
                     'success' => false,
                     'message' => __('Madfu API key is not configured'),
@@ -197,7 +213,7 @@ class MadfuGateway extends AbstractPaymentGateway
                     'amount' => number_format($amount, 2, '.', ''),
                 ],
                 [
-                    'Authorization' => 'Bearer ' . $apiKey,
+                    'Authorization' => $authHeader,
                     'Content-Type' => 'application/json',
                 ]
             );
@@ -238,10 +254,10 @@ class MadfuGateway extends AbstractPaymentGateway
     public function getPaymentStatus(string $transactionId): array
     {
         try {
-            $apiKey = $this->getConfig('api_key');
+            $authHeader = $this->buildAuthHeader();
             $baseUrl = rtrim($this->getConfig('api_url', 'https://api.madfu.com.sa'), '/');
 
-            if (! $apiKey) {
+            if (! $authHeader) {
                 return [
                     'success' => false,
                     'status' => 'unknown',
@@ -253,7 +269,7 @@ class MadfuGateway extends AbstractPaymentGateway
                 $baseUrl . '/v1/transactions/' . $transactionId,
                 [],
                 [
-                    'Authorization' => 'Bearer ' . $apiKey,
+                    'Authorization' => $authHeader,
                     'Accept' => 'application/json',
                 ]
             );

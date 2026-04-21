@@ -139,45 +139,9 @@ return [
             'enabled' => env('MADFU_ENABLED', false),
             'api_url' => env('MADFU_API_URL', 'https://api.madfu.com.sa'),
             'merchant_id' => env('MADFU_MERCHANT_ID'),
+            'app_code' => env('MADFU_APP_CODE'),
             'api_key' => env('MADFU_API_KEY'),
-            'webhook_secret' => env('MADFU_WEBHOOK_SECRET'),
-            'timeout' => 30,
-        ],
-
-        /*
-        |--------------------------------------------------------------------------
-        | Emkan Payment Gateway
-        |--------------------------------------------------------------------------
-        |
-        | Emkan provides Sharia-compliant Buy-Now-Pay-Later financing in Saudi Arabia.
-        |
-        | Documentation: https://emkanfinance.com.sa
-        |
-        */
-        'emkan' => [
-            'enabled' => env('EMKAN_ENABLED', false),
-            'api_url' => env('EMKAN_API_URL', 'https://api.emkanfinance.com.sa'),
-            'merchant_id' => env('EMKAN_MERCHANT_ID'),
-            'api_key' => env('EMKAN_API_KEY'),
-            'webhook_secret' => env('EMKAN_WEBHOOK_SECRET'),
-            'timeout' => 30,
-        ],
-
-        /*
-        |--------------------------------------------------------------------------
-        | Madfu Payment Gateway
-        |--------------------------------------------------------------------------
-        |
-        | Madfu offers split payments (Buy-Now-Pay-Later) in Saudi Arabia.
-        |
-        | Documentation: https://www.madfu.com.sa
-        |
-        */
-        'madfu' => [
-            'enabled' => env('MADFU_ENABLED', false),
-            'api_url' => env('MADFU_API_URL', 'https://api.madfu.com.sa'),
-            'merchant_id' => env('MADFU_MERCHANT_ID'),
-            'api_key' => env('MADFU_API_KEY'),
+            'basic_auth' => env('MADFU_BASIC_AUTH'), // Pre-built Basic auth token from Madfu portal (without 'Basic ' prefix)
             'webhook_secret' => env('MADFU_WEBHOOK_SECRET'),
             'timeout' => 30,
         ],
