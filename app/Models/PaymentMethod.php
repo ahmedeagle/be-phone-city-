@@ -63,4 +63,9 @@ class PaymentMethod extends Model
     {
         return $query->where('is_bank_transfer', true);
     }
+
+    public function scopeInstallmentOnly($query)
+    {
+        return $query->where('is_installment', true);
+    }
 }

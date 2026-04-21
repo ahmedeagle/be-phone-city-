@@ -115,6 +115,14 @@ class Product extends Model
         return $this->categories()->where('is_bank_transfer', true)->exists();
     }
 
+    /**
+     * Check if product is in a category that requires installment only
+     */
+    public function isInInstallmentCategory(): bool
+    {
+        return $this->categories()->where('is_installment', true)->exists();
+    }
+
     public function options()
     {
         return $this->hasMany(ProductOption::class);

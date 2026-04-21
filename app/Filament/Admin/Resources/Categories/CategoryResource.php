@@ -101,6 +101,10 @@ class CategoryResource extends Resource
                 Toggle::make('is_bank_transfer')
                     ->label('تحويل بنكي فقط')
                     ->default(false),
+
+                Toggle::make('is_installment')
+                    ->label('تقسيط فقط (اموال / تابي)')
+                    ->default(false),
             ]);
     }
 
@@ -125,6 +129,9 @@ class CategoryResource extends Resource
                 TextEntry::make('is_bank_transfer')
                     ->state(fn ($record) => $record->is_bank_transfer ? 'نعم' : 'لا')
                     ->label('تحويل بنكي فقط'),
+                TextEntry::make('is_installment')
+                    ->state(fn ($record) => $record->is_installment ? 'نعم' : 'لا')
+                    ->label('تقسيط فقط'),
                 TextEntry::make('children_count')
                     ->state(fn ($record) => $record->children()->count())
                     ->label('عدد التصنيفات الفرعية'),
@@ -170,6 +177,10 @@ class CategoryResource extends Resource
                     ->boolean()
                     ->sortable()
                     ->label('تحويل بنكي فقط'),
+                IconColumn::make('is_installment')
+                    ->boolean()
+                    ->sortable()
+                    ->label('تقسيط فقط'),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
