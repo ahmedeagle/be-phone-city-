@@ -377,6 +377,13 @@ class OrderResource extends Resource
                         && $record->currentPaymentTransaction->payment_proof_path),
                 \Filament\Schemas\Components\Section::make('معلومات الشحن (OTO)')
                     ->schema([
+                        \Filament\Infolists\Components\TextEntry::make('shippingCompany.name_ar')
+                            ->label('شركة الشحن المختارة من العميل')
+                            ->badge()
+                            ->color('primary')
+                            ->icon('heroicon-o-truck')
+                            ->formatStateUsing(fn ($state, $record) => $state ?? $record->shippingCompany?->name_en ?? '-')
+                            ->placeholder('لم يحدد العميل شركة معينة'),
                         \Filament\Infolists\Components\TextEntry::make('shipping_provider')
                             ->label('مزود الشحن')
                             ->badge()

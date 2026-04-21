@@ -112,6 +112,12 @@ class OrdersTable
                     ->label('طريقة الدفع')
                     ->sortable()
                     ->toggleable(),
+                TextColumn::make('shippingCompany.name_ar')
+                    ->label('شركة الشحن المختارة')
+                    ->badge()
+                    ->color('primary')
+                    ->placeholder('-')
+                    ->toggleable(),
                 TextColumn::make('discount')
                     ->label('الخصم')
                     ->money('SAR')
