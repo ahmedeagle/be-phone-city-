@@ -23,6 +23,8 @@ class PaymentGatewayFactory
             'tabby' => new TabbyGateway(),
             'amwal' => new AmwalGateway(),
             'moyasar' => new MoyasarGateway(),
+            'emkan' => new EmkanGateway(),
+            'madfu' => new MadfuGateway(),
             default => throw new Exception("Payment gateway '{$gateway}' is not supported"),
         };
     }
@@ -57,6 +59,8 @@ class PaymentGatewayFactory
             'tabby',
             'amwal',
             'moyasar',
+            'emkan',
+            'madfu',
         ];
     }
 

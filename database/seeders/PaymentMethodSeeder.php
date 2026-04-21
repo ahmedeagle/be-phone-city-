@@ -70,6 +70,30 @@ class PaymentMethodSeeder extends Seeder
                 'test_mode' => true,
                 'image' => null,
             ],
+            [
+                'name_en' => 'Emkan',
+                'name_ar' => 'إمكان',
+                'description_en' => 'Sharia-compliant Buy-Now-Pay-Later via Emkan.',
+                'description_ar' => 'تقسيط متوافق مع الشريعة عبر إمكان.',
+                'processing_fee_percentage' => 0.0,
+                'status' => 'inactive',
+                'gateway' => 'emkan',
+                'gateway_config' => null,
+                'test_mode' => true,
+                'image' => null,
+            ],
+            [
+                'name_en' => 'Madfu',
+                'name_ar' => 'مدفوع',
+                'description_en' => 'Split your payment with Madfu.',
+                'description_ar' => 'قسّم دفعتك عبر مدفوع.',
+                'processing_fee_percentage' => 0.0,
+                'status' => 'inactive',
+                'gateway' => 'madfu',
+                'gateway_config' => null,
+                'test_mode' => true,
+                'image' => null,
+            ],
         ];
 
         foreach ($methods as $method) {
