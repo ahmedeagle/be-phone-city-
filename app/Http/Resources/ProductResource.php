@@ -209,6 +209,9 @@ class ProductResource extends JsonResource
         // If product is in a bank transfer category, show only bank transfer payment methods
         if ($this->isInBankTransferCategory()) {
             $query->bankTransfer();
+        } elseif ($this->isInMadfuCategory()) {
+            // If product is in a Madfu-only category, show only Madfu payment methods
+            $query->madfu();
         } elseif ($this->isInInstallmentCategory()) {
             // If product is in an installment-only category, show only installment payment methods
             $query->installmentOnly();

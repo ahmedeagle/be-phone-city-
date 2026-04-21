@@ -112,6 +112,10 @@ class PaymentMethodResource extends Resource
                 Toggle::make('is_bank_transfer')
                     ->label('تحويل بنكي')
                     ->default(false),
+
+                Toggle::make('is_madfu')
+                    ->label('مدفوع (Madfu)')
+                    ->default(false),
             ]);
     }
 
@@ -155,6 +159,10 @@ class PaymentMethodResource extends Resource
                 IconEntry::make('is_bank_transfer')
                     ->boolean()
                     ->label('تحويل بنكي'),
+
+                IconEntry::make('is_madfu')
+                    ->boolean()
+                    ->label('مدفوع (Madfu)'),
 
                 TextEntry::make('created_at')
                     ->dateTime()
@@ -205,6 +213,10 @@ class PaymentMethodResource extends Resource
                 IconColumn::make('is_bank_transfer')
                     ->boolean()
                     ->label('تحويل بنكي'),
+
+                IconColumn::make('is_madfu')
+                    ->boolean()
+                    ->label('مدفوع (Madfu)'),
 
                 TextColumn::make('created_at')
                     ->dateTime()

@@ -103,7 +103,11 @@ class CategoryResource extends Resource
                     ->default(false),
 
                 Toggle::make('is_installment')
-                    ->label('تقسيط فقط (اموال / تابي)')
+                    ->label('قسم تقسيط اموال وتابي')
+                    ->default(false),
+
+                Toggle::make('is_madfu')
+                    ->label('قسم تقسيط مدفوع')
                     ->default(false),
             ]);
     }
@@ -131,7 +135,10 @@ class CategoryResource extends Resource
                     ->label('تحويل بنكي فقط'),
                 TextEntry::make('is_installment')
                     ->state(fn ($record) => $record->is_installment ? 'نعم' : 'لا')
-                    ->label('تقسيط فقط'),
+                    ->label('قسم تقسيط اموال وتابي'),
+                TextEntry::make('is_madfu')
+                    ->state(fn ($record) => $record->is_madfu ? 'نعم' : 'لا')
+                    ->label('قسم تقسيط مدفوع'),
                 TextEntry::make('children_count')
                     ->state(fn ($record) => $record->children()->count())
                     ->label('عدد التصنيفات الفرعية'),
@@ -180,7 +187,11 @@ class CategoryResource extends Resource
                 IconColumn::make('is_installment')
                     ->boolean()
                     ->sortable()
-                    ->label('تقسيط فقط'),
+                    ->label('قسم تقسيط اموال وتابي'),
+                IconColumn::make('is_madfu')
+                    ->boolean()
+                    ->sortable()
+                    ->label('قسم تقسيط مدفوع'),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

@@ -20,6 +20,7 @@ class PaymentMethod extends Model
         'status',
         'is_installment',
         'is_bank_transfer',
+        'is_madfu',
         'processing_fee_percentage',
         'gateway',
     ];
@@ -28,6 +29,7 @@ class PaymentMethod extends Model
         'processing_fee_percentage' => 'decimal:2',
         'is_installment' => 'boolean',
         'is_bank_transfer' => 'boolean',
+        'is_madfu' => 'boolean',
     ];
 
     protected $appends = ['name', 'description'];
@@ -67,5 +69,10 @@ class PaymentMethod extends Model
     public function scopeInstallmentOnly($query)
     {
         return $query->where('is_installment', true);
+    }
+
+    public function scopeMadfu($query)
+    {
+        return $query->where('is_madfu', true);
     }
 }

@@ -22,12 +22,14 @@ class Category extends Model
         'is_trademark',
         'is_bank_transfer',
         'is_installment',
+        'is_madfu',
     ];
 
     protected $casts = [
         'is_trademark' => 'boolean',
         'is_bank_transfer' => 'boolean',
         'is_installment' => 'boolean',
+        'is_madfu' => 'boolean',
     ];
 
     protected $appends = ['name'];

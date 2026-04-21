@@ -123,6 +123,14 @@ class Product extends Model
         return $this->categories()->where('is_installment', true)->exists();
     }
 
+    /**
+     * Check if product is in a category that requires Madfu only
+     */
+    public function isInMadfuCategory(): bool
+    {
+        return $this->categories()->where('is_madfu', true)->exists();
+    }
+
     public function options()
     {
         return $this->hasMany(ProductOption::class);
