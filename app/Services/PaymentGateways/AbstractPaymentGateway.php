@@ -139,7 +139,14 @@ abstract class AbstractPaymentGateway
                 ->withHeaders($headers)
                 ->post($url, $data);
 
-            $responseData = $response->json() ?? [];
+            $responseData = $response->json();
+            // Some gateways (e.g. Madfu) return a bare JSON string like "Authorization Failed"
+            // instead of an object. Normalize to an array so downstream code is safe.
+            if (! is_array($responseData)) {
+                $responseData = $responseData === null
+                    ? []
+                    : ['message' => (string) $responseData];
+            }
             $this->logResponse($url, $response->status(), $responseData);
 
             return [
@@ -177,7 +184,12 @@ abstract class AbstractPaymentGateway
                 ->withHeaders($headers)
                 ->get($url, $params);
 
-            $responseData = $response->json() ?? [];
+            $responseData = $response->json();
+            if (! is_array($responseData)) {
+                $responseData = $responseData === null
+                    ? []
+                    : ['message' => (string) $responseData];
+            }
             $this->logResponse($url, $response->status(), $responseData);
 
             return [
