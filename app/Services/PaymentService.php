@@ -57,6 +57,41 @@ class PaymentService
             // Call gateway to create payment
             $paymentResponse = $gateway->createPayment($order);
 
+            // Hard guard: if the gateway reported a failure, abort the whole order creation.
+            // This prevents silent "order created" responses when the upstream gateway (e.g.
+            // Madfu / Tabby / Tamara / Moyasar) rejects the request or returns a non-2xx
+            // status. The wrapping DB::transaction in OrderController will roll back the order.
+            if (! ($paymentResponse['success'] ?? false)) {
+                Log::warning('PaymentService: Gateway returned failure during initiatePayment', [
+                    'order_id' => $order->id,
+                    'gateway' => $paymentMethod->gateway,
+                    'message' => $paymentResponse['message'] ?? null,
+                    'error_code' => $paymentResponse['error_code'] ?? null,
+                ]);
+
+                throw new Exception(
+                    $paymentResponse['message']
+                    ?? __('Failed to initiate payment with the selected gateway. Please try a different payment method.')
+                );
+            }
+
+            // For redirect-based gateways (hosted checkout), we MUST have a redirect URL
+            // before allowing the order to be created. Otherwise the user would land on a
+            // "success" page without ever paying.
+            $isRedirectGateway = ! $gateway->requiresAdminReview()
+                && ! ($paymentResponse['requires_proof_upload'] ?? false)
+                && ! in_array($paymentMethod->gateway, ['cash_on_delivery', 'bank_transfer'], true);
+
+            if ($isRedirectGateway && empty($paymentResponse['redirect_url'])) {
+                Log::warning('PaymentService: Redirect gateway returned no redirect_url', [
+                    'order_id' => $order->id,
+                    'gateway' => $paymentMethod->gateway,
+                    'response' => $paymentResponse,
+                ]);
+
+                throw new Exception(__('Payment gateway did not provide a checkout URL. Please try again or use a different payment method.'));
+            }
+
             // Update transaction with gateway response
             $transaction->update([
                 'transaction_id' => $paymentResponse['transaction_id'] ?? null,

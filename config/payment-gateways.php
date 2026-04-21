@@ -142,6 +142,8 @@ return [
             'app_code' => env('MADFU_APP_CODE'),
             'api_key' => env('MADFU_API_KEY'),
             'basic_auth' => env('MADFU_BASIC_AUTH'), // Pre-built Basic auth token from Madfu portal (without 'Basic ' prefix)
+            'platform_type_id' => env('MADFU_PLATFORM_TYPE_ID', 7), // 7 = Web per Madfu API spec
+            'branch_id' => env('MADFU_BRANCH_ID', 1),
             'webhook_secret' => env('MADFU_WEBHOOK_SECRET'),
             'timeout' => 30,
         ],

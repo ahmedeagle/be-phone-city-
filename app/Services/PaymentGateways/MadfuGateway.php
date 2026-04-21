@@ -4,24 +4,38 @@ namespace App\Services\PaymentGateways;
 
 use App\Models\Order;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * Madfu Payment Gateway
  *
- * Madfu provides Buy-Now-Pay-Later split payments.
- * Documentation: https://www.madfu.com.sa / https://docs.madfu.com.sa
+ * Buy-Now-Pay-Later split payments via Madfu hosted checkout.
+ * Official docs: https://madfuapis.readme.io/
  *
- * Implementation follows the same architecture as Tabby/Tamara.
- * Configure credentials in config/payment-gateways.php under 'madfu'.
+ * Flow:
+ *   1) POST /merchants/token/init  → JWT (short-lived, cached)
+ *   2) POST /Merchants/Checkout/CreateOrder  → { orderId, invoiceCode, checkoutLink }
+ *   3) Redirect customer to checkoutLink
+ *   4) Madfu posts webhook on status change
+ *
+ * Required headers on every call (except token/init):
+ *   Token          → JWT from step 1 (no "Bearer " prefix)
+ *   APIKey         → MADFU_API_KEY
+ *   AppCode        → MADFU_APP_CODE
+ *   PlatformTypeId → MADFU_PLATFORM_TYPE_ID (default: 7 for web)
+ *   Authorization  → Basic <MADFU_BASIC_AUTH> (static credential from Madfu portal)
  */
 class MadfuGateway extends AbstractPaymentGateway
 {
     protected string $gateway = 'madfu';
 
+    protected const TOKEN_CACHE_KEY = 'madfu:jwt_token';
+    protected const TOKEN_CACHE_TTL = 3300; // 55 minutes
+
     /**
-     * Build the Authorization header value.
-     * Prefers pre-built Basic auth token from Madfu portal, falls back to Bearer api_key.
+     * Build the Basic Authorization header used on every Madfu call.
      */
     protected function buildAuthHeader(): ?string
     {
@@ -34,17 +48,86 @@ class MadfuGateway extends AbstractPaymentGateway
     }
 
     /**
-     * Create a payment session for the order
+     * Common headers required by every Madfu endpoint.
+     */
+    protected function commonHeaders(?string $jwt = null): array
+    {
+        $headers = [
+            'APIKey' => (string) $this->getConfig('api_key'),
+            'AppCode' => (string) $this->getConfig('app_code'),
+            'PlatformTypeId' => (string) $this->getConfig('platform_type_id', 7),
+            'Authorization' => (string) $this->buildAuthHeader(),
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+        ];
+
+        if ($jwt) {
+            // Madfu expects the raw JWT in the "Token" header, NO "Bearer " prefix.
+            $headers['Token'] = preg_replace('/^Bearer\s+/i', '', $jwt);
+        }
+
+        return $headers;
+    }
+
+    /**
+     * Obtain (and cache) a JWT via /merchants/token/init.
+     */
+    protected function getJwtToken(bool $forceRefresh = false): ?string
+    {
+        if (! $forceRefresh) {
+            $cached = Cache::get(self::TOKEN_CACHE_KEY);
+            if ($cached) {
+                return $cached;
+            }
+        }
+
+        $baseUrl = rtrim($this->getConfig('api_url', 'https://api.madfu.com.sa'), '/');
+
+        $response = $this->httpPost(
+            $baseUrl . '/merchants/token/init',
+            [
+                'uuid' => (string) Str::uuid(),
+                'systemInfo' => 'web',
+            ],
+            $this->commonHeaders()
+        );
+
+        if (! $response['success']) {
+            Log::error('Madfu token init failed', [
+                'status_code' => $response['status_code'] ?? null,
+                'error' => $response['error'] ?? null,
+                'data' => $response['data'] ?? null,
+            ]);
+            return null;
+        }
+
+        $data = $response['data'] ?? [];
+        $jwt = $data['token']
+            ?? $data['Token']
+            ?? ($data['data']['token'] ?? null)
+            ?? ($data['responseBody']['token'] ?? null);
+
+        if (! $jwt) {
+            Log::error('Madfu token init returned no JWT', ['response' => $data]);
+            return null;
+        }
+
+        Cache::put(self::TOKEN_CACHE_KEY, $jwt, self::TOKEN_CACHE_TTL);
+        return $jwt;
+    }
+
+    /**
+     * Create a payment session for the order.
      */
     public function createPayment(Order $order): array
     {
         try {
-            $merchantId = $this->getConfig('merchant_id');
+            $apiKey = $this->getConfig('api_key');
             $appCode = $this->getConfig('app_code');
             $authHeader = $this->buildAuthHeader();
             $baseUrl = rtrim($this->getConfig('api_url', 'https://api.madfu.com.sa'), '/');
 
-            if (! $authHeader || ! $merchantId) {
+            if (! $authHeader || ! $apiKey || ! $appCode) {
                 return [
                     'success' => false,
                     'message' => __('Madfu configuration is incomplete'),
@@ -53,52 +136,84 @@ class MadfuGateway extends AbstractPaymentGateway
                 ];
             }
 
+            $jwt = $this->getJwtToken();
+            if (! $jwt) {
+                return [
+                    'success' => false,
+                    'message' => __('Failed to authenticate with Madfu'),
+                    'transaction_id' => null,
+                    'redirect_url' => null,
+                ];
+            }
+
             $user = $order->user;
             $location = $order->location;
-
             $phone = $this->normalizePhone($user->phone ?? '');
 
-            $paymentData = [
-                'merchant_id' => $merchantId,
-                'app_code' => $appCode,
-                'order_id' => $order->order_number,
-                'amount' => number_format($order->total, 2, '.', ''),
-                'currency' => strtoupper($order->currency ?? config('payment-gateways.currency', 'SAR')),
-                'description' => __('Order') . ' #' . $order->order_number,
-                'language' => app()->getLocale() === 'ar' ? 'ar' : 'en',
-                'customer' => [
-                    'name' => $user->name ?? 'Customer',
-                    'email' => $user->email ?? 'customer@example.com',
-                    'phone' => $phone,
+            $orderDetails = $order->items->map(function ($item) {
+                return [
+                    'ProductName' => Str::limit($item->product->name_en ?? $item->product->name ?? 'Product', 100, ''),
+                    'Quantity' => (int) $item->quantity,
+                    'Price' => round((float) $item->price, 2),
+                ];
+            })->values()->toArray();
+
+            if (empty($orderDetails)) {
+                $orderDetails[] = [
+                    'ProductName' => 'Order #' . $order->order_number,
+                    'Quantity' => 1,
+                    'Price' => round((float) $order->total, 2),
+                ];
+            }
+
+            $successUrl = route('payment.callback', ['order' => $order->id, 'status' => 'success']);
+            $failureUrl = route('payment.callback', ['order' => $order->id, 'status' => 'failure']);
+            $webhookUrl = route('payment.webhook', ['gateway' => 'madfu']);
+
+            $payload = [
+                'Order' => [
+                    'MerchantReference' => (string) $order->order_number,
+                    'TotalAmount' => round((float) $order->total, 2),
+                    'PaidAmount' => 0,
+                    'Vat' => round((float) ($order->tax ?? 0), 2),
+                    'DeliveryAmount' => round((float) ($order->shipping ?? 0), 2),
+                    'DiscountAmount' => round((float) ($order->discount ?? 0), 2),
+                    'Branch' => (int) $this->getConfig('branch_id', 1),
+                    'OrderDetails' => $orderDetails,
                 ],
-                'shipping' => [
-                    'city' => $location?->city?->name ?? 'Riyadh',
-                    'address' => $location?->address ?? 'Saudi Arabia',
-                    'country' => 'SA',
+                'GuestOrderData' => [
+                    'FullName' => $user->name ?? 'Customer',
+                    'Email' => $user->email ?? 'customer@example.com',
+                    'Mobile' => $phone,
+                    'City' => $location?->city?->name_en ?? $location?->city?->name ?? 'Riyadh',
+                    'Address' => $location?->address ?? 'Saudi Arabia',
+                    'Country' => 'SA',
                 ],
-                'items' => $order->items->map(function ($item) {
-                    return [
-                        'name' => $item->product->name ?? 'Product',
-                        'quantity' => $item->quantity,
-                        'price' => number_format($item->price, 2, '.', ''),
-                        'sku' => $item->product_id,
-                    ];
-                })->toArray(),
-                'success_url' => route('payment.callback', ['order' => $order->id, 'status' => 'success']),
-                'cancel_url' => route('payment.callback', ['order' => $order->id, 'status' => 'cancel']),
-                'failure_url' => route('payment.callback', ['order' => $order->id, 'status' => 'failure']),
-                'webhook_url' => route('payment.webhook', ['gateway' => 'madfu']),
+                'MerchantUrls' => [
+                    'SuccessUrl' => $successUrl,
+                    'FailUrl' => $failureUrl,
+                    'CancelUrl' => $failureUrl,
+                    'WebhookUrl' => $webhookUrl,
+                ],
             ];
 
             $response = $this->httpPost(
-                $baseUrl . '/v1/transactions/create',
-                $paymentData,
-                [
-                    'Authorization' => $authHeader,
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                ]
+                $baseUrl . '/Merchants/Checkout/CreateOrder',
+                $payload,
+                $this->commonHeaders($jwt)
             );
+
+            // If 401, token may have expired — retry once with fresh JWT
+            if (! $response['success'] && ($response['status_code'] ?? 0) === 401) {
+                $jwt = $this->getJwtToken(true);
+                if ($jwt) {
+                    $response = $this->httpPost(
+                        $baseUrl . '/Merchants/Checkout/CreateOrder',
+                        $payload,
+                        $this->commonHeaders($jwt)
+                    );
+                }
+            }
 
             if (! $response['success']) {
                 return [
@@ -110,15 +225,40 @@ class MadfuGateway extends AbstractPaymentGateway
                 ];
             }
 
-            $data = $response['data'];
-            $transactionId = $data['transaction_id'] ?? $data['id'] ?? null;
-            $redirectUrl = $data['redirect_url'] ?? $data['payment_url'] ?? $data['checkout_url'] ?? null;
+            $data = $response['data'] ?? [];
+            $body = $data['responseBody'] ?? $data;
+
+            $transactionId = $body['orderId']
+                ?? $body['OrderId']
+                ?? $body['invoiceCode']
+                ?? $body['InvoiceCode']
+                ?? null;
+
+            $redirectUrl = $body['checkoutLink']
+                ?? $body['CheckoutLink']
+                ?? $body['checkoutUrl']
+                ?? $body['redirectUrl']
+                ?? null;
+
+            if (! $redirectUrl || ! $transactionId) {
+                Log::error('Madfu createOrder returned incomplete response', [
+                    'order_id' => $order->id,
+                    'response' => $data,
+                ]);
+                return [
+                    'success' => false,
+                    'message' => __('Madfu did not return a checkout URL'),
+                    'transaction_id' => $transactionId,
+                    'redirect_url' => null,
+                    'data' => $data,
+                ];
+            }
 
             return [
                 'success' => true,
-                'transaction_id' => $transactionId,
+                'transaction_id' => (string) $transactionId,
                 'redirect_url' => $redirectUrl,
-                'requires_redirect' => ! empty($redirectUrl),
+                'requires_redirect' => true,
                 'status' => 'pending',
                 'message' => __('Madfu transaction created successfully'),
                 'data' => $data,
@@ -140,82 +280,40 @@ class MadfuGateway extends AbstractPaymentGateway
     }
 
     /**
-     * Capture a payment
+     * Madfu auto-captures on checkout completion; no explicit capture endpoint.
      */
     public function capturePayment(string $transactionId): array
     {
-        try {
-            $authHeader = $this->buildAuthHeader();
-            $baseUrl = rtrim($this->getConfig('api_url', 'https://api.madfu.com.sa'), '/');
-
-            if (! $authHeader) {
-                return [
-                    'success' => false,
-                    'message' => __('Madfu API key is not configured'),
-                ];
-            }
-
-            $response = $this->httpPost(
-                $baseUrl . '/v1/transactions/' . $transactionId . '/capture',
-                [],
-                [
-                    'Authorization' => $authHeader,
-                    'Content-Type' => 'application/json',
-                ]
-            );
-
-            if (! $response['success']) {
-                return [
-                    'success' => false,
-                    'message' => $response['error'] ?? __('Failed to capture Madfu payment'),
-                    'data' => $response['data'] ?? [],
-                ];
-            }
-
-            return [
-                'success' => true,
-                'message' => __('Payment captured successfully'),
-                'data' => $response['data'] ?? [],
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('Madfu capture failed', [
-                'transaction_id' => $transactionId,
-                'error' => $e->getMessage(),
-            ]);
-
-            return [
-                'success' => false,
-                'message' => __('Failed to capture payment: :error', ['error' => $e->getMessage()]),
-            ];
-        }
+        return [
+            'success' => true,
+            'message' => __('Madfu auto-captures payments on checkout completion'),
+            'data' => ['transaction_id' => $transactionId],
+        ];
     }
 
     /**
-     * Refund a payment
+     * Refund a payment.
      */
     public function refundPayment(string $transactionId, float $amount): array
     {
         try {
-            $authHeader = $this->buildAuthHeader();
+            $jwt = $this->getJwtToken();
             $baseUrl = rtrim($this->getConfig('api_url', 'https://api.madfu.com.sa'), '/');
 
-            if (! $authHeader) {
+            if (! $jwt) {
                 return [
                     'success' => false,
-                    'message' => __('Madfu API key is not configured'),
+                    'message' => __('Failed to authenticate with Madfu'),
                 ];
             }
 
             $response = $this->httpPost(
-                $baseUrl . '/v1/transactions/' . $transactionId . '/refund',
+                $baseUrl . '/Merchants/Refund',
                 [
-                    'amount' => number_format($amount, 2, '.', ''),
+                    'OrderId' => $transactionId,
+                    'RefundAmount' => round($amount, 2),
                 ],
-                [
-                    'Authorization' => $authHeader,
-                    'Content-Type' => 'application/json',
-                ]
+                $this->commonHeaders($jwt)
             );
 
             if (! $response['success']) {
@@ -227,11 +325,14 @@ class MadfuGateway extends AbstractPaymentGateway
                 ];
             }
 
+            $data = $response['data'] ?? [];
+            $body = $data['responseBody'] ?? $data;
+
             return [
                 'success' => true,
-                'refund_id' => $response['data']['refund_id'] ?? $response['data']['id'] ?? ($transactionId . '-refund'),
+                'refund_id' => $body['refundId'] ?? $body['RefundId'] ?? ($transactionId . '-refund'),
                 'message' => __('Refund processed successfully'),
-                'data' => $response['data'] ?? [],
+                'data' => $data,
             ];
 
         } catch (\Exception $e) {
@@ -249,29 +350,26 @@ class MadfuGateway extends AbstractPaymentGateway
     }
 
     /**
-     * Get payment status from gateway
+     * Get payment status from gateway.
      */
     public function getPaymentStatus(string $transactionId): array
     {
         try {
-            $authHeader = $this->buildAuthHeader();
+            $jwt = $this->getJwtToken();
             $baseUrl = rtrim($this->getConfig('api_url', 'https://api.madfu.com.sa'), '/');
 
-            if (! $authHeader) {
+            if (! $jwt) {
                 return [
                     'success' => false,
                     'status' => 'unknown',
-                    'message' => __('Madfu API key is not configured'),
+                    'message' => __('Failed to authenticate with Madfu'),
                 ];
             }
 
             $response = $this->httpGet(
-                $baseUrl . '/v1/transactions/' . $transactionId,
+                $baseUrl . '/Merchants/Order/' . urlencode($transactionId),
                 [],
-                [
-                    'Authorization' => $authHeader,
-                    'Accept' => 'application/json',
-                ]
+                $this->commonHeaders($jwt)
             );
 
             if (! $response['success']) {
@@ -282,11 +380,12 @@ class MadfuGateway extends AbstractPaymentGateway
                 ];
             }
 
-            $data = $response['data'];
+            $data = $response['data'] ?? [];
+            $body = $data['responseBody'] ?? $data;
 
             return [
                 'success' => true,
-                'status' => $this->mapStatus($data['status'] ?? 'unknown'),
+                'status' => $this->mapStatus((string) ($body['orderStatus'] ?? $body['status'] ?? 'unknown')),
                 'data' => $data,
             ];
 
@@ -305,14 +404,28 @@ class MadfuGateway extends AbstractPaymentGateway
     }
 
     /**
-     * Handle webhook notification
+     * Handle webhook notification from Madfu.
      */
     public function handleWebhook(array $payload): array
     {
         try {
-            $status = $this->mapStatus($payload['status'] ?? $payload['event'] ?? 'unknown');
-            $transactionId = $payload['transaction_id'] ?? $payload['id'] ?? null;
-            $orderNumber = $payload['order_id'] ?? $payload['reference_id'] ?? $payload['order']['reference_id'] ?? null;
+            $status = $this->mapStatus((string) (
+                $payload['orderStatus']
+                ?? $payload['OrderStatus']
+                ?? $payload['status']
+                ?? 'unknown'
+            ));
+
+            $transactionId = $payload['orderId']
+                ?? $payload['OrderId']
+                ?? $payload['invoiceCode']
+                ?? $payload['InvoiceCode']
+                ?? null;
+
+            $orderNumber = $payload['merchantReference']
+                ?? $payload['MerchantReference']
+                ?? $payload['reference']
+                ?? null;
 
             if (! $orderNumber) {
                 return [
@@ -348,7 +461,7 @@ class MadfuGateway extends AbstractPaymentGateway
     }
 
     /**
-     * Validate webhook signature (HMAC-SHA256)
+     * Validate webhook signature (HMAC-SHA256).
      */
     public function validateWebhookSignature(Request $request): bool
     {
@@ -370,13 +483,13 @@ class MadfuGateway extends AbstractPaymentGateway
     }
 
     /**
-     * Map Madfu status to internal status
+     * Map Madfu status string to internal status.
      */
     protected function mapStatus(string $status): string
     {
         return match (strtolower($status)) {
-            'approved', 'captured', 'completed', 'paid', 'success' => 'success',
-            'pending', 'processing', 'initiated', 'created' => 'pending',
+            'approved', 'captured', 'completed', 'paid', 'success', 'successful' => 'success',
+            'pending', 'processing', 'initiated', 'created', 'new' => 'pending',
             'rejected', 'declined', 'failed', 'expired' => 'failed',
             'cancelled', 'canceled' => 'cancelled',
             'refunded' => 'refunded',
@@ -385,7 +498,7 @@ class MadfuGateway extends AbstractPaymentGateway
     }
 
     /**
-     * Normalize Saudi phone number to 9665XXXXXXXX format
+     * Normalize Saudi phone number to 9665XXXXXXXX format.
      */
     protected function normalizePhone(string $phone): string
     {
