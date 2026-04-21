@@ -135,8 +135,10 @@ class OrderController extends Controller
 
         // Check if payment method is installment and if all cart items support it
         if ($paymentMethod->is_installment) {
-            $allSupportInstallment = $cartItems->every(function ($item) {
-                return $item->product->is_installment;
+            $allSupportInstallment = $cartItems->every(function ($item) use ($paymentMethod) {
+                return $paymentMethod->is_madfu
+                    ? $item->product->supportsMadfu()
+                    : $item->product->supportsInstallment();
             });
 
             if (! $allSupportInstallment) {
@@ -350,8 +352,10 @@ class OrderController extends Controller
                     $errors[] = __('One or more items in your cart require bank transfer payment only');
                 } elseif ($paymentMethod->is_installment) {
                     // Check if all cart items support installment
-                    $allSupportInstallment = $cartItems->every(function ($item) {
-                        return $item->product->is_installment;
+                    $allSupportInstallment = $cartItems->every(function ($item) use ($paymentMethod) {
+                        return $paymentMethod->is_madfu
+                            ? $item->product->supportsMadfu()
+                            : $item->product->supportsInstallment();
                     });
 
                     if (! $allSupportInstallment) {

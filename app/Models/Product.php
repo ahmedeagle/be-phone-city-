@@ -131,6 +131,26 @@ class Product extends Model
         return $this->categories()->where('is_madfu', true)->exists();
     }
 
+    /**
+     * Whether the product supports installment payments.
+     * Returns true when either the product flag is on OR the product is in
+     * an installment-enabled category.
+     */
+    public function supportsInstallment(): bool
+    {
+        return (bool) $this->is_installment || $this->isInInstallmentCategory();
+    }
+
+    /**
+     * Whether the product supports Madfu BNPL.
+     * Returns true when the product is in a Madfu-enabled category, or when
+     * the product itself is marked installment-eligible.
+     */
+    public function supportsMadfu(): bool
+    {
+        return $this->isInMadfuCategory() || (bool) $this->is_installment;
+    }
+
     public function options()
     {
         return $this->hasMany(ProductOption::class);

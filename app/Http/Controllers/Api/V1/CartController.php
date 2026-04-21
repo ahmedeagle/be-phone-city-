@@ -61,12 +61,21 @@ class CartController extends Controller
         } else {
             // Check if any product in cart does not support installments
             $allSupportInstallment = $cartItems->every(function ($item) {
-                return $item->product->is_installment;
+                return $item->product->supportsInstallment();
+            });
+            $allSupportMadfu = $cartItems->every(function ($item) {
+                return $item->product->supportsMadfu();
             });
 
-            if (! $allSupportInstallment) {
-                $paymentMethodsQuery->where('is_installment', false);
-            }
+            $paymentMethodsQuery->where(function ($q) use ($allSupportInstallment, $allSupportMadfu) {
+                $q->where('is_installment', false);
+                if ($allSupportMadfu) {
+                    $q->orWhere('is_madfu', true);
+                }
+                if ($allSupportInstallment) {
+                    $q->orWhere('is_installment', true);
+                }
+            });
         }
 
         $paymentMethods = $paymentMethodsQuery->get();
