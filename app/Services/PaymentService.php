@@ -35,6 +35,46 @@ class PaymentService
                 throw new Exception(__('Payment method is not active'));
             }
 
+            // Special case: Bank transfer should NOT trigger any payment gateway logic, just allow order creation and proof upload
+            if ($paymentMethod->is_bank_transfer || in_array(strtolower($paymentMethod->gateway), [
+                'bank_transfer', 'bank-transfer', 'bank', 'direct_bank_transfer', 'banktransfer',
+            ], true)) {
+                // Create a pending transaction for tracking, but do NOT call any gateway
+                $transaction = PaymentTransaction::create([
+                    'order_id' => $order->id,
+                    'payment_method_id' => $paymentMethod->id,
+                    'gateway' => $paymentMethod->gateway,
+                    'amount' => $order->total,
+                    'currency' => config('payment-gateways.currency', 'SAR'),
+                    'status' => PaymentTransaction::STATUS_PENDING,
+                    'expires_at' => now()->addMinutes(config('payment-gateways.session.expiration_minutes', 30)),
+                ]);
+
+                $order->update([
+                    'payment_status' => 'pending',
+                    'payment_transaction_id' => $transaction->id,
+                ]);
+
+                DB::commit();
+
+                return [
+                    'success' => true,
+                    'transaction_id' => $transaction->transaction_id,
+                    'gateway' => $paymentMethod->gateway,
+                    'redirect_url' => null,
+                    'requires_redirect' => false,
+                    'requires_proof_upload' => true,
+                    'bank_account_details' => null,
+                    'message' => __('Please upload your bank transfer receipt to complete the order.'),
+                    'payment_status' => 'pending',
+                    'expires_at' => $transaction->expires_at?->toDateTimeString(),
+                    'error' => null,
+                    'error_code' => null,
+                    'can_retry' => false,
+                ];
+            }
+
+            // ...existing code for other gateways...
             // Get gateway instance
             $gateway = PaymentGatewayFactory::makeFromPaymentMethod($paymentMethod);
 
@@ -58,9 +98,6 @@ class PaymentService
             $paymentResponse = $gateway->createPayment($order);
 
             // Hard guard: if the gateway reported a failure, abort the whole order creation.
-            // This prevents silent "order created" responses when the upstream gateway (e.g.
-            // Madfu / Tabby / Tamara / Moyasar) rejects the request or returns a non-2xx
-            // status. The wrapping DB::transaction in OrderController will roll back the order.
             if (! ($paymentResponse['success'] ?? false)) {
                 Log::warning('PaymentService: Gateway returned failure during initiatePayment', [
                     'order_id' => $order->id,
@@ -75,9 +112,6 @@ class PaymentService
                 );
             }
 
-            // For redirect-based gateways (hosted checkout), we MUST have a redirect URL
-            // before allowing the order to be created. Otherwise the user would land on a
-            // "success" page without ever paying.
             $isRedirectGateway = ! $gateway->requiresAdminReview()
                 && ! ($paymentResponse['requires_proof_upload'] ?? false)
                 && ! in_array($paymentMethod->gateway, ['cash_on_delivery', 'bank_transfer'], true);
