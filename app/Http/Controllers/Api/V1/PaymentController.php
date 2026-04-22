@@ -450,9 +450,20 @@ class PaymentController extends Controller
                 );
             }
 
-            // Check if order payment method is bank transfer
+            // Check if order payment method is bank transfer (accept legacy gateway aliases too)
             $transaction = $order->getLatestPaymentTransaction();
-            if (!$transaction || $transaction->gateway !== 'bank_transfer') {
+            $isBankTransfer = $transaction && (
+                ($transaction->paymentMethod?->is_bank_transfer ?? false) === true
+                || in_array(strtolower((string) $transaction->gateway), [
+                    'bank_transfer',
+                    'bank-transfer',
+                    'bank',
+                    'direct_bank_transfer',
+                    'banktransfer',
+                ], true)
+            );
+
+            if (!$isBankTransfer) {
                 return Response::error(
                     __('Payment proof upload is only for bank transfer payments'),
                     null,

@@ -377,6 +377,20 @@ class OrderResource extends Resource
                         && $record->currentPaymentTransaction->payment_proof_path),
                 \Filament\Schemas\Components\Section::make('معلومات الشحن (OTO)')
                     ->schema([
+                        \Filament\Infolists\Components\TextEntry::make('delivery_method')
+                            ->label('طريقة الاستلام التي اختارها العميل')
+                            ->badge()
+                            ->color(fn ($state) => match ($state) {
+                                \App\Models\Order::DELIVERY_HOME => 'info',
+                                \App\Models\Order::DELIVERY_STORE_PICKUP => 'success',
+                                default => 'gray',
+                            })
+                            ->formatStateUsing(fn ($state) => match ($state) {
+                                \App\Models\Order::DELIVERY_HOME => 'توصيل منزلي',
+                                \App\Models\Order::DELIVERY_STORE_PICKUP => 'استلام من المتجر',
+                                default => $state ?? '-',
+                            })
+                            ->placeholder('-'),
                         \Filament\Infolists\Components\TextEntry::make('shippingCompany.name_ar')
                             ->label('شركة الشحن المختارة من العميل')
                             ->badge()

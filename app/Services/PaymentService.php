@@ -550,7 +550,7 @@ class PaymentService
                 throw new Exception(__('No payment transaction found for this order'));
             }
 
-            if ($transaction->gateway !== 'bank_transfer') {
+            if (! $this->isBankTransferTransaction($transaction)) {
                 throw new Exception(__('Payment proof upload is only for bank transfer'));
             }
 
@@ -638,6 +638,26 @@ class PaymentService
 
             throw $e;
         }
+    }
+
+    /**
+     * Accept both canonical and legacy bank transfer gateway identifiers.
+     */
+    protected function isBankTransferTransaction(PaymentTransaction $transaction): bool
+    {
+        if (($transaction->paymentMethod?->is_bank_transfer ?? false) === true) {
+            return true;
+        }
+
+        $gateway = strtolower((string) $transaction->gateway);
+
+        return in_array($gateway, [
+            'bank_transfer',
+            'bank-transfer',
+            'bank',
+            'direct_bank_transfer',
+            'banktransfer',
+        ], true);
     }
 
     /**
