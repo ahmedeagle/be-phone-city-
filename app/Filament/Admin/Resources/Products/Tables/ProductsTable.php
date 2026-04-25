@@ -2,12 +2,14 @@
 
 namespace App\Filament\Admin\Resources\Products\Tables;
 
+use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -245,6 +247,78 @@ class ProductsTable
                     ->visible(fn () => auth()->user()->can('products.show')),
                 EditAction::make()
                     ->visible(fn () => auth()->user()->can('products.update')),
+                Action::make('duplicate')
+                    ->label('نسخ')
+                    ->icon('heroicon-o-document-duplicate')
+                    ->color('info')
+                    ->requiresConfirmation()
+                    ->modalHeading('نسخ المنتج')
+                    ->modalDescription('سيتم إنشاء نسخة من المنتج وفتحها للتعديل قبل الحفظ.')
+                    ->modalSubmitActionLabel('نسخ وفتح للتعديل')
+                    ->visible(fn () => auth()->user()->can('products.create'))
+                    ->action(function ($record) {
+                        $newProduct = \Illuminate\Support\Facades\DB::transaction(function () use ($record) {
+                            // Replicate base product attributes
+                            $copy = $record->replicate(['slug']);
+
+                            // Suffix names to avoid duplicates
+                            if (! empty($copy->name_ar)) {
+                                $copy->name_ar = $copy->name_ar . ' (نسخة)';
+                            }
+                            if (! empty($copy->name_en)) {
+                                $copy->name_en = $copy->name_en . ' (Copy)';
+                            }
+
+                            // Regenerate unique slug if column exists
+                            if (\Illuminate\Support\Facades\Schema::hasColumn($copy->getTable(), 'slug')) {
+                                $base = \Illuminate\Support\Str::slug($copy->name_en ?? $copy->name_ar ?? 'product') . '-' . \Illuminate\Support\Str::random(6);
+                                $copy->slug = $base;
+                            }
+
+                            // Reset stats / unique fields where present
+                            foreach (['views_count', 'sold_quantity', 'reviews_count', 'reviews_avg_rating'] as $col) {
+                                if (\Illuminate\Support\Facades\Schema::hasColumn($copy->getTable(), $col)) {
+                                    $copy->{$col} = 0;
+                                }
+                            }
+
+                            $copy->save();
+
+                            // Copy categories (many-to-many)
+                            if (method_exists($record, 'categories')) {
+                                $copy->categories()->sync($record->categories()->pluck('categories.id')->all());
+                            }
+
+                            // Copy product options
+                            if (method_exists($record, 'options')) {
+                                foreach ($record->options as $option) {
+                                    $newOption = $option->replicate();
+                                    $newOption->product_id = $copy->id;
+                                    $newOption->save();
+                                }
+                            }
+
+                            // Copy images (polymorphic)
+                            if (method_exists($record, 'images')) {
+                                foreach ($record->images as $image) {
+                                    $newImage = $image->replicate();
+                                    $newImage->imageable_id = $copy->id;
+                                    $newImage->imageable_type = get_class($copy);
+                                    $newImage->save();
+                                }
+                            }
+
+                            return $copy;
+                        });
+
+                        Notification::make()
+                            ->title('تم نسخ المنتج بنجاح')
+                            ->body('يمكنك الآن تعديل البيانات قبل الحفظ.')
+                            ->success()
+                            ->send();
+
+                        return redirect(\App\Filament\Admin\Resources\Products\ProductResource::getUrl('edit', ['record' => $newProduct->id]));
+                    }),
                 DeleteAction::make()
                     ->visible(fn () => auth()->user()->can('products.delete'))
                     ->requiresConfirmation(),
