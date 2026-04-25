@@ -334,10 +334,8 @@ class ProductsTable
                             ->success()
                             ->send();
 
-                        // Product uses slug as route key (HasSlug trait), so pass the model directly
-                        return redirect(
-                            \App\Filament\Admin\Resources\Products\ProductResource::getUrl('edit', ['record' => $newProduct])
-                        );
+                        // Product uses slug as route key (HasSlug trait) — redirect using slug
+                        return redirect('/dashboard/products/' . $newProduct->slug . '/edit');
                     }),
                 DeleteAction::make()
                     ->visible(fn () => auth()->user()->can('products.delete'))
