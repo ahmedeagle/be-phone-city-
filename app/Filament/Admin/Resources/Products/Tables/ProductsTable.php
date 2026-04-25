@@ -258,8 +258,13 @@ class ProductsTable
                     ->visible(fn () => auth()->user()->can('products.create'))
                     ->action(function ($record) {
                         $newProduct = \Illuminate\Support\Facades\DB::transaction(function () use ($record) {
+                            // Reload a fresh copy from DB to drop any aggregate columns
+                            // (reviews_count, reviews_avg_rating, sold_quantity_sum, total_revenue_sum)
+                            // injected by the table query (withCount/withSum).
+                            $fresh = $record->newQueryWithoutScopes()->find($record->getKey());
+
                             // Replicate base product attributes
-                            $copy = $record->replicate(['slug']);
+                            $copy = $fresh->replicate(['slug']);
 
                             // Suffix names to avoid duplicates
                             if (! empty($copy->name_ar)) {
@@ -275,14 +280,26 @@ class ProductsTable
                                 $copy->slug = $base;
                             }
 
+                            // Strip any aggregate / non-column attributes that may have been
+                            // hydrated onto the model via withCount/withSum/withAvg.
+                            $tableColumns = \Illuminate\Support\Facades\Schema::getColumnListing($copy->getTable());
+                            foreach (array_keys($copy->getAttributes()) as $attr) {
+                                if (! in_array($attr, $tableColumns, true)) {
+                                    unset($copy->{$attr});
+                                }
+                            }
+
                             // Reset stats / unique fields where present
-                            foreach (['views_count', 'sold_quantity', 'reviews_count', 'reviews_avg_rating'] as $col) {
-                                if (\Illuminate\Support\Facades\Schema::hasColumn($copy->getTable(), $col)) {
+                            foreach (['views_count', 'sold_quantity'] as $col) {
+                                if (in_array($col, $tableColumns, true)) {
                                     $copy->{$col} = 0;
                                 }
                             }
 
                             $copy->save();
+
+                            // Reload fresh source for relations (avoid carrying aggregates)
+                            $record = $fresh;
 
                             // Copy categories (many-to-many)
                             if (method_exists($record, 'categories')) {
