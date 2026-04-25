@@ -334,7 +334,8 @@ class ProductsTable
                             ->success()
                             ->send();
 
-                        return redirect(\App\Filament\Admin\Resources\Products\ProductResource::getUrl('edit', ['record' => $newProduct->id]));
+                        // Use a relative path to avoid issues with APP_URL containing /public
+                        return redirect('/dashboard/products/'.$newProduct->id.'/edit');
                     }),
                 DeleteAction::make()
                     ->visible(fn () => auth()->user()->can('products.delete'))
