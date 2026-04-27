@@ -72,7 +72,13 @@ class ProductOptionResource extends JsonResource
 
         if ($product->isInBankTransferCategory()) {
             $query->bankTransfer();
+        } elseif ($product->isInMadfuCategory()) {
+            $query->madfu();
+        } elseif ($product->isInInstallmentCategory()) {
+            $query->installmentOnly()->where('is_madfu', false);
         } else {
+            $query->where('is_madfu', false);
+
             if (! $product->is_installment) {
                 $query->where('is_installment', false);
             }
@@ -83,6 +89,8 @@ class ProductOptionResource extends JsonResource
                 'id' => $method->id,
                 'name' => $method->name,
                 'image' => $method->image ? asset('storage/'.$method->image) : asset('images/payment-placeholder.jpg'),
+                'gateway' => $method->gateway ?? null,
+                'is_madfu' => (bool) $method->is_madfu,
             ];
         })->values()->toArray();
     }

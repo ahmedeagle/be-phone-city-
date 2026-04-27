@@ -213,10 +213,13 @@ class ProductResource extends JsonResource
             // If product is in a Madfu-only category, show only Madfu payment methods
             $query->madfu();
         } elseif ($this->isInInstallmentCategory()) {
-            // If product is in an installment-only category, show only installment payment methods
-            $query->installmentOnly();
+            // Installment-only categories exclude Madfu unless the category is explicitly Madfu-enabled.
+            $query->installmentOnly()->where('is_madfu', false);
         } else {
-            // If product does not support installment, exclude installment payment methods
+            // Outside Madfu categories, never surface Madfu.
+            $query->where('is_madfu', false);
+
+            // If product does not support installment, exclude installment payment methods.
             if (! $this->is_installment) {
                 $query->where('is_installment', false);
             }
