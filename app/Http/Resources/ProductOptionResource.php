@@ -77,7 +77,9 @@ class ProductOptionResource extends JsonResource
         } elseif ($product->isInInstallmentCategory()) {
             $query->installmentOnly()->where('is_madfu', false);
         } else {
-            $query->where('is_madfu', false);
+            // Standard category: exclude bank transfer, madfu, and (if product doesn't support it) installment.
+            $query->where('is_bank_transfer', false)
+                  ->where('is_madfu', false);
 
             if (! $product->is_installment) {
                 $query->where('is_installment', false);

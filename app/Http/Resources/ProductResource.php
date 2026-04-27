@@ -216,8 +216,9 @@ class ProductResource extends JsonResource
             // Installment-only categories exclude Madfu unless the category is explicitly Madfu-enabled.
             $query->installmentOnly()->where('is_madfu', false);
         } else {
-            // Outside Madfu categories, never surface Madfu.
-            $query->where('is_madfu', false);
+            // Standard category: exclude bank transfer, madfu, and (if product doesn't support it) installment.
+            $query->where('is_bank_transfer', false)
+                  ->where('is_madfu', false);
 
             // If product does not support installment, exclude installment payment methods.
             if (! $this->is_installment) {
