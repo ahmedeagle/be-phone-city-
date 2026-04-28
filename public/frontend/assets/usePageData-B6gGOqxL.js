@@ -1,1 +1,0 @@
-import{r as n}from"./vendor-react-D-Ndkw3L.js";import{u as f}from"./customerCareStore-CAPLct_G.js";import{u as i}from"./index-DKlLY3-W.js";function u(e){const{fetchPage:o,getPage:c,isLoading:s}=f(),{lang:t}=i(),a=c(e,t),r=s(e,t);return n.useEffect(()=>{!a&&!r&&o(e,t)},[e,t,a,r,o]),n.useMemo(()=>({page:a,loading:r,refetch:()=>o(e,t)}),[a,r,e,t,o])}export{u};
