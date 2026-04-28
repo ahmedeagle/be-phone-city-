@@ -266,6 +266,14 @@ class ProductsTable
                             // Replicate base product attributes
                             $copy = $fresh->replicate(['slug']);
 
+                            // Physically duplicate the main_image file on disk so the
+                            // copy doesn't share the same underlying file with the
+                            // original (otherwise editing/replacing the copy's image
+                            // would delete the original product's image file).
+                            if (! empty($copy->main_image)) {
+                                $copy->main_image = self::duplicateStoredFile($copy->main_image);
+                            }
+
                             // Suffix names to avoid duplicates
                             if (! empty($copy->name_ar)) {
                                 $copy->name_ar = $copy->name_ar . ' (نسخة)';
@@ -315,12 +323,17 @@ class ProductsTable
                                 }
                             }
 
-                            // Copy images (polymorphic)
+                            // Copy images (polymorphic) — physically duplicate
+                            // the underlying file so original and copy don't share
+                            // the same file on disk.
                             if (method_exists($record, 'images')) {
                                 foreach ($record->images as $image) {
                                     $newImage = $image->replicate();
                                     $newImage->imageable_id = $copy->id;
                                     $newImage->imageable_type = get_class($copy);
+                                    if (! empty($newImage->path)) {
+                                        $newImage->path = self::duplicateStoredFile($newImage->path);
+                                    }
                                     $newImage->save();
                                 }
                             }
@@ -414,5 +427,38 @@ class ProductsTable
                 ]),
             ])
             ->defaultSort('created_at', 'desc');
+    }
+
+    /**
+     * Physically duplicate a stored file on the public disk and return the
+     * new relative path. If the source file does not exist or cannot be
+     * copied, returns the original path unchanged (best-effort).
+     */
+    protected static function duplicateStoredFile(string $path): string
+    {
+        try {
+            $disk = \Illuminate\Support\Facades\Storage::disk('public');
+
+            if (! $disk->exists($path)) {
+                return $path;
+            }
+
+            $info = pathinfo($path);
+            $dir = $info['dirname'] ?? '';
+            $ext = isset($info['extension']) ? '.' . $info['extension'] : '';
+            $base = $info['filename'] ?? 'file';
+
+            $newPath = trim(($dir === '.' ? '' : $dir) . '/' . $base . '-copy-' . \Illuminate\Support\Str::random(8) . $ext, '/');
+
+            $disk->copy($path, $newPath);
+
+            return $newPath;
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('duplicateStoredFile failed', [
+                'path' => $path,
+                'error' => $e->getMessage(),
+            ]);
+            return $path;
+        }
     }
 }
