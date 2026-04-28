@@ -352,7 +352,39 @@ class ProductsTable
                     }),
                 DeleteAction::make()
                     ->visible(fn () => auth()->user()->can('products.delete'))
-                    ->requiresConfirmation(),
+                    ->requiresConfirmation()
+                    ->action(function ($record, $action) {
+                        // Block deletion when the product is referenced by existing orders
+                        $hasOrderItems = \Illuminate\Support\Facades\DB::table('order_items')
+                            ->where('product_id', $record->id)
+                            ->exists();
+
+                        if ($hasOrderItems) {
+                            Notification::make()
+                                ->title('لا يمكن حذف المنتج')
+                                ->body('هذا المنتج مرتبط بطلبات سابقة، لا يمكن حذفه. يمكنك إخفاؤه بدلاً من ذلك.')
+                                ->danger()
+                                ->send();
+                            $action->cancel();
+                            return;
+                        }
+
+                        try {
+                            $record->delete();
+
+                            Notification::make()
+                                ->title('تم حذف المنتج بنجاح')
+                                ->success()
+                                ->send();
+                        } catch (\Illuminate\Database\QueryException $e) {
+                            Notification::make()
+                                ->title('تعذر حذف المنتج')
+                                ->body('المنتج مرتبط ببيانات أخرى ولا يمكن حذفه.')
+                                ->danger()
+                                ->send();
+                            $action->cancel();
+                        }
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
