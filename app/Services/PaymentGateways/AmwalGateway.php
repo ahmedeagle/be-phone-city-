@@ -89,8 +89,10 @@ class AmwalGateway extends AbstractPaymentGateway
                 $phone = '966' . substr($phone, -9);
             }
 
-            // Ensure phone is exactly 12 digits (966 + 9 digits)
-            if (strlen($phone) !== 12 || strpos($phone, '966') !== 0) {
+            // Ensure phone is exactly 12 digits (966 + 9 digits) AND the
+            // subscriber part starts with 5 (Saudi mobile). Anything else
+            // (e.g. an Egyptian number 20...) is rejected by Amwal.
+            if (strlen($phone) !== 12 || strpos($phone, '9665') !== 0) {
                 $phone = '966500000000'; // Final fallback
             }
 
