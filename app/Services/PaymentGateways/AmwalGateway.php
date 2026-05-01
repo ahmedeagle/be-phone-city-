@@ -94,6 +94,9 @@ class AmwalGateway extends AbstractPaymentGateway
                 $phone = '966500000000'; // Final fallback
             }
 
+            // Amwal expects E.164 format with leading '+'
+            $phone = '+' . $phone;
+
             // Determine language
             $locale = app()->getLocale();
             $language = $locale === 'ar' ? 'ar' : 'en';
