@@ -154,8 +154,12 @@ class TabbyGateway extends AbstractPaymentGateway
 
     /**
      * Capture a payment
+     *
+     * Tabby's capture endpoint requires the amount (and currency) to capture.
+     * For full captures we use the order total; if no order is provided we
+     * fall back to fetching the authorized amount from Tabby's payment status.
      */
-    public function capturePayment(string $transactionId): array
+    public function capturePayment(string $transactionId, ?Order $order = null): array
     {
         try {
             $secretKey = $this->getConfig('secret_key');
@@ -168,9 +172,38 @@ class TabbyGateway extends AbstractPaymentGateway
                 ];
             }
 
+            // Determine capture amount + currency
+            $amount = null;
+            $currency = null;
+
+            if ($order) {
+                $amount = (float) $order->total;
+                $currency = strtoupper($order->currency ?? config('payment-gateways.currency', 'SAR'));
+            } else {
+                // Fallback: ask Tabby for the authorized amount
+                $statusResp = $this->getPaymentStatus($transactionId);
+                $data = $statusResp['data'] ?? [];
+                if (! empty($data['amount'])) {
+                    $amount = (float) $data['amount'];
+                    $currency = strtoupper($data['currency'] ?? config('payment-gateways.currency', 'SAR'));
+                }
+            }
+
+            if ($amount === null || $amount <= 0) {
+                return [
+                    'success' => false,
+                    'message' => __('Cannot capture Tabby payment without an amount'),
+                ];
+            }
+
+            $body = [
+                'amount' => number_format($amount, 2, '.', ''),
+                'currency' => $currency,
+            ];
+
             $response = $this->httpPost(
                 $baseUrl.'/api/v1/payments/'.$transactionId.'/captures',
-                [],
+                $body,
                 [
                     'Authorization' => 'Bearer '.$secretKey,
                     'Content-Type' => 'application/json',

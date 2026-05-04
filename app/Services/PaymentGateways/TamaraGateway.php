@@ -214,10 +214,15 @@ class TamaraGateway extends AbstractPaymentGateway
     /**
      * Capture a payment
      *
+     * Tamara requires the actual order total (and currency) in the capture body.
+     * If no order is supplied we fall back to the authorised amount returned by
+     * Tamara's order status endpoint.
+     *
      * @param string $transactionId
+     * @param Order|null $order
      * @return array
      */
-    public function capturePayment(string $transactionId): array
+    public function capturePayment(string $transactionId, ?Order $order = null): array
     {
         try {
             $apiToken = $this->getConfig('api_token');
@@ -230,15 +235,39 @@ class TamaraGateway extends AbstractPaymentGateway
                 ];
             }
 
+            // Determine capture amount + currency
+            $amount = null;
+            $currency = null;
+
+            if ($order) {
+                $amount = (float) $order->total;
+                $currency = strtoupper($order->currency ?? config('payment-gateways.currency', 'SAR'));
+            } else {
+                $statusResp = $this->getPaymentStatus($transactionId);
+                $data = $statusResp['data'] ?? [];
+                if (! empty($data['total_amount']['amount'])) {
+                    $amount = (float) $data['total_amount']['amount'];
+                    $currency = strtoupper($data['total_amount']['currency'] ?? config('payment-gateways.currency', 'SAR'));
+                }
+            }
+
+            if ($amount === null || $amount <= 0) {
+                return [
+                    'success' => false,
+                    'message' => __('Cannot capture Tamara payment without an amount'),
+                ];
+            }
+
             $captureData = [
                 'order_id' => $transactionId,
                 'total_amount' => [
-                    'amount' => 0, // Tamara often requires full order data for partial captures, but for full we can omit or send total
-                    'currency' => 'SAR',
+                    'amount' => $amount,
+                    'currency' => $currency,
                 ],
                 'shipping_info' => [
+                    'shipped_at' => now()->toIso8601String(),
                     'shipping_company' => 'OTO',
-                ]
+                ],
             ];
 
             $response = $this->httpPost(

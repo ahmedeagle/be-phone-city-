@@ -129,7 +129,7 @@ class EmkanGateway extends AbstractPaymentGateway
     /**
      * Capture a payment
      */
-    public function capturePayment(string $transactionId): array
+    public function capturePayment(string $transactionId, ?Order $order = null): array
     {
         try {
             $apiKey = $this->getConfig('api_key');

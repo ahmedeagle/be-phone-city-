@@ -43,9 +43,10 @@ abstract class AbstractPaymentGateway
      * Capture a payment (finalize the transaction)
      *
      * @param string $transactionId
+     * @param Order|null $order Optional order for gateways that need amount/items in capture body
      * @return array ['success' => bool, 'message' => string, 'data' => array]
      */
-    abstract public function capturePayment(string $transactionId): array;
+    abstract public function capturePayment(string $transactionId, ?Order $order = null): array;
 
     /**
      * Refund a payment

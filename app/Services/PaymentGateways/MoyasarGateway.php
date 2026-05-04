@@ -114,7 +114,7 @@ class MoyasarGateway extends AbstractPaymentGateway
      * @param string $transactionId
      * @return array
      */
-    public function capturePayment(string $transactionId): array
+    public function capturePayment(string $transactionId, ?Order $order = null): array
     {
         try {
             $apiKey = $this->getConfig('secret_key');

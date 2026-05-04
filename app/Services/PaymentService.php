@@ -898,7 +898,7 @@ class PaymentService
                 'transaction_id' => $transactionId,
             ]);
 
-            $captureResult = $gatewayInstance->capturePayment($transactionId);
+            $captureResult = $gatewayInstance->capturePayment($transactionId, $order);
 
             if ($captureResult['success'] ?? false) {
                 Log::info('Auto-capture: Payment captured successfully', [
