@@ -282,7 +282,7 @@ class MadfuGateway extends AbstractPaymentGateway
     /**
      * Madfu auto-captures on checkout completion; no explicit capture endpoint.
      */
-    public function capturePayment(string $transactionId): array
+    public function capturePayment(string $transactionId, ?Order $order = null): array
     {
         return [
             'success' => true,

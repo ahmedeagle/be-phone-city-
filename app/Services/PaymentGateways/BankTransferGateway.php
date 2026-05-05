@@ -84,7 +84,7 @@ class BankTransferGateway extends AbstractPaymentGateway
      * @param string $transactionId
      * @return array
      */
-    public function capturePayment(string $transactionId): array
+    public function capturePayment(string $transactionId, ?Order $order = null): array
     {
         return [
             'success' => true,
