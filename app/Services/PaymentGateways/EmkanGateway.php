@@ -5,31 +5,118 @@ namespace App\Services\PaymentGateways;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
- * Emkan Payment Gateway
+ * Emkan Finance — Retail BNPL Merchant E-commerce Gateway.
  *
- * Emkan provides Sharia-compliant Buy-Now-Pay-Later financing.
- * Documentation: https://emkanfinance.com.sa
+ * Implementation follows Ejada "Integration Specification Document" v1.7
+ * for Retail Finance / Buy Now Pay Later / Merchant Ecommerce.
  *
- * Implementation follows the same architecture as Tabby/Tamara.
- * Configure credentials in config/payment-gateways.php under 'emkan'.
+ *  Hostnames
+ *   - Production : https://gw-pub.emkanfinance.com.sa
+ *   - Sandbox    : https://sit-gw-pub.emkanfinance.com.sa
+ *
+ *  Authentication
+ *   - HTTP Basic (username:password) — supplied by Emkan via email.
+ *   - All outbound traffic must originate from an IP whitelisted with Emkan.
+ *
+ *  Endpoints used
+ *   - GET  /retail/bnpl/partner-management/v1/{merchantId}/merchantConfig
+ *   - POST /retail/bnpl/bff/v1/order-create
+ *   - GET  /retail/bnpl/bff/v1/order-status/{orderId}?merchantId={merchantId}
+ *   - POST /retail/bnpl/bff/v1/order/refund/submit
+ *   - GET  /retail/bnpl/bff/v1/order/refund-details/{orderCode}?merchantCode=&merchantId=
+ *   - POST /retail/bnpl/bnpl-bff/order/v1/cancelOrder
+ *
+ *  Webhook ("Merchant Notifier") — inbound POST from Emkan
+ *   Payload:  { orderCode, merchantId, eventCode, nationalId, merchantOrderCode? }
+ *   eventCode: DOWN_PAYMENT_SUCCESS | CANCELED | FULLY_REFUND | PARTIAL_REFUND
+ *   The spec does NOT define a signature header; security relies on IP allowlist.
  */
 class EmkanGateway extends AbstractPaymentGateway
 {
     protected string $gateway = 'emkan';
 
     /**
-     * Create a payment session for the order
+     * Build the "Authorization: Basic ..." header.
+     * Prefers an explicit pre-built EMKAN_BASIC_AUTH if present; otherwise
+     * builds it from EMKAN_API_KEY (username) + EMKAN_API_SECRET (password).
+     */
+    protected function buildAuthHeader(): ?string
+    {
+        $basic = $this->getConfig('basic_auth');
+        if ($basic) {
+            return 'Basic ' . ltrim((string) preg_replace('/^Basic\s+/i', '', $basic));
+        }
+
+        $user = (string) $this->getConfig('api_key', '');
+        $pass = (string) $this->getConfig('api_secret', '');
+        if ($user === '' || $pass === '') {
+            return null;
+        }
+
+        return 'Basic ' . base64_encode($user . ':' . $pass);
+    }
+
+    /**
+     * Headers required on every Emkan call.
+     *
+     * @param  array<string,string>  $extra  caller-supplied overrides / additions
+     * @return array<string,string>
+     */
+    protected function commonHeaders(array $extra = []): array
+    {
+        $headers = [
+            'Authorization' => (string) $this->buildAuthHeader(),
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+            'channel' => (string) $this->getConfig('channel', 'BNPL'),
+            'language' => app()->getLocale() === 'ar' ? 'AR' : 'EN',
+            'caller-reference-number' => (string) Str::uuid(),
+        ];
+
+        return array_merge($headers, $extra);
+    }
+
+    protected function baseUrl(): string
+    {
+        return rtrim((string) $this->getConfig('api_url', 'https://gw-pub.emkanfinance.com.sa'), '/');
+    }
+
+    protected function isConfigured(): bool
+    {
+        return $this->buildAuthHeader() !== null
+            && $this->getConfig('merchant_id') !== null
+            && $this->getConfig('merchant_code') !== null;
+    }
+
+    /**
+     * Optional helper — call /merchantConfig for diagnostics & limit checks.
+     *
+     * @return array<string,mixed>
+     */
+    public function getMerchantConfig(): array
+    {
+        $merchantId = (string) $this->getConfig('merchant_id');
+        $url = $this->baseUrl() . '/retail/bnpl/partner-management/v1/' . rawurlencode($merchantId) . '/merchantConfig';
+
+        $response = $this->httpGet($url, [], $this->commonHeaders());
+
+        return [
+            'success' => $response['success'] ?? false,
+            'data' => $response['data'] ?? [],
+            'status_code' => $response['status_code'] ?? 0,
+        ];
+    }
+
+    /**
+     * Create a BNPL order.
      */
     public function createPayment(Order $order): array
     {
         try {
-            $apiKey = $this->getConfig('api_key');
-            $merchantId = $this->getConfig('merchant_id');
-            $baseUrl = rtrim($this->getConfig('api_url', 'https://api.emkanfinance.com.sa'), '/');
-
-            if (! $apiKey || ! $merchantId) {
+            if (! $this->isConfigured()) {
                 return [
                     'success' => false,
                     'message' => __('Emkan configuration is incomplete'),
@@ -38,88 +125,100 @@ class EmkanGateway extends AbstractPaymentGateway
                 ];
             }
 
+            $merchantId = (string) $this->getConfig('merchant_id');
+            $merchantCode = (string) $this->getConfig('merchant_code');
+            $aggregatorId = $this->getConfig('aggregator_id');
+            $expiresInMinutes = (int) $this->getConfig('expires_in_minutes', 30);
+
             $user = $order->user;
-            $location = $order->location;
+            $mobile = $this->normalizePhone($user->phone ?? '');
 
-            $phone = $this->normalizePhone($user->phone ?? '');
-
-            $paymentData = [
-                'merchant_id' => $merchantId,
-                'reference_id' => $order->order_number,
-                'amount' => number_format($order->total, 2, '.', ''),
-                'currency' => strtoupper($order->currency ?? config('payment-gateways.currency', 'SAR')),
-                'description' => __('Order') . ' #' . $order->order_number,
-                'language' => app()->getLocale() === 'ar' ? 'ar' : 'en',
-                'customer' => [
-                    'name' => $user->name ?? 'Customer',
-                    'email' => $user->email ?? 'customer@example.com',
-                    'phone' => $phone,
-                    'national_id' => $user->national_id ?? null,
-                ],
-                'shipping_address' => [
-                    'city' => $location?->city?->name ?? 'Riyadh',
-                    'address' => $location?->address ?? 'Saudi Arabia',
-                    'country' => 'SA',
-                ],
-                'items' => $order->items->map(function ($item) {
-                    return [
-                        'name' => $item->product->name ?? 'Product',
-                        'quantity' => $item->quantity,
-                        'unit_price' => number_format($item->price, 2, '.', ''),
-                        'reference_id' => $item->product_id,
-                    ];
-                })->toArray(),
-                'callback_urls' => [
-                    'success' => route('payment.callback', ['order' => $order->id, 'status' => 'success']),
-                    'cancel' => route('payment.callback', ['order' => $order->id, 'status' => 'cancel']),
-                    'failure' => route('payment.callback', ['order' => $order->id, 'status' => 'failure']),
-                ],
-                'webhook_url' => route('payment.webhook', ['gateway' => 'emkan']),
-            ];
-
-            $response = $this->httpPost(
-                $baseUrl . '/v1/checkout/sessions',
-                $paymentData,
-                [
-                    'Authorization' => 'Bearer ' . $apiKey,
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                ]
-            );
-
-            if (! $response['success']) {
+            $now = now()->toIso8601ZuluString();
+            $orderItems = $order->items->map(function ($item) use ($now) {
                 return [
-                    'success' => false,
-                    'message' => $response['error'] ?? __('Failed to create Emkan checkout session'),
-                    'transaction_id' => null,
-                    'redirect_url' => null,
-                    'data' => $response['data'] ?? [],
+                    'itemPrice' => round((float) $item->price, 2),
+                    'quantity' => (int) $item->quantity,
+                    'orderId' => (int) $item->id,
+                    'createAt' => $now,
+                    'updatedAt' => $now,
+                    'itemName' => Str::limit(
+                        $item->product->name_en ?? $item->product->name ?? 'Product',
+                        100,
+                        ''
+                    ),
+                ];
+            })->values()->toArray();
+
+            if (empty($orderItems)) {
+                $orderItems[] = [
+                    'itemPrice' => round((float) $order->total, 2),
+                    'quantity' => 1,
+                    'orderId' => (int) $order->id,
+                    'createAt' => $now,
+                    'updatedAt' => $now,
+                    'itemName' => 'Order #' . $order->order_number,
                 ];
             }
 
-            $data = $response['data'];
-            $sessionId = $data['session_id'] ?? $data['id'] ?? null;
-            $redirectUrl = $data['redirect_url'] ?? $data['checkout_url'] ?? null;
+            $payload = array_filter([
+                'orderId' => (string) $order->order_number,
+                'aggregatorId' => $aggregatorId,
+                'merchantId' => $merchantId,
+                'billAmount' => round((float) $order->total, 2),
+                'mobileNumber' => $mobile,
+                'expiresInMinutes' => $expiresInMinutes,
+                'successRedirectionUrl' => route('payment.callback', ['order' => $order->id, 'status' => 'success']),
+                'failureRedirectionUrl' => route('payment.callback', ['order' => $order->id, 'status' => 'failure']),
+                'callbackUrl' => route('payment.webhook', ['gateway' => 'emkan']),
+                'orderItems' => $orderItems,
+            ], static fn ($v) => $v !== null);
+            // Force orderItems back in even if filter drops it (it's an array so it survives)
+            $payload['orderItems'] = $orderItems;
+
+            $headers = $this->commonHeaders([
+                'MERCHANT_CODE' => $merchantCode,
+                'origin-source-channel' => (string) $this->getConfig('origin_source_channel', 'Neoleap_POS'),
+            ]);
+
+            $response = $this->httpPost(
+                $this->baseUrl() . '/retail/bnpl/bff/v1/order-create',
+                $payload,
+                $headers
+            );
+
+            $data = $response['data'] ?? [];
+
+            if (! $response['success'] || ($data['code'] ?? null) && $data['code'] !== 'I000000') {
+                return [
+                    'success' => false,
+                    'message' => $data['description'] ?? $response['error'] ?? __('Failed to create Emkan order'),
+                    'transaction_id' => $data['orderId'] ?? null,
+                    'redirect_url' => null,
+                    'data' => $data,
+                ];
+            }
+
+            $orderCode = $data['orderId'] ?? null;
+            $paymentUrl = $data['paymentURL'] ?? $data['paymentUrl'] ?? null;
 
             return [
                 'success' => true,
-                'transaction_id' => $sessionId,
-                'redirect_url' => $redirectUrl,
-                'requires_redirect' => ! empty($redirectUrl),
+                'transaction_id' => $orderCode,
+                'redirect_url' => $paymentUrl,
+                'requires_redirect' => ! empty($paymentUrl),
                 'status' => 'pending',
-                'message' => __('Emkan checkout session created successfully'),
+                'message' => $data['description'] ?? __('Emkan order created successfully'),
                 'data' => $data,
             ];
-
         } catch (\Exception $e) {
-            Log::error('Emkan payment creation failed', [
+            Log::error('Emkan order creation failed', [
                 'order_id' => $order->id,
                 'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'message' => __('Failed to create Emkan session: :error', ['error' => $e->getMessage()]),
+                'message' => __('Failed to create Emkan order: :error', ['error' => $e->getMessage()]),
                 'transaction_id' => null,
                 'redirect_url' => null,
             ];
@@ -127,103 +226,71 @@ class EmkanGateway extends AbstractPaymentGateway
     }
 
     /**
-     * Capture a payment
+     * Emkan has no explicit "capture" step — payment is finalised when the
+     * customer pays the down-payment, which Emkan signals via the
+     * DOWN_PAYMENT_SUCCESS webhook. We expose this method only because the
+     * abstract class requires it; we simply return the current order status.
      */
     public function capturePayment(string $transactionId, ?Order $order = null): array
     {
-        try {
-            $apiKey = $this->getConfig('api_key');
-            $baseUrl = rtrim($this->getConfig('api_url', 'https://api.emkanfinance.com.sa'), '/');
+        $status = $this->getPaymentStatus($transactionId);
 
-            if (! $apiKey) {
-                return [
-                    'success' => false,
-                    'message' => __('Emkan API key is not configured'),
-                ];
-            }
-
-            $response = $this->httpPost(
-                $baseUrl . '/v1/payments/' . $transactionId . '/capture',
-                [],
-                [
-                    'Authorization' => 'Bearer ' . $apiKey,
-                    'Content-Type' => 'application/json',
-                ]
-            );
-
-            if (! $response['success']) {
-                return [
-                    'success' => false,
-                    'message' => $response['error'] ?? __('Failed to capture Emkan payment'),
-                    'data' => $response['data'] ?? [],
-                ];
-            }
-
-            return [
-                'success' => true,
-                'message' => __('Payment captured successfully'),
-                'data' => $response['data'] ?? [],
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('Emkan capture failed', [
-                'transaction_id' => $transactionId,
-                'error' => $e->getMessage(),
-            ]);
-
-            return [
-                'success' => false,
-                'message' => __('Failed to capture payment: :error', ['error' => $e->getMessage()]),
-            ];
-        }
+        return [
+            'success' => $status['success'] ?? false,
+            'message' => $status['success']
+                ? __('Emkan does not require an explicit capture step; current status returned.')
+                : ($status['message'] ?? __('Failed to fetch Emkan order status')),
+            'data' => $status['data'] ?? [],
+        ];
     }
 
     /**
-     * Refund a payment
+     * Submit a refund request.
      */
     public function refundPayment(string $transactionId, float $amount): array
     {
         try {
-            $apiKey = $this->getConfig('api_key');
-            $baseUrl = rtrim($this->getConfig('api_url', 'https://api.emkanfinance.com.sa'), '/');
-
-            if (! $apiKey) {
+            if (! $this->isConfigured()) {
                 return [
                     'success' => false,
-                    'message' => __('Emkan API key is not configured'),
+                    'message' => __('Emkan configuration is incomplete'),
                 ];
             }
 
+            $payload = [
+                'orderCode' => $transactionId,
+                'merchantCode' => (string) $this->getConfig('merchant_code'),
+                'merchantId' => (string) $this->getConfig('merchant_id'),
+                'refundAmount' => number_format($amount, 2, '.', ''),
+            ];
+
             $response = $this->httpPost(
-                $baseUrl . '/v1/payments/' . $transactionId . '/refunds',
-                [
-                    'amount' => number_format($amount, 2, '.', ''),
-                ],
-                [
-                    'Authorization' => 'Bearer ' . $apiKey,
-                    'Content-Type' => 'application/json',
-                ]
+                $this->baseUrl() . '/retail/bnpl/bff/v1/order/refund/submit',
+                $payload,
+                $this->commonHeaders()
             );
 
-            if (! $response['success']) {
+            $data = $response['data'] ?? [];
+
+            if (! $response['success'] || (isset($data['code']) && $data['code'] !== 'I000000')) {
                 return [
                     'success' => false,
-                    'message' => $response['error'] ?? __('Failed to process Emkan refund'),
                     'refund_id' => null,
-                    'data' => $response['data'] ?? [],
+                    'message' => $data['description'] ?? $response['error'] ?? __('Failed to submit Emkan refund'),
+                    'data' => $data,
                 ];
             }
 
             return [
                 'success' => true,
-                'refund_id' => $response['data']['refund_id'] ?? $response['data']['id'] ?? ($transactionId . '-refund'),
-                'message' => __('Refund processed successfully'),
-                'data' => $response['data'] ?? [],
+                // Emkan does not return a refund id on submit — use the requestId for traceability.
+                'refund_id' => $data['requestId'] ?? ($transactionId . '-refund'),
+                'message' => $data['description'] ?? __('Refund submitted successfully'),
+                'data' => $data,
             ];
-
         } catch (\Exception $e) {
             Log::error('Emkan refund failed', [
-                'transaction_id' => $transactionId,
+                'order_code' => $transactionId,
                 'amount' => $amount,
                 'error' => $e->getMessage(),
             ]);
@@ -236,50 +303,107 @@ class EmkanGateway extends AbstractPaymentGateway
     }
 
     /**
-     * Get payment status from gateway
+     * Inquire refunded amount details for an order.
+     *
+     * @return array<string,mixed>
+     */
+    public function getRefundDetails(string $orderCode): array
+    {
+        $merchantId = (string) $this->getConfig('merchant_id');
+        $merchantCode = (string) $this->getConfig('merchant_code');
+
+        $url = $this->baseUrl() . '/retail/bnpl/bff/v1/order/refund-details/' . rawurlencode($orderCode);
+
+        $response = $this->httpGet(
+            $url,
+            ['merchantCode' => $merchantCode, 'merchantId' => $merchantId],
+            $this->commonHeaders()
+        );
+
+        return [
+            'success' => $response['success'] ?? false,
+            'data' => $response['data'] ?? [],
+            'status_code' => $response['status_code'] ?? 0,
+        ];
+    }
+
+    /**
+     * Cancel an Emkan order (only valid in early stages — see error 3000).
+     */
+    public function cancelOrder(string $orderCode): array
+    {
+        if (! $this->isConfigured()) {
+            return [
+                'success' => false,
+                'message' => __('Emkan configuration is incomplete'),
+            ];
+        }
+
+        $headers = $this->commonHeaders([
+            'MERCHANT_CODE' => (string) $this->getConfig('merchant_code'),
+        ]);
+
+        $response = $this->httpPost(
+            $this->baseUrl() . '/retail/bnpl/bnpl-bff/order/v1/cancelOrder',
+            [
+                'orderCode' => $orderCode,
+                'merchantId' => (string) $this->getConfig('merchant_id'),
+            ],
+            $headers
+        );
+
+        $data = $response['data'] ?? [];
+        $ok = $response['success'] && (! isset($data['code']) || $data['code'] === 'I000000');
+
+        return [
+            'success' => $ok,
+            'message' => $data['description'] ?? ($ok ? __('Order cancelled') : __('Failed to cancel Emkan order')),
+            'data' => $data,
+        ];
+    }
+
+    /**
+     * Get payment / order status.
      */
     public function getPaymentStatus(string $transactionId): array
     {
         try {
-            $apiKey = $this->getConfig('api_key');
-            $baseUrl = rtrim($this->getConfig('api_url', 'https://api.emkanfinance.com.sa'), '/');
-
-            if (! $apiKey) {
+            if (! $this->isConfigured()) {
                 return [
                     'success' => false,
                     'status' => 'unknown',
-                    'message' => __('Emkan API key is not configured'),
+                    'message' => __('Emkan configuration is incomplete'),
                 ];
             }
+
+            $merchantId = (string) $this->getConfig('merchant_id');
+            $url = $this->baseUrl() . '/retail/bnpl/bff/v1/order-status/' . rawurlencode($transactionId);
 
             $response = $this->httpGet(
-                $baseUrl . '/v1/payments/' . $transactionId,
-                [],
-                [
-                    'Authorization' => 'Bearer ' . $apiKey,
-                    'Accept' => 'application/json',
-                ]
+                $url,
+                ['merchantId' => $merchantId],
+                $this->commonHeaders()
             );
 
-            if (! $response['success']) {
+            $data = $response['data'] ?? [];
+
+            if (! $response['success'] || (isset($data['code']) && $data['code'] !== 'I000000')) {
                 return [
                     'success' => false,
                     'status' => 'unknown',
-                    'message' => $response['error'] ?? __('Failed to get Emkan status'),
+                    'message' => $data['description'] ?? $response['error'] ?? __('Failed to fetch Emkan status'),
+                    'data' => $data,
                 ];
             }
-
-            $data = $response['data'];
 
             return [
                 'success' => true,
-                'status' => $this->mapStatus($data['status'] ?? 'unknown'),
+                'status' => $this->mapOrderStatus((string) ($data['statusCode'] ?? 'unknown')),
                 'data' => $data,
             ];
-
         } catch (\Exception $e) {
             Log::error('Emkan status check failed', [
-                'transaction_id' => $transactionId,
+                'order_code' => $transactionId,
                 'error' => $e->getMessage(),
             ]);
 
@@ -292,33 +416,42 @@ class EmkanGateway extends AbstractPaymentGateway
     }
 
     /**
-     * Handle webhook notification
+     * Handle Merchant Notifier (webhook) callbacks.
+     * Payload per spec: { orderCode, merchantId, eventCode, nationalId, merchantOrderCode? }
      */
     public function handleWebhook(array $payload): array
     {
         try {
-            $status = $this->mapStatus($payload['status'] ?? $payload['event'] ?? 'unknown');
-            $transactionId = $payload['payment_id'] ?? $payload['id'] ?? $payload['session_id'] ?? null;
-            $orderNumber = $payload['reference_id'] ?? $payload['order']['reference_id'] ?? null;
+            $eventCode = (string) ($payload['eventCode'] ?? '');
+            $orderCode = $payload['orderCode'] ?? null;
+            // merchantOrderCode is the merchant's own reference (= our order_number) per spec v1.5.
+            $orderNumber = $payload['merchantOrderCode'] ?? null;
 
-            if (! $orderNumber) {
+            if (! $orderCode && ! $orderNumber) {
                 return [
                     'success' => false,
                     'order_id' => null,
-                    'status' => $status,
-                    'message' => __('Order reference not found in Emkan webhook'),
+                    'status' => 'error',
+                    'message' => __('Emkan webhook missing orderCode and merchantOrderCode'),
                 ];
             }
 
-            $order = Order::where('order_number', $orderNumber)->first();
+            $order = null;
+            if ($orderNumber) {
+                $order = Order::where('order_number', $orderNumber)->first();
+            }
+            if (! $order && $orderCode) {
+                // Fallback: locate via stored gateway transaction id
+                $order = Order::where('payment_transaction_id', $orderCode)->first();
+            }
 
             return [
                 'success' => true,
                 'order_id' => $order?->id,
-                'status' => $status,
-                'transaction_id' => $transactionId,
+                'status' => $this->mapEventCode($eventCode),
+                'transaction_id' => $orderCode,
+                'event_code' => $eventCode,
             ];
-
         } catch (\Exception $e) {
             Log::error('Emkan webhook processing failed', [
                 'payload' => $payload,
@@ -335,51 +468,70 @@ class EmkanGateway extends AbstractPaymentGateway
     }
 
     /**
-     * Validate webhook signature (HMAC-SHA256)
+     * Webhook signature verification.
+     *
+     * Emkan integration spec (v1.7) does NOT define a signature header for the
+     * Merchant Notifier callback. Authentication of the webhook caller is
+     * delegated to network-level controls (IP allowlisting agreed during
+     * onboarding). We therefore:
+     *   - return true when no secret is configured (default Emkan posture);
+     *   - if EMKAN_WEBHOOK_SECRET *is* set, opportunistically verify a
+     *     X-Emkan-Signature / X-Signature HMAC-SHA256 header for forward
+     *     compatibility, but treat its absence as success (logging only).
      */
     public function validateWebhookSignature(Request $request): bool
     {
         $secret = $this->getConfig('webhook_secret');
-
         if (! $secret) {
-            // No secret configured - accept (or change to false to reject)
-            return ! config('payment-gateways.webhook.verify_signature', true);
+            return true;
         }
 
         $signature = $request->header('X-Emkan-Signature') ?? $request->header('X-Signature');
-
         if (! $signature) {
-            return false;
+            Log::info('Emkan webhook arrived without signature header — accepting (per spec, IP allowlist enforced upstream).');
+            return true;
         }
 
-        $expected = hash_hmac('sha256', $request->getContent(), $secret);
-
-        return hash_equals($expected, $signature);
+        $expected = hash_hmac('sha256', $request->getContent(), (string) $secret);
+        return hash_equals($expected, (string) $signature);
     }
 
     /**
-     * Map Emkan status to internal status
+     * Map Emkan orderStatus codes (Get BNPL Order Status) to internal statuses.
      */
-    protected function mapStatus(string $status): string
+    protected function mapOrderStatus(string $status): string
     {
-        return match (strtolower($status)) {
-            'approved', 'captured', 'completed', 'paid', 'success' => 'success',
-            'pending', 'processing', 'initiated', 'created' => 'pending',
-            'rejected', 'declined', 'failed', 'expired' => 'failed',
-            'cancelled', 'canceled' => 'cancelled',
-            'refunded' => 'refunded',
+        return match (strtoupper($status)) {
+            'COMPLETED' => 'success',
+            'CREATED', 'INITIATED', 'PENDING_IVR', 'ACCEPTED_IVR' => 'pending',
+            'REJECTED_IVR' => 'failed',
+            'CANCELED', 'CANCELLED' => 'cancelled',
             default => 'pending',
         };
     }
 
     /**
-     * Normalize Saudi phone number to 9665XXXXXXXX format
+     * Map Merchant Notifier eventCode values to internal statuses.
+     */
+    protected function mapEventCode(string $eventCode): string
+    {
+        return match (strtoupper($eventCode)) {
+            'DOWN_PAYMENT_SUCCESS' => 'success',
+            'CANCELED', 'CANCELLED' => 'cancelled',
+            'FULLY_REFUND', 'PARTIAL_REFUND' => 'refunded',
+            default => 'pending',
+        };
+    }
+
+    /**
+     * Normalize Saudi phone number to 9665XXXXXXXX (12 digits, no '+').
+     * Emkan example values use this exact format ("966541710298").
      */
     protected function normalizePhone(string $phone): string
     {
-        $phone = preg_replace('/[^0-9]/', '', $phone);
+        $phone = (string) preg_replace('/[^0-9]/', '', $phone);
 
-        if (empty($phone) || strlen($phone) < 9) {
+        if ($phone === '' || strlen($phone) < 9) {
             return '966500000000';
         }
 

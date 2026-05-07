@@ -118,9 +118,31 @@ return [
         */
         'emkan' => [
             'enabled' => env('EMKAN_ENABLED', false),
-            'api_url' => env('EMKAN_API_URL', 'https://api.emkanfinance.com.sa'),
+            // Production: https://gw-pub.emkanfinance.com.sa
+            // Sandbox:    https://sit-gw-pub.emkanfinance.com.sa
+            'api_url' => env('EMKAN_API_URL', 'https://gw-pub.emkanfinance.com.sa'),
+            // Numeric merchant ID issued by Emkan (used in URL paths and request bodies)
             'merchant_id' => env('EMKAN_MERCHANT_ID'),
+            // Merchant short code issued by Emkan (e.g. "Jarir") — sent as MERCHANT_CODE header
+            // and in refund/cancel request bodies.
+            'merchant_code' => env('EMKAN_MERCHANT_CODE'),
+            // Basic auth credentials issued by Emkan via email.
+            // Emkan calls them "api_key" + "secret"; they map onto HTTP Basic
+            // as base64(api_key:secret).
             'api_key' => env('EMKAN_API_KEY'),
+            'api_secret' => env('EMKAN_API_SECRET'),
+            // Optional: pre-built "Basic xxx" token if you prefer to inject it directly.
+            'basic_auth' => env('EMKAN_BASIC_AUTH'),
+            // Channel: 'BNPL' (default), 'BNPL_POS', or 'SME_BNPL'
+            'channel' => env('EMKAN_CHANNEL', 'BNPL'),
+            // Required on order-create per spec
+            'origin_source_channel' => env('EMKAN_ORIGIN_SOURCE_CHANNEL', 'Neoleap_POS'),
+            // Order expiry in minutes (sent in create-order body)
+            'expires_in_minutes' => (int) env('EMKAN_EXPIRES_IN_MINUTES', 30),
+            // Optional aggregator id if your account is behind an aggregator
+            'aggregator_id' => env('EMKAN_AGGREGATOR_ID'),
+            // Emkan does NOT sign webhooks (per integration spec rev 1.7); security is via
+            // IP allowlist + Basic Auth on outbound. Kept for forward-compat only.
             'webhook_secret' => env('EMKAN_WEBHOOK_SECRET'),
             'timeout' => 30,
         ],
