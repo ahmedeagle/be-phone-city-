@@ -30,6 +30,9 @@ class CheckMaintenanceMode
                 'api/v1/settings/points',
                 'api/v1/settings/bank/details',
                 'api/v1/settings/products/sections',
+                // Payment & shipping webhooks must always be reachable even in maintenance
+                'api/webhooks/payment',
+                'api/webhooks/oto',
             ];
 
             $currentPath = $request->path();

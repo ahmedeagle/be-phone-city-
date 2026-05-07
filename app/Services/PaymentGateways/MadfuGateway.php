@@ -470,7 +470,10 @@ class MadfuGateway extends AbstractPaymentGateway
         $secret = $this->getConfig('webhook_secret');
 
         if (! $secret) {
-            return ! config('payment-gateways.webhook.verify_signature', true);
+            // No secret configured — accept webhook without signature verification
+            // (matches WordPress behaviour; configure MADFU_WEBHOOK_SECRET to enable)
+            Log::warning('Madfu webhook secret not configured; accepting without signature verification.');
+            return true;
         }
 
         $signature = $request->header('X-Madfu-Signature') ?? $request->header('X-Signature');

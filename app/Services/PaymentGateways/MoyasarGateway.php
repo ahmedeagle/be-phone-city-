@@ -369,8 +369,10 @@ class MoyasarGateway extends AbstractPaymentGateway
             $webhookSecret = $this->getConfig('webhook_secret');
 
             if (!$webhookSecret) {
-                Log::warning('Moyasar webhook secret not configured');
-                return false;
+                // No secret configured — accept webhook without signature verification
+                // (matches WordPress behaviour; configure MOYASAR_WEBHOOK_SECRET to enable)
+                Log::warning('Moyasar webhook secret not configured; accepting without signature verification');
+                return true;
             }
 
             $signature = $request->header('X-Moyasar-Signature');
