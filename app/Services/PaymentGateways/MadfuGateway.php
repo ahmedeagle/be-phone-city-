@@ -418,6 +418,8 @@ class MadfuGateway extends AbstractPaymentGateway
 
             $transactionId = $payload['orderId']
                 ?? $payload['OrderId']
+                ?? $payload['invoceCode']    // Madfu docs spell it "invoceCode" (typo)
+                ?? $payload['InvoceCode']
                 ?? $payload['invoiceCode']
                 ?? $payload['InvoiceCode']
                 ?? null;
@@ -487,11 +489,14 @@ class MadfuGateway extends AbstractPaymentGateway
      */
     protected function mapStatus(string $status): string
     {
-        return match (strtolower($status)) {
-            'approved', 'captured', 'completed', 'paid', 'success', 'successful' => 'success',
-            'pending', 'processing', 'initiated', 'created', 'new' => 'pending',
-            'rejected', 'declined', 'failed', 'expired' => 'failed',
-            'cancelled', 'canceled' => 'cancelled',
+        // Madfu order-status webhook sends numeric codes per their docs:
+        //   124 = Pending, 125 = Paid, 135 = Timed Out, 136 = Expired
+        // (https://madfuapis.readme.io/reference/orderstatuswebhook)
+        return match (strtolower(trim($status))) {
+            '125', 'approved', 'captured', 'completed', 'paid', 'success', 'successful' => 'success',
+            '124', 'pending', 'processing', 'initiated', 'created', 'new' => 'pending',
+            '136', 'rejected', 'declined', 'failed', 'expired' => 'failed',
+            '135', 'cancelled', 'canceled', 'timeout', 'timed out', 'timedout' => 'cancelled',
             'refunded' => 'refunded',
             default => 'pending',
         };
