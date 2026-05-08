@@ -162,6 +162,7 @@ class EmkanGateway extends AbstractPaymentGateway
 
             $payload = array_filter([
                 'orderId' => (string) $order->order_number,
+                'merchantOrderCode' => (string) $order->order_number,
                 'aggregatorId' => $aggregatorId,
                 'merchantId' => $merchantId,
                 'billAmount' => round((float) $order->total, 2),
