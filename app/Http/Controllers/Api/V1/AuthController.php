@@ -178,19 +178,7 @@ class AuthController extends Controller
     {
         $user = User::where('email', $request->email)->first();
 
-        // Rate limiting
-        $key = 'forgot-password:' . $request->email;
 
-        if (RateLimiter::tooManyAttempts($key, 3)) {
-            $seconds = RateLimiter::availableIn($key);
-            return Response::error(
-                __('Too many attempts. Please try again in :seconds seconds.', ['seconds' => $seconds]),
-                null,
-                429
-            );
-        }
-
-        RateLimiter::hit($key, 3600);
 
         $user->sendVerificationCode('password_reset');
 
