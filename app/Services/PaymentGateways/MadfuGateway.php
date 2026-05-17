@@ -32,7 +32,7 @@ class MadfuGateway extends AbstractPaymentGateway
     protected string $gateway = 'madfu';
 
     protected const TOKEN_CACHE_KEY = 'madfu:jwt_token';
-    protected const TOKEN_CACHE_TTL = 3300; // 55 minutes
+    protected const TOKEN_CACHE_TTL = 518400; // 6 days (user token valid 7 days)
 
     /**
      * Build the Basic Authorization header used on every Madfu call.
@@ -83,47 +83,64 @@ class MadfuGateway extends AbstractPaymentGateway
 
         $baseUrl = rtrim($this->getConfig('api_url', 'https://api.madfu.com.sa'), '/');
 
-        $body = [
-            'uuid' => (string) Str::uuid(),
-            'systemInfo' => 'web',
-        ];
-
-        // Madfu requires cashier username/password in the token-init body
-        $username = $this->getConfig('username');
-        $password = $this->getConfig('password');
-        if ($username && $password) {
-            $body['username'] = $username;
-            $body['password'] = $password;
-        }
-
-        $response = $this->httpPost(
+        // Step 1: get a short-lived session token
+        $sessionResponse = $this->httpPost(
             $baseUrl . '/merchants/token/init',
-            $body,
+            ['uuid' => (string) Str::uuid(), 'systemInfo' => 'web'],
             $this->commonHeaders()
         );
 
-        if (! $response['success']) {
+        if (! $sessionResponse['success']) {
             Log::error('Madfu token init failed', [
-                'status_code' => $response['status_code'] ?? null,
-                'error' => $response['error'] ?? null,
-                'data' => $response['data'] ?? null,
+                'status_code' => $sessionResponse['status_code'] ?? null,
+                'error'       => $sessionResponse['error'] ?? null,
+                'data'        => $sessionResponse['data'] ?? null,
             ]);
             return null;
         }
 
-        $data = $response['data'] ?? [];
-        $jwt = $data['token']
-            ?? $data['Token']
-            ?? ($data['data']['token'] ?? null)
-            ?? ($data['responseBody']['token'] ?? null);
+        $sessionData  = $sessionResponse['data'] ?? [];
+        $sessionToken = $sessionData['token'] ?? $sessionData['Token'] ?? null;
 
-        if (! $jwt) {
-            Log::error('Madfu token init returned no JWT', ['response' => $data]);
+        if (! $sessionToken) {
+            Log::error('Madfu token init returned no session token', ['response' => $sessionData]);
             return null;
         }
 
-        Cache::put(self::TOKEN_CACHE_KEY, $jwt, self::TOKEN_CACHE_TTL);
-        return $jwt;
+        // Step 2: exchange cashier credentials for a user-scoped token (required for CreateOrder)
+        $username = $this->getConfig('username');
+        $password = $this->getConfig('password');
+
+        if (! $username || ! $password) {
+            Log::error('Madfu cashier credentials not configured (MADFU_USERNAME / MADFU_PASSWORD)');
+            return null;
+        }
+
+        $signInResponse = $this->httpPost(
+            $baseUrl . '/Merchants/sign-in',
+            ['username' => $username, 'password' => $password],
+            $this->commonHeaders($sessionToken)
+        );
+
+        if (! $signInResponse['success']) {
+            Log::error('Madfu sign-in failed', [
+                'status_code' => $signInResponse['status_code'] ?? null,
+                'error'       => $signInResponse['error'] ?? null,
+                'data'        => $signInResponse['data'] ?? null,
+            ]);
+            return null;
+        }
+
+        $signInData = $signInResponse['data'] ?? [];
+        $userToken  = $signInData['token'] ?? $signInData['Token'] ?? null;
+
+        if (! $userToken) {
+            Log::error('Madfu sign-in returned no user token', ['response' => $signInData]);
+            return null;
+        }
+
+        Cache::put(self::TOKEN_CACHE_KEY, $userToken, self::TOKEN_CACHE_TTL);
+        return $userToken;
     }
 
     /**
@@ -180,24 +197,29 @@ class MadfuGateway extends AbstractPaymentGateway
             $failureUrl = route('payment.callback', ['order' => $order->id, 'status' => 'failure']);
             $webhookUrl = route('payment.webhook', ['gateway' => 'madfu']);
 
+            $total = round((float) $order->total, 2);
+
             $payload = [
                 'Order' => [
                     'MerchantReference' => (string) $order->order_number,
-                    'TotalAmount' => round((float) $order->total, 2),
-                    'PaidAmount' => 0,
-                    'Vat' => round((float) ($order->tax ?? 0), 2),
-                    'DeliveryAmount' => round((float) ($order->shipping ?? 0), 2),
-                    'DiscountAmount' => round((float) ($order->discount ?? 0), 2),
-                    'Branch' => (int) $this->getConfig('branch_id', 1),
-                    'OrderDetails' => $orderDetails,
+                    'TotalAmount'       => $total,
+                    'Amount'            => $total,   // required by Madfu API
+                    'ActualValue'       => $total,   // required by Madfu API
+                    'PaidAmount'        => 0,
+                    'Vat'               => round((float) ($order->tax ?? 0), 2),
+                    'DeliveryAmount'    => round((float) ($order->shipping ?? 0), 2),
+                    'DiscountAmount'    => round((float) ($order->discount ?? 0), 2),
+                    'Branch'            => (int) $this->getConfig('branch_id', 1),
+                    'OrderDetails'      => $orderDetails,
                 ],
                 'GuestOrderData' => [
-                    'FullName' => $user->name ?? 'Customer',
-                    'Email' => $user->email ?? 'customer@example.com',
-                    'Mobile' => $phone,
-                    'City' => $location?->city?->name_en ?? $location?->city?->name ?? 'Riyadh',
-                    'Address' => $location?->address ?? 'Saudi Arabia',
-                    'Country' => 'SA',
+                    'FullName'       => $user->name ?? 'Customer',
+                    'Email'          => $user->email ?? 'customer@example.com',
+                    'Mobile'         => $phone,
+                    'CustomerMobile' => $this->normalizePhoneShort($phone), // 9-digit format required
+                    'City'           => $location?->city?->name_en ?? $location?->city?->name ?? 'Riyadh',
+                    'Address'        => $location?->address ?? 'Saudi Arabia',
+                    'Country'        => 'SA',
                 ],
                 'MerchantUrls' => [
                     'SuccessUrl' => $successUrl,
@@ -513,6 +535,19 @@ class MadfuGateway extends AbstractPaymentGateway
             'refunded' => 'refunded',
             default => 'pending',
         };
+    }
+
+    /**
+     * Return the 9-digit local format (5XXXXXXXX) required by Madfu's CustomerMobile field.
+     */
+    protected function normalizePhoneShort(string $fullPhone): string
+    {
+        // fullPhone is already in 9665XXXXXXXX format from normalizePhone()
+        $digits = preg_replace('/[^0-9]/', '', $fullPhone);
+        if (strlen($digits) === 12 && str_starts_with($digits, '966')) {
+            return substr($digits, 3); // strip 966 → 5XXXXXXXX
+        }
+        return $digits;
     }
 
     /**
