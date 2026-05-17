@@ -175,7 +175,7 @@ class MadfuGateway extends AbstractPaymentGateway
 
             $user = $order->user;
             $location = $order->location;
-            $phone = $this->normalizePhone($user->phone ?? '');
+            $phone = $this->normalizePhoneShort($this->normalizePhone($user->phone ?? ''));
 
             $orderDetails = $order->items->map(function ($item) {
                 return [
@@ -215,8 +215,8 @@ class MadfuGateway extends AbstractPaymentGateway
                 'GuestOrderData' => [
                     'FullName'       => $user->name ?? 'Customer',
                     'Email'          => $user->email ?? 'customer@example.com',
-                    'Mobile'         => $phone,
-                    'CustomerMobile' => $this->normalizePhoneShort($phone), // 9-digit format required
+                    'Mobile'         => $phone,  // 9-digit format (5XXXXXXXX) required by Madfu
+                    'CustomerMobile' => $phone,
                     'City'           => $location?->city?->name_en ?? $location?->city?->name ?? 'Riyadh',
                     'Address'        => $location?->address ?? 'Saudi Arabia',
                     'Country'        => 'SA',
