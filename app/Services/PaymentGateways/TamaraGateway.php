@@ -488,18 +488,19 @@ class TamaraGateway extends AbstractPaymentGateway
     public function validateWebhookSignature(Request $request): bool
     {
         $webhookToken = $this->getConfig('webhook_token');
-        if (!$webhookToken) {
-            return true; // Or false based on security policy
+        if (! $webhookToken) {
+            Log::warning('Tamara webhook token not configured; accepting without signature verification.');
+            return true;
         }
 
         $signature = $request->header('X-Tamara-Signature');
-        if (!$signature) {
+        if (! $signature) {
+            Log::warning('Tamara webhook received without X-Tamara-Signature header.');
             return false;
         }
 
-        // Tamara signature validation logic
-        // Typically it involves HMAC with the webhook token
-        return true;
+        $expected = hash_hmac('sha256', $request->getContent(), $webhookToken);
+        return hash_equals($expected, $signature);
     }
 
     /**
