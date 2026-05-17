@@ -1,0 +1,11 @@
+{
+    "madfu.error_invalid_mobile": "Invalid mobile number. Please update your account phone number (must be a Saudi number starting with 05).",
+    "madfu.error_invalid_amount": "Order amount is not valid for Madfu.",
+    "madfu.error_validation": "Order details are incomplete, please try again.",
+    "madfu.error_generic": "An error occurred while processing Madfu payment, please try again.",
+    "Failed to authenticate with Madfu": "Failed to connect to Madfu service, please try again later.",
+    "Failed to create Madfu transaction": "Failed to create Madfu transaction, please try again.",
+    "Madfu did not return a checkout URL": "Madfu service did not respond, please try again.",
+    "Madfu configuration is incomplete": "Madfu configuration is incomplete.",
+    "Madfu auto-captures payments on checkout completion": "Payment is confirmed automatically by Madfu upon checkout completion."
+}

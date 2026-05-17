@@ -249,19 +249,20 @@ class MadfuGateway extends AbstractPaymentGateway
 
             if (! $response['success']) {
                 $errData   = $response['data'] ?? [];
-                $errDetail = $errData['detail'] ?? null;
                 $errFields = $errData['errors'] ?? [];
-                // Build a human-readable message: "Validation failed for fields: Mobile, CustomerMobile"
-                $errMsg = $errDetail
-                    ?? ($errFields ? 'Validation Failed: ' . implode(', ', array_keys($errFields))
-                    : ($errData['title'] ?? $errData['message'] ?? $response['error'] ?? __('Failed to create Madfu transaction')));
                 Log::error('Madfu CreateOrder failed', [
                     'order_id'    => $order->id,
                     'status_code' => $response['status_code'] ?? null,
-                    'detail'      => $errDetail,
+                    'detail'      => $errData['detail'] ?? null,
                     'fields'      => $errFields,
                     'full'        => $errData,
                 ]);
+                $errMsg = $this->mapMadfuValidationError($errFields)
+                    ?? $errData['detail']
+                    ?? $errData['title']
+                    ?? $errData['message']
+                    ?? $response['error']
+                    ?? __('madfu.error_generic');
                 return [
                     'success'        => false,
                     'message'        => $errMsg,
@@ -540,6 +541,25 @@ class MadfuGateway extends AbstractPaymentGateway
         $expected = hash_hmac('sha256', $request->getContent(), $secret);
 
         return hash_equals($expected, $signature);
+    }
+
+    /**
+     * Translate Madfu validation field errors into a user-facing localized message.
+     * Returns null if no known field is present (caller will fall back to raw Madfu message).
+     */
+    protected function mapMadfuValidationError(array $fields): ?string
+    {
+        if (empty($fields)) {
+            return null;
+        }
+        $keys = array_map('strtolower', array_keys($fields));
+        if (array_intersect($keys, ['mobilenumber', 'guestorderdata.customermobile', 'guestorderdata.mobile'])) {
+            return __('madfu.error_invalid_mobile');
+        }
+        if (array_intersect($keys, ['order.amount', 'order.actualvalue', 'order.totalamount'])) {
+            return __('madfu.error_invalid_amount');
+        }
+        return __('madfu.error_validation');
     }
 
     /**

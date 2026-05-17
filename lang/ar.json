@@ -125,5 +125,14 @@
     "Minimum number of items for this discount is": "الحد الأدنى لعدد المنتجات لهذا الخصم هو",
     "SAR": "ر.س",
     "This discount is only available for new customers": "هذا الخصم متاح فقط للعملاء الجدد",
-    "This discount is only available for your first order": "هذا الخصم متاح فقط لطلبك الأول"
+    "This discount is only available for your first order": "هذا الخصم متاح فقط لطلبك الأول",
+    "madfu.error_invalid_mobile": "رقم الجوال غير صالح. يرجى التحقق من رقم الجوال المسجل في حسابك (يجب أن يبدأ بـ 05)",
+    "madfu.error_invalid_amount": "مبلغ الطلب غير صالح لخدمة مادفو",
+    "madfu.error_validation": "بيانات الطلب غير مكتملة، يرجى المحاولة مرة أخرى",
+    "madfu.error_generic": "حدث خطأ أثناء معالجة الدفع عبر مادفو، يرجى المحاولة مرة أخرى",
+    "Failed to authenticate with Madfu": "فشل الاتصال بخدمة مادفو، يرجى المحاولة لاحقاً",
+    "Failed to create Madfu transaction": "فشل إنشاء معاملة مادفو، يرجى المحاولة مرة أخرى",
+    "Madfu did not return a checkout URL": "لم تستجب خدمة مادفو، يرجى المحاولة مرة أخرى",
+    "Madfu configuration is incomplete": "إعدادات مادفو غير مكتملة",
+    "Madfu auto-captures payments on checkout completion": "يتم تأكيد الدفع عبر مادفو تلقائياً عند إتمام الشراء"
 }
