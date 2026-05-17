@@ -248,12 +248,21 @@ class MadfuGateway extends AbstractPaymentGateway
             }
 
             if (! $response['success']) {
+                $errData = $response['data'] ?? [];
+                $errMsg  = $errData['title'] ?? $errData['detail'] ?? $errData['message']
+                    ?? $response['error']
+                    ?? __('Failed to create Madfu transaction');
+                Log::error('Madfu CreateOrder failed', [
+                    'order_id'    => $order->id,
+                    'status_code' => $response['status_code'] ?? null,
+                    'response'    => $errData,
+                ]);
                 return [
-                    'success' => false,
-                    'message' => $response['error'] ?? __('Failed to create Madfu transaction'),
+                    'success'        => false,
+                    'message'        => $errMsg,
                     'transaction_id' => null,
-                    'redirect_url' => null,
-                    'data' => $response['data'] ?? [],
+                    'redirect_url'   => null,
+                    'data'           => $errData,
                 ];
             }
 
