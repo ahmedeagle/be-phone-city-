@@ -248,14 +248,19 @@ class MadfuGateway extends AbstractPaymentGateway
             }
 
             if (! $response['success']) {
-                $errData = $response['data'] ?? [];
-                $errMsg  = $errData['title'] ?? $errData['detail'] ?? $errData['message']
-                    ?? $response['error']
-                    ?? __('Failed to create Madfu transaction');
+                $errData   = $response['data'] ?? [];
+                $errDetail = $errData['detail'] ?? null;
+                $errFields = $errData['errors'] ?? [];
+                // Build a human-readable message: "Validation failed for fields: Mobile, CustomerMobile"
+                $errMsg = $errDetail
+                    ?? ($errFields ? 'Validation Failed: ' . implode(', ', array_keys($errFields))
+                    : ($errData['title'] ?? $errData['message'] ?? $response['error'] ?? __('Failed to create Madfu transaction')));
                 Log::error('Madfu CreateOrder failed', [
                     'order_id'    => $order->id,
                     'status_code' => $response['status_code'] ?? null,
-                    'response'    => $errData,
+                    'detail'      => $errDetail,
+                    'fields'      => $errFields,
+                    'full'        => $errData,
                 ]);
                 return [
                     'success'        => false,
