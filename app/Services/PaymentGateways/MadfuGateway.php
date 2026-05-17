@@ -260,17 +260,26 @@ class MadfuGateway extends AbstractPaymentGateway
             $data = $response['data'] ?? [];
             $body = $data['responseBody'] ?? $data;
 
-            $transactionId = $body['orderId']
-                ?? $body['OrderId']
-                ?? $body['invoiceCode']
+            // Madfu returns a short checkout token; build the redirect URL from it.
+            // Staging: https://checkout-staging.madfu.com.sa/{token}
+            // Production: https://checkout.madfu.com.sa/{token}
+            $checkoutToken = $body['token'] ?? $body['Token'] ?? null;
+            $checkoutBase  = str_contains($baseUrl, 'staging')
+                ? 'https://checkout-staging.madfu.com.sa'
+                : 'https://checkout.madfu.com.sa';
+
+            $transactionId = $body['invoiceCode']
                 ?? $body['InvoiceCode']
+                ?? $body['orderId']
+                ?? $body['OrderId']
+                ?? $checkoutToken
                 ?? null;
 
             $redirectUrl = $body['checkoutLink']
                 ?? $body['CheckoutLink']
                 ?? $body['checkoutUrl']
                 ?? $body['redirectUrl']
-                ?? null;
+                ?? ($checkoutToken ? $checkoutBase . '/' . $checkoutToken : null);
 
             if (! $redirectUrl || ! $transactionId) {
                 Log::error('Madfu createOrder returned incomplete response', [
