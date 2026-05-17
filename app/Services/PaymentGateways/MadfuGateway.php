@@ -83,12 +83,22 @@ class MadfuGateway extends AbstractPaymentGateway
 
         $baseUrl = rtrim($this->getConfig('api_url', 'https://api.madfu.com.sa'), '/');
 
+        $body = [
+            'uuid' => (string) Str::uuid(),
+            'systemInfo' => 'web',
+        ];
+
+        // Madfu requires cashier username/password in the token-init body
+        $username = $this->getConfig('username');
+        $password = $this->getConfig('password');
+        if ($username && $password) {
+            $body['username'] = $username;
+            $body['password'] = $password;
+        }
+
         $response = $this->httpPost(
             $baseUrl . '/merchants/token/init',
-            [
-                'uuid' => (string) Str::uuid(),
-                'systemInfo' => 'web',
-            ],
+            $body,
             $this->commonHeaders()
         );
 

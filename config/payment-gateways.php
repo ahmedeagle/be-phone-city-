@@ -82,6 +82,21 @@ return [
             'webhook_url' => env('AMWAL_WEBHOOK_URL'), // Optional: custom HTTPS webhook URL (for server-to-server notifications)
             'callback_url' => env('AMWAL_CALLBACK_URL'), // Optional: custom HTTPS callback URL (for user redirect after payment)
             'timeout' => 30,
+            // Webhook registration/configuration details for reference
+            'webhook_registration' => [
+                'endpoint' => 'https://your-endpoint/amwal/webhook',
+                'description' => 'register webhook endpoint for order events',
+                'event_type_names' => [
+                    'order.success',
+                    'order.failed',
+                    'order.updated',
+                ],
+                'api_key_name' => 'register webhook endpoint',
+                'api_key_scopes' => [
+                    'trigger_events',
+                    'manage_webhooks',
+                ],
+            ],
         ],
 
         /*
@@ -164,7 +179,10 @@ return [
             'app_code' => env('MADFU_APP_CODE'),
             'api_key' => env('MADFU_API_KEY'),
             'basic_auth' => env('MADFU_BASIC_AUTH'), // Pre-built Basic auth token from Madfu portal (without 'Basic ' prefix)
-            'platform_type_id' => env('MADFU_PLATFORM_TYPE_ID', 7), // 7 = Web per Madfu API spec
+            // Cashier credentials sent in the token/init request body per Madfu docs
+            'username' => env('MADFU_USERNAME'),
+            'password' => env('MADFU_PASSWORD'),
+            'platform_type_id' => env('MADFU_PLATFORM_TYPE_ID', 5), // 5 per Madfu spec (always 5)
             'branch_id' => env('MADFU_BRANCH_ID', 1),
             'webhook_secret' => env('MADFU_WEBHOOK_SECRET'),
             'timeout' => 30,
