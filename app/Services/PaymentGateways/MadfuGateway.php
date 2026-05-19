@@ -296,6 +296,11 @@ class MadfuGateway extends AbstractPaymentGateway
                 ?? $body['redirectUrl']
                 ?? ($checkoutToken ? $checkoutBase . '/' . $checkoutToken : null);
 
+            // Append customer mobile so the Madfu checkout page pre-fills the phone field
+            if ($redirectUrl && $phone) {
+                $redirectUrl .= (str_contains($redirectUrl, '?') ? '&' : '?') . 'mobile=' . urlencode($phone);
+            }
+
             if (! $redirectUrl || ! $transactionId) {
                 Log::error('Madfu createOrder returned incomplete response', [
                     'order_id' => $order->id,
