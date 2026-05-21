@@ -1,4 +1,6 @@
 {
+    "emkan.error_below_minimum": "Emkan requires a minimum order amount of :min SAR.",
+    "emkan.error_above_maximum": "Emkan maximum order amount is :max SAR.",
     "madfu.error_invalid_mobile": "Invalid mobile number. Please update your account phone number (must be a Saudi number starting with 05).",
     "madfu.error_invalid_amount": "Order amount is not valid for Madfu.",
     "madfu.error_validation": "Order details are incomplete, please try again.",

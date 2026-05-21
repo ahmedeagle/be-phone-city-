@@ -126,6 +126,8 @@
     "SAR": "ر.س",
     "This discount is only available for new customers": "هذا الخصم متاح فقط للعملاء الجدد",
     "This discount is only available for your first order": "هذا الخصم متاح فقط لطلبك الأول",
+    "emkan.error_below_minimum": "الحد الأدنى لطلبات إمكان هو :min ر.س",
+    "emkan.error_above_maximum": "الحد الأقصى لطلبات إمكان هو :max ر.س",
     "madfu.error_invalid_mobile": "رقم الجوال غير صالح. يرجى التحقق من رقم الجوال المسجل في حسابك (يجب أن يبدأ بـ 05)",
     "madfu.error_invalid_amount": "مبلغ الطلب غير صالح لخدمة مادفو",
     "madfu.error_validation": "بيانات الطلب غير مكتملة، يرجى المحاولة مرة أخرى",

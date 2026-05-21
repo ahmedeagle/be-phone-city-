@@ -159,6 +159,8 @@ return [
             // Emkan does NOT sign webhooks (per integration spec rev 1.7); security is via
             // IP allowlist + Basic Auth on outbound. Kept for forward-compat only.
             'webhook_secret' => env('EMKAN_WEBHOOK_SECRET'),
+            'min_amount' => (float) env('EMKAN_MIN_AMOUNT', 500),
+            'max_amount' => (float) env('EMKAN_MAX_AMOUNT', 0), // 0 = no limit
             'timeout' => 30,
         ],
 
@@ -174,6 +176,7 @@ return [
         */
         'madfu' => [
             'enabled' => env('MADFU_ENABLED', false),
+            // Sandbox: https://api.staging.madfu.com.sa  |  Production: https://api.madfu.com.sa
             'api_url' => env('MADFU_API_URL', 'https://api.madfu.com.sa'),
             'merchant_id' => env('MADFU_MERCHANT_ID'),
             'app_code' => env('MADFU_APP_CODE'),

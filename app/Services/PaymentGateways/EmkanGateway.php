@@ -125,6 +125,27 @@ class EmkanGateway extends AbstractPaymentGateway
                 ];
             }
 
+            $minAmount = (float) $this->getConfig('min_amount', 500);
+            $maxAmount = (float) $this->getConfig('max_amount', 0);
+
+            if ($minAmount > 0 && (float) $order->total < $minAmount) {
+                return [
+                    'success' => false,
+                    'message' => __('emkan.error_below_minimum', ['min' => $minAmount]),
+                    'transaction_id' => null,
+                    'redirect_url' => null,
+                ];
+            }
+
+            if ($maxAmount > 0 && (float) $order->total > $maxAmount) {
+                return [
+                    'success' => false,
+                    'message' => __('emkan.error_above_maximum', ['max' => $maxAmount]),
+                    'transaction_id' => null,
+                    'redirect_url' => null,
+                ];
+            }
+
             $merchantId = (string) $this->getConfig('merchant_id');
             $merchantCode = (string) $this->getConfig('merchant_code');
             $aggregatorId = $this->getConfig('aggregator_id');
