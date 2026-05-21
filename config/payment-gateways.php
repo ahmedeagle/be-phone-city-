@@ -159,8 +159,8 @@ return [
             // Emkan does NOT sign webhooks (per integration spec rev 1.7); security is via
             // IP allowlist + Basic Auth on outbound. Kept for forward-compat only.
             'webhook_secret' => env('EMKAN_WEBHOOK_SECRET'),
-            'min_amount' => (float) env('EMKAN_MIN_AMOUNT', 500),
-            'max_amount' => (float) env('EMKAN_MAX_AMOUNT', 0), // 0 = no limit
+            'min_amount' => (float) env('EMKAN_MIN_AMOUNT', 1500),
+            'max_amount' => (float) env('EMKAN_MAX_AMOUNT', 10000),
             'timeout' => 30,
         ],
 
