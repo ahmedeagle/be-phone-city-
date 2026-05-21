@@ -442,7 +442,7 @@ class TamaraGateway extends AbstractPaymentGateway
     public function handleWebhook(array $payload): array
     {
         try {
-            $status = $this->mapTamaraStatus($payload['status'] ?? 'unknown');
+            $status = $this->mapTamaraStatus($payload['order_status'] ?? $payload['status'] ?? 'unknown');
             $paymentId = $payload['order_id'] ?? null;
             $orderNumber = $payload['order_reference_id'] ?? null;
 
