@@ -463,8 +463,11 @@ class EmkanGateway extends AbstractPaymentGateway
                 $order = Order::where('order_number', $orderNumber)->first();
             }
             if (! $order && $orderCode) {
-                // Fallback: locate via stored gateway transaction id
-                $order = Order::where('payment_transaction_id', $orderCode)->first();
+                // Fallback: locate via payment_transactions table
+                $txn = \App\Models\PaymentTransaction::where('transaction_id', $orderCode)
+                    ->where('gateway', 'emkan')
+                    ->first();
+                $order = $txn?->order;
             }
 
             return [
