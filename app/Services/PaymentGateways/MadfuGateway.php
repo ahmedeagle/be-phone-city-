@@ -179,53 +179,47 @@ class MadfuGateway extends AbstractPaymentGateway
 
             $orderDetails = $order->items->map(function ($item) {
                 return [
-                    'ProductName' => Str::limit($item->product->name_en ?? $item->product->name ?? 'Product', 100, ''),
-                    'Quantity' => (int) $item->quantity,
-                    'Price' => round((float) $item->price, 2),
+                    'productName'  => Str::limit($item->product->name_en ?? $item->product->name ?? 'Product', 100, ''),
+                    'SKU'          => (string) ($item->product->sku ?? $item->product->id ?? '1'),
+                    'productImage' => $item->product->main_image ?? '',
+                    'count'        => (int) $item->quantity,
+                    'totalAmount'  => round((float) $item->price, 2),
                 ];
             })->values()->toArray();
 
             if (empty($orderDetails)) {
                 $orderDetails[] = [
-                    'ProductName' => 'Order #' . $order->order_number,
-                    'Quantity' => 1,
-                    'Price' => round((float) $order->total, 2),
+                    'productName'  => 'Order #' . $order->order_number,
+                    'SKU'          => '1',
+                    'productImage' => '',
+                    'count'        => 1,
+                    'totalAmount'  => round((float) $order->total, 2),
                 ];
             }
 
             $successUrl = route('payment.callback', ['order' => $order->id, 'status' => 'success']);
             $failureUrl = route('payment.callback', ['order' => $order->id, 'status' => 'failure']);
-            $webhookUrl = route('payment.webhook', ['gateway' => 'madfu']);
 
             $total = round((float) $order->total, 2);
 
             $payload = [
                 'Order' => [
                     'MerchantReference' => (string) $order->order_number,
-                    'TotalAmount'       => $total,
-                    'Amount'            => $total,   // required by Madfu API
-                    'ActualValue'       => $total,   // required by Madfu API
-                    'PaidAmount'        => 0,
-                    'Vat'               => round((float) ($order->tax ?? 0), 2),
-                    'DeliveryAmount'    => round((float) ($order->shipping ?? 0), 2),
-                    'DiscountAmount'    => round((float) ($order->discount ?? 0), 2),
-                    'Branch'            => (int) $this->getConfig('branch_id', 1),
-                    'OrderDetails'      => $orderDetails,
+                    'Amount'            => $total,
+                    'ActualValue'       => $total,
+                    'Taxes'             => round((float) ($order->tax ?? 0), 2),
                 ],
                 'GuestOrderData' => [
-                    'FullName'       => $user->name ?? 'Customer',
-                    'Email'          => $user->email ?? 'customer@example.com',
-                    'Mobile'         => $phone,  // 9-digit format (5XXXXXXXX) required by Madfu
-                    'CustomerMobile' => $phone,
-                    'City'           => $location?->city?->name_en ?? $location?->city?->name ?? 'Riyadh',
-                    'Address'        => $location?->address ?? 'Saudi Arabia',
-                    'Country'        => 'SA',
+                    'Lang'            => app()->getLocale() === 'ar' ? 'ar' : 'en',
+                    'CustomerName'    => $user->name ?? 'Customer',
+                    'CustomerMobile'  => $phone,  // 9-digit format (5XXXXXXXX)
+                    'ShippingAddress' => $location?->address ?? 'Saudi Arabia',
                 ],
+                'OrderDetails' => $orderDetails,
                 'MerchantUrls' => [
-                    'SuccessUrl' => $successUrl,
-                    'FailUrl' => $failureUrl,
-                    'CancelUrl' => $failureUrl,
-                    'WebhookUrl' => $webhookUrl,
+                    'Success' => $successUrl,
+                    'Failure' => $failureUrl,
+                    'Cancel'  => $failureUrl,
                 ],
             ];
 
