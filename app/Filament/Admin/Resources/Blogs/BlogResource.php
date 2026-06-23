@@ -98,7 +98,7 @@ class BlogResource extends Resource
                             ->default(true)
                             ->label('السماح بالتعليقات'),
                     ])
-                    ->columns(2)
+                    ->columns(['default' => 1, 'sm' => 2])
                     ->collapsed(),
 
                 Section::make('العنوان')
@@ -112,7 +112,7 @@ class BlogResource extends Resource
                             ->label('العنوان بالإنجليزية')
                             ->maxLength(255),
                     ])
-                    ->columns(2)
+                    ->columns(['default' => 1, 'sm' => 2])
                     ->collapsed(),
 
                 Section::make('الوصف القصير')
@@ -126,7 +126,7 @@ class BlogResource extends Resource
                             ->label('الوصف القصير بالإنجليزية')
                             ->maxLength(500),
                     ])
-                    ->columns(2)
+                    ->columns(['default' => 1, 'sm' => 2])
                     ->collapsed(),
 
                 Section::make('المحتوى بالعربية')
@@ -168,7 +168,7 @@ class BlogResource extends Resource
                             ->label('كلمات مفتاحية بالإنجليزية')
                             ->helperText('افصل بين الكلمات بفاصلة'),
                     ])
-                    ->columns(2)
+                    ->columns(['default' => 1, 'sm' => 2])
                     ->collapsed(),
             ]);
     }
