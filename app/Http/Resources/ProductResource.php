@@ -2,7 +2,6 @@
 
 namespace App\Http\Resources;
 
-use App\Models\PaymentMethod;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Auth;
@@ -199,34 +198,13 @@ class ProductResource extends JsonResource
     }
 
     /**
-     * Get payment methods with calculated fees
-     * When product is in a bank transfer category, only bank transfer payment methods are shown
+     * Get payment methods available for this product.
+     * Every department offers every active method, except the phones subtree,
+     * which hides Madfu. See Product::paymentMethodsQuery().
      */
     protected function getPaymentMethods(float $finalPrice): array
     {
-        $query = PaymentMethod::active();
-
-        // If product is in a bank transfer category, show only bank transfer payment methods
-        if ($this->isInBankTransferCategory()) {
-            $query->bankTransfer();
-        } elseif ($this->isInMadfuCategory()) {
-            // If product is in a Madfu-only category, show only Madfu payment methods
-            $query->madfu();
-        } elseif ($this->isInInstallmentCategory()) {
-            // Installment-only categories exclude Madfu unless the category is explicitly Madfu-enabled.
-            $query->installmentOnly()->where('is_madfu', false);
-        } else {
-            // Standard category: exclude bank transfer, madfu, and (if product doesn't support it) installment.
-            $query->where('is_bank_transfer', false)
-                  ->where('is_madfu', false);
-
-            // If product does not support installment, exclude installment payment methods.
-            if (! $this->is_installment) {
-                $query->where('is_installment', false);
-            }
-        }
-
-        return $query->get()->map(function ($method) {
+        return $this->paymentMethodsQuery()->get()->map(function ($method) {
             return [
                 'id' => $method->id,
                 'name' => $method->name,
@@ -235,6 +213,8 @@ class ProductResource extends JsonResource
                     : asset('images/payment-placeholder.jpg'),
                 'is_bank_transfer' => (bool) $method->is_bank_transfer,
                 'is_installment' => (bool) $method->is_installment,
+                'is_madfu' => (bool) $method->is_madfu,
+                'discount_percentage' => (float) $method->discount_percentage,
                 'gateway' => $method->gateway ?? null,
             ];
         })->toArray();

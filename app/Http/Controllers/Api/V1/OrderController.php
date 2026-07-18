@@ -133,17 +133,15 @@ class OrderController extends Controller
             );
         }
 
-        // Check if payment method is installment and if all cart items support it
-        if ($paymentMethod->is_installment) {
-            $allSupportInstallment = $cartItems->every(function ($item) use ($paymentMethod) {
-                return $paymentMethod->is_madfu
-                    ? $item->product->supportsMadfu()
-                    : $item->product->supportsInstallment();
+        // Madfu is unavailable for the phones subtree; every other method is open to all departments.
+        if ($paymentMethod->is_madfu) {
+            $allSupportMadfu = $cartItems->every(function ($item) {
+                return $item->product->supportsMadfu();
             });
 
-            if (! $allSupportInstallment) {
+            if (! $allSupportMadfu) {
                 return Response::error(
-                    __('One or more items in your cart do not support installment payments'),
+                    __('One or more items in your cart do not support Madfu payments'),
                     null,
                     422
                 );
@@ -205,6 +203,7 @@ class OrderController extends Controller
             'tax' => $calculations['tax'],
             'points_discount' => $calculations['points_discount'],
             'points_to_consume' => $calculations['points_to_consume'],
+            'payment_discount' => $calculations['payment_discount'],
             'total' => $calculations['total'],
             'status' => Order::STATUS_PENDING,
             'shipping_company_id' => $request->shipping_company_id,
@@ -350,16 +349,13 @@ class OrderController extends Controller
 
                 if ($hasBankTransferCategoryProduct && ! $paymentMethod->is_bank_transfer) {
                     $errors[] = __('One or more items in your cart require bank transfer payment only');
-                } elseif ($paymentMethod->is_installment) {
-                    // Check if all cart items support installment
-                    $allSupportInstallment = $cartItems->every(function ($item) use ($paymentMethod) {
-                        return $paymentMethod->is_madfu
-                            ? $item->product->supportsMadfu()
-                            : $item->product->supportsInstallment();
+                } elseif ($paymentMethod->is_madfu) {
+                    $allSupportMadfu = $cartItems->every(function ($item) {
+                        return $item->product->supportsMadfu();
                     });
 
-                    if (! $allSupportInstallment) {
-                        $errors[] = __('One or more items in your cart do not support installment payments');
+                    if (! $allSupportMadfu) {
+                        $errors[] = __('One or more items in your cart do not support Madfu payments');
                     }
                 }
             }
@@ -676,9 +672,12 @@ class OrderController extends Controller
                         ? asset('storage/'.$paymentMethod->image)
                         : null,
                     'status' => $paymentMethod->status,
+                    'discount_percentage' => (float) $paymentMethod->discount_percentage,
                 ] : null,
                 'points_discount' => number_format($calculations['points_discount'], 2),
                 'points_info' => $pointsInfo,
+                'payment_discount' => number_format($calculations['payment_discount'], 2),
+                'payment_discount_percentage' => $calculations['payment_discount_percentage'],
                 'total' => number_format($calculations['total'], 2),
             ],
             'delivery_method' => $request->delivery_method,

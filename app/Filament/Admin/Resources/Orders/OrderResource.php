@@ -505,6 +505,15 @@ class OrderResource extends Resource
                             ->color('warning')
                             ->size('lg')
                             ->visible(fn ($record) => $record->points_discount > 0),
+                        \Filament\Infolists\Components\TextEntry::make('payment_discount')
+                            ->label('خصم وسيلة الدفع')
+                            ->money('SAR')
+                            ->placeholder('0.00 ر.س')
+                            ->icon('heroicon-o-credit-card')
+                            ->iconColor('success')
+                            ->color('success')
+                            ->size('lg')
+                            ->visible(fn ($record) => $record->payment_discount > 0),
                         \Filament\Infolists\Components\TextEntry::make('total')
                             ->label('الإجمالي النهائي')
                             ->money('SAR')

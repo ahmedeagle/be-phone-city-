@@ -58,24 +58,9 @@ class CartController extends Controller
 
         if ($hasBankTransferCategoryProduct) {
             $paymentMethodsQuery->bankTransfer();
-        } else {
-            // Check if any product in cart does not support installments
-            $allSupportInstallment = $cartItems->every(function ($item) {
-                return $item->product->supportsInstallment();
-            });
-            $allSupportMadfu = $cartItems->every(function ($item) {
-                return $item->product->supportsMadfu();
-            });
-
-            $paymentMethodsQuery->where(function ($q) use ($allSupportInstallment, $allSupportMadfu) {
-                $q->where('is_installment', false);
-                if ($allSupportMadfu) {
-                    $q->orWhere('is_madfu', true);
-                }
-                if ($allSupportInstallment) {
-                    $q->orWhere('is_installment', true);
-                }
-            });
+        } elseif ($cartItems->contains(fn ($item) => $item->product->excludesMadfu())) {
+            // Madfu is unavailable for the phones subtree, so a mixed cart drops it.
+            $paymentMethodsQuery->where('is_madfu', false);
         }
 
         $paymentMethods = $paymentMethodsQuery->get();
@@ -110,6 +95,8 @@ class CartController extends Controller
                         'image' => $method->image ? asset('storage/'.$method->image) : null,
                         'is_bank_transfer' => (bool) $method->is_bank_transfer,
                         'is_installment' => (bool) $method->is_installment,
+                        'is_madfu' => (bool) $method->is_madfu,
+                        'discount_percentage' => (float) $method->discount_percentage,
                         'gateway' => $method->gateway ?? null,
                     ];
                 }),

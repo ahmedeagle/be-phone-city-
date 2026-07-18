@@ -134,14 +134,22 @@ class OrderCalculationService
         $vipTierLabelAr = $vipDiscountData['tier_label_ar'];
         $vipTierLabelEn = $vipDiscountData['tier_label_en'];
 
+        // Calculate payment method discount (e.g. 6% for bank transfer, which
+        // costs us no gateway fees). Unlike the other discounts this one is
+        // charged on what is actually left to pay for the goods, so it cannot
+        // stack the order further into negative territory.
+        $paymentDiscountBase = max(0, $subtotal - $discountAmount - $vipDiscount - $pointsDiscount);
+        $paymentDiscountPercentage = (float) ($paymentMethod?->discount_percentage ?? 0);
+        $paymentDiscount = round($paymentDiscountBase * ($paymentDiscountPercentage / 100), 2);
+
         // Calculate tax (inclusive)
         // Tax is already included in product prices, so it's part of the subtotal
         // We calculate it from the total items amount after discounts for reporting
-        $taxableItemsAmount = max(0, $subtotal - $discountAmount - $vipDiscount - $pointsDiscount);
+        $taxableItemsAmount = max(0, $paymentDiscountBase - $paymentDiscount);
         $taxAmount = $this->calculateTax($taxableItemsAmount, $taxPercentage);
 
         // Calculate final total (tax is already in subtotal)
-        $total = $subtotal - $discountAmount - $vipDiscount + $shippingAmount - $pointsDiscount;
+        $total = $subtotal - $discountAmount - $vipDiscount + $shippingAmount - $pointsDiscount - $paymentDiscount;
         $total = max(0, $total); // Ensure total is not negative
 
         return [
@@ -159,6 +167,8 @@ class OrderCalculationService
             'tax' => $taxAmount,
             'tax_percentage' => $taxPercentage,
             'payment_method_fee' => 0,
+            'payment_discount' => $paymentDiscount,
+            'payment_discount_percentage' => $paymentDiscountPercentage,
             'points_discount' => $pointsDiscount,
             'points_to_consume' => $pointsData['points_to_consume'],
             'available_points' => $pointsData['available_points'],

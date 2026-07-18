@@ -43,6 +43,7 @@ class OrderResource extends JsonResource
             // Tax is included in subtotal, hiding it from general API view as per request
             // 'tax' => (float) $this->tax,
             'points_discount' => (float) $this->points_discount,
+            'payment_discount' => (float) ($this->payment_discount ?? 0),
             'total' => (float) $this->total,
             'status' => $this->status,
             'payment_status' => $this->payment_status,
