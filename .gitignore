@@ -22,7 +22,3 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
-
-# Integration docs containing live gateway credentials — keep out of the repo
-MADFU_INTEGRATION.md
-docs/OTO_PRODUCTION_TEST_RESULTS.md

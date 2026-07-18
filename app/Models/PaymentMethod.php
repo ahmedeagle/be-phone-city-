@@ -22,13 +22,11 @@ class PaymentMethod extends Model
         'is_bank_transfer',
         'is_madfu',
         'processing_fee_percentage',
-        'discount_percentage',
         'gateway',
     ];
 
     protected $casts = [
         'processing_fee_percentage' => 'decimal:2',
-        'discount_percentage' => 'decimal:2',
         'is_installment' => 'boolean',
         'is_bank_transfer' => 'boolean',
         'is_madfu' => 'boolean',

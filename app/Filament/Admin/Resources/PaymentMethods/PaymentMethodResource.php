@@ -116,17 +116,6 @@ class PaymentMethodResource extends Resource
                 Toggle::make('is_madfu')
                     ->label('مدفوع (Madfu)')
                     ->default(false),
-
-                TextInput::make('discount_percentage')
-                    ->label('نسبة الخصم عند الدفع بهذه الوسيلة (%)')
-                    ->helperText('يُخصم من قيمة المنتجات بعد باقي الخصومات. اتركه 0 لعدم وجود خصم.')
-                    ->numeric()
-                    ->minValue(0)
-                    ->maxValue(100)
-                    ->step(0.01)
-                    ->suffix('%')
-                    ->default(0)
-                    ->required(),
             ]);
     }
 

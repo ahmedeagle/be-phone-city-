@@ -116,48 +116,39 @@ class Product extends Model
     }
 
     /**
-     * Whether Madfu must be hidden for this product, i.e. it sits in the
-     * smart-devices (phones) subtree. Every other department offers Madfu.
+     * Check if product is in a category that requires installment only
      */
-    public function excludesMadfu(): bool
+    public function isInInstallmentCategory(): bool
     {
-        $excludedIds = Category::madfuExcludedIds();
+        return $this->categories()->where('is_installment', true)->exists();
+    }
 
-        if (! $excludedIds) {
-            return false;
-        }
+    /**
+     * Check if product is in a category that requires Madfu only
+     */
+    public function isInMadfuCategory(): bool
+    {
+        return $this->categories()->where('is_madfu', true)->exists();
+    }
 
-        return $this->categories()
-            ->whereIn('categories.id', $excludedIds)
-            ->exists();
+    /**
+     * Whether the product supports installment payments.
+     * Returns true when either the product flag is on OR the product is in
+     * an installment-enabled category.
+     */
+    public function supportsInstallment(): bool
+    {
+        return (bool) $this->is_installment || $this->isInInstallmentCategory();
     }
 
     /**
      * Whether the product supports Madfu BNPL.
+     * Returns true when the product is in a Madfu-enabled category, or when
+     * the product itself is marked installment-eligible.
      */
     public function supportsMadfu(): bool
     {
-        return ! $this->excludesMadfu();
-    }
-
-    /**
-     * Active payment methods available for this product.
-     *
-     * Every department offers everything; the only carve-outs are a
-     * bank-transfer-only department (opt-in, off by default) and the
-     * phones subtree, which hides Madfu.
-     */
-    public function paymentMethodsQuery()
-    {
-        $query = PaymentMethod::active();
-
-        if ($this->isInBankTransferCategory()) {
-            $query->bankTransfer();
-        } elseif ($this->excludesMadfu()) {
-            $query->where('is_madfu', false);
-        }
-
-        return $query;
+        return $this->isInMadfuCategory() || (bool) $this->is_installment;
     }
 
     public function options()

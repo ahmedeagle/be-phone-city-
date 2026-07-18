@@ -98,14 +98,16 @@ class CategoryResource extends Resource
                     ->label('علامة تجارية')
                     ->default(false),
 
-                Toggle::make('excludes_madfu')
-                    ->label('إخفاء مدفوع في هذا القسم')
-                    ->helperText('يسري على القسم وجميع الأقسام الفرعية التابعة له. باقي وسائل الدفع تظهر في كل الأقسام.')
-                    ->default(false),
-
                 Toggle::make('is_bank_transfer')
                     ->label('تحويل بنكي فقط')
-                    ->helperText('يقصر هذا القسم على التحويل البنكي ويخفي باقي وسائل الدفع.')
+                    ->default(false),
+
+                Toggle::make('is_installment')
+                    ->label('قسم تقسيط اموال وتابي')
+                    ->default(false),
+
+                Toggle::make('is_madfu')
+                    ->label('قسم تقسيط مدفوع')
                     ->default(false),
             ]);
     }
@@ -131,9 +133,12 @@ class CategoryResource extends Resource
                 TextEntry::make('is_bank_transfer')
                     ->state(fn ($record) => $record->is_bank_transfer ? 'نعم' : 'لا')
                     ->label('تحويل بنكي فقط'),
-                TextEntry::make('excludes_madfu')
-                    ->state(fn ($record) => $record->excludes_madfu ? 'نعم' : 'لا')
-                    ->label('إخفاء مدفوع في هذا القسم'),
+                TextEntry::make('is_installment')
+                    ->state(fn ($record) => $record->is_installment ? 'نعم' : 'لا')
+                    ->label('قسم تقسيط اموال وتابي'),
+                TextEntry::make('is_madfu')
+                    ->state(fn ($record) => $record->is_madfu ? 'نعم' : 'لا')
+                    ->label('قسم تقسيط مدفوع'),
                 TextEntry::make('children_count')
                     ->state(fn ($record) => $record->children()->count())
                     ->label('عدد التصنيفات الفرعية'),
@@ -179,10 +184,14 @@ class CategoryResource extends Resource
                     ->boolean()
                     ->sortable()
                     ->label('تحويل بنكي فقط'),
-                IconColumn::make('excludes_madfu')
+                IconColumn::make('is_installment')
                     ->boolean()
                     ->sortable()
-                    ->label('إخفاء مدفوع'),
+                    ->label('قسم تقسيط اموال وتابي'),
+                IconColumn::make('is_madfu')
+                    ->boolean()
+                    ->sortable()
+                    ->label('قسم تقسيط مدفوع'),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
