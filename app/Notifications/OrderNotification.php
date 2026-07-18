@@ -77,6 +77,15 @@ class OrderNotification extends Notification implements ShouldQueue
                 $message->line(__('Points Discount') . ': -' . number_format($this->order->points_discount, 2) . ' SAR');
             }
 
+            if (($this->order->payment_discount ?? 0) > 0) {
+                $methodLabel = $this->order->paymentMethod?->name;
+                $message->line(
+                    __('Payment Method Discount')
+                    . ($methodLabel ? ' (' . $methodLabel . ')' : '')
+                    . ': -' . number_format($this->order->payment_discount, 2) . ' SAR'
+                );
+            }
+
             if ($this->order->shipping > 0) {
                 $message->line(__('Shipping') . ': ' . number_format($this->order->shipping, 2) . ' SAR');
             }

@@ -435,6 +435,17 @@
                         <td>-{{ number_format($order->points_discount, 2) }} ر.س</td>
                     </tr>
                 @endif
+                @if (($order->payment_discount ?? 0) > 0)
+                    <tr class="discount-row">
+                        <td>
+                            خصم وسيلة الدفع
+                            @if ($order->paymentMethod)
+                                ({{ $order->paymentMethod->name }})
+                            @endif
+                        </td>
+                        <td>-{{ number_format($order->payment_discount, 2) }} ر.س</td>
+                    </tr>
+                @endif
                 <tr class="{{ $order->shipping > 0 ? '' : 'shipping-free' }}">
                     <td>رسوم الشحن</td>
                     <td>{{ $order->shipping > 0 ? number_format($order->shipping, 2) . ' ر.س' : 'مجاني' }}</td>

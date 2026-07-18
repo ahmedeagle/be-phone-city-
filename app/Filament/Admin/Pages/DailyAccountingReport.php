@@ -73,7 +73,8 @@ class DailyAccountingReport extends Page implements HasForms
         $totalDiscount = $paidOrders->sum('discount');
         $totalVipDiscount = $paidOrders->sum('vip_discount');
         $totalPointsDiscount = $paidOrders->sum('points_discount');
-        $totalAllDiscounts = $totalDiscount + $totalVipDiscount + $totalPointsDiscount;
+        $totalPaymentDiscount = $paidOrders->sum('payment_discount');
+        $totalAllDiscounts = $totalDiscount + $totalVipDiscount + $totalPointsDiscount + $totalPaymentDiscount;
         $totalShipping = $paidOrders->sum('shipping');
         $totalTax = $paidOrders->sum('tax');
 
@@ -109,6 +110,18 @@ class DailyAccountingReport extends Page implements HasForms
             'count' => $pointsOrders->count(),
             'total_discount' => $pointsOrders->sum('points_discount'),
         ];
+
+        // Payment method discount usage, e.g. the 6% granted on bank transfer
+        $paymentDiscountOrders = $paidOrders->filter(fn ($o) => ($o->payment_discount ?? 0) > 0);
+        $paymentDiscountUsage = $paymentDiscountOrders
+            ->groupBy('payment_method_id')
+            ->map(function ($group) {
+                return [
+                    'method' => $group->first()->paymentMethod?->name ?? '—',
+                    'count' => $group->count(),
+                    'total_discount' => $group->sum('payment_discount'),
+                ];
+            })->values()->toArray();
 
         // Orders by status
         $statusCounts = [];
@@ -200,12 +213,14 @@ class DailyAccountingReport extends Page implements HasForms
             'totalDiscount' => $totalDiscount,
             'totalVipDiscount' => $totalVipDiscount,
             'totalPointsDiscount' => $totalPointsDiscount,
+            'totalPaymentDiscount' => $totalPaymentDiscount,
             'totalAllDiscounts' => $totalAllDiscounts,
             'totalShipping' => $totalShipping,
             'totalTax' => $totalTax,
             'couponUsage' => $couponUsage,
             'vipUsage' => $vipUsage,
             'pointsUsage' => $pointsUsage,
+            'paymentDiscountUsage' => $paymentDiscountUsage,
             'statusCounts' => $statusCounts,
             'paymentStatusCounts' => $paymentStatusCounts,
             'gatewayBreakdown' => $gatewayBreakdown,

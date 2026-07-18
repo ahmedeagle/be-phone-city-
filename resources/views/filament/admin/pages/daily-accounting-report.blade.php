@@ -323,6 +323,12 @@
                         <td class="text-left c-red" style="font-weight:600">-{{ number_format($data['totalPointsDiscount'], 2) }} ر.س</td>
                     </tr>
                     @endif
+                    @if(($data['totalPaymentDiscount'] ?? 0) > 0)
+                    <tr>
+                        <td>(-) خصم وسيلة الدفع</td>
+                        <td class="text-left c-red" style="font-weight:600">-{{ number_format($data['totalPaymentDiscount'], 2) }} ر.س</td>
+                    </tr>
+                    @endif
                     <tr style="border-top:1px solid #e5e7eb">
                         <td>(+) رسوم الشحن</td>
                         <td class="text-left" style="font-weight:600">{{ number_format($data['totalShipping'], 2) }} ر.س</td>
@@ -433,6 +439,20 @@
                         </div>
                     </div>
                     @endif
+
+                    {{-- Payment method discount, e.g. the 6% on bank transfer --}}
+                    @foreach(($data['paymentDiscountUsage'] ?? []) as $pd)
+                    <div class="rpt-discount-section">
+                        <div class="rpt-discount-header">
+                            <span class="rpt-dot" style="background:#16a34a"></span>
+                            <span>خصم وسيلة الدفع — {{ $pd['method'] }}</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;align-items:center">
+                            <span style="font-size:13px;color:#6b7280">{{ $pd['count'] }} طلب</span>
+                            <span class="c-red" style="font-weight:700">-{{ number_format($pd['total_discount'], 2) }} ر.س</span>
+                        </div>
+                    </div>
+                    @endforeach
 
                     {{-- Discounts Total --}}
                     <div class="rpt-total-bar">
