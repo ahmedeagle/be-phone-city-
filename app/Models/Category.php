@@ -20,16 +20,12 @@ class Category extends Model
         'icon',
         'parent_id',
         'is_trademark',
-        'is_bank_transfer',
-        'is_installment',
-        'is_madfu',
+        'excludes_madfu',
     ];
 
     protected $casts = [
         'is_trademark' => 'boolean',
-        'is_bank_transfer' => 'boolean',
-        'is_installment' => 'boolean',
-        'is_madfu' => 'boolean',
+        'excludes_madfu' => 'boolean',
     ];
 
     protected $appends = ['name'];
@@ -54,6 +50,40 @@ class Category extends Model
     public function products()
     {
         return $this->belongsToMany(Product::class);
+    }
+
+    /**
+     * IDs of every category where Madfu must not be offered: the ones flagged
+     * excludes_madfu plus their whole subtree, so a brand added under a flagged
+     * department inherits the exclusion without being flagged itself.
+     *
+     * Resolved in one query and memoised for the request; the table is tiny.
+     */
+    public static function madfuExcludedIds(): array
+    {
+        return once(function () {
+            $all = static::query()->get(['id', 'parent_id', 'excludes_madfu']);
+            $childrenOf = $all->groupBy('parent_id');
+
+            $excluded = [];
+            $pending = $all->where('excludes_madfu', true)->pluck('id')->all();
+
+            while ($pending) {
+                $id = array_pop($pending);
+
+                // Guard against self-parented and cyclic rows, which exist in the data.
+                if (isset($excluded[$id])) {
+                    continue;
+                }
+                $excluded[$id] = true;
+
+                foreach ($childrenOf->get($id, collect()) as $child) {
+                    $pending[] = $child->id;
+                }
+            }
+
+            return array_keys($excluded);
+        });
     }
 
     public function images()

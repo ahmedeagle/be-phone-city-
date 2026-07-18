@@ -108,47 +108,45 @@ class Product extends Model
     }
 
     /**
-     * Check if product is in a category that requires bank transfer only
+     * Whether Madfu must be hidden for this product, i.e. it sits in the
+     * smart-devices (phones) subtree. Every other department offers Madfu.
      */
-    public function isInBankTransferCategory(): bool
+    public function excludesMadfu(): bool
     {
-        return $this->categories()->where('is_bank_transfer', true)->exists();
-    }
+        $excludedIds = Category::madfuExcludedIds();
 
-    /**
-     * Check if product is in a category that requires installment only
-     */
-    public function isInInstallmentCategory(): bool
-    {
-        return $this->categories()->where('is_installment', true)->exists();
-    }
+        if (! $excludedIds) {
+            return false;
+        }
 
-    /**
-     * Check if product is in a category that requires Madfu only
-     */
-    public function isInMadfuCategory(): bool
-    {
-        return $this->categories()->where('is_madfu', true)->exists();
-    }
-
-    /**
-     * Whether the product supports installment payments.
-     * Returns true when either the product flag is on OR the product is in
-     * an installment-enabled category.
-     */
-    public function supportsInstallment(): bool
-    {
-        return (bool) $this->is_installment || $this->isInInstallmentCategory();
+        return $this->categories()
+            ->whereIn('categories.id', $excludedIds)
+            ->exists();
     }
 
     /**
      * Whether the product supports Madfu BNPL.
-     * Returns true when the product is in a Madfu-enabled category, or when
-     * the product itself is marked installment-eligible.
      */
     public function supportsMadfu(): bool
     {
-        return $this->isInMadfuCategory() || (bool) $this->is_installment;
+        return ! $this->excludesMadfu();
+    }
+
+    /**
+     * Active payment methods available for this product.
+     *
+     * Every department offers every active payment method. The single
+     * exception is Madfu, which is hidden for the phones subtree.
+     */
+    public function paymentMethodsQuery()
+    {
+        $query = PaymentMethod::active();
+
+        if ($this->excludesMadfu()) {
+            $query->where('is_madfu', false);
+        }
+
+        return $query;
     }
 
     public function options()

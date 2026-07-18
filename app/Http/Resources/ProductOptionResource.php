@@ -2,7 +2,6 @@
 
 namespace App\Http\Resources;
 
-use App\Models\PaymentMethod;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -59,7 +58,8 @@ class ProductOptionResource extends JsonResource
     }
 
     /**
-     * Get payment methods with bank transfer / installment filtering based on product's category
+     * Get payment methods available for this option's product.
+     * See Product::paymentMethodsQuery() for the department rules.
      */
     protected function getPaymentMethods(): array
     {
@@ -68,31 +68,14 @@ class ProductOptionResource extends JsonResource
             return [];
         }
 
-        $query = PaymentMethod::active();
-
-        if ($product->isInBankTransferCategory()) {
-            $query->bankTransfer();
-        } elseif ($product->isInMadfuCategory()) {
-            $query->madfu();
-        } elseif ($product->isInInstallmentCategory()) {
-            $query->installmentOnly()->where('is_madfu', false);
-        } else {
-            // Standard category: exclude bank transfer, madfu, and (if product doesn't support it) installment.
-            $query->where('is_bank_transfer', false)
-                  ->where('is_madfu', false);
-
-            if (! $product->is_installment) {
-                $query->where('is_installment', false);
-            }
-        }
-
-        return $query->get()->map(function ($method) {
+        return $product->paymentMethodsQuery()->get()->map(function ($method) {
             return [
                 'id' => $method->id,
                 'name' => $method->name,
                 'image' => $method->image ? asset('storage/'.$method->image) : asset('images/payment-placeholder.jpg'),
                 'gateway' => $method->gateway ?? null,
                 'is_madfu' => (bool) $method->is_madfu,
+                'discount_percentage' => (float) $method->discount_percentage,
             ];
         })->values()->toArray();
     }

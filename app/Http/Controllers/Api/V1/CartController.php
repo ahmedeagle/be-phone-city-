@@ -51,31 +51,10 @@ class CartController extends Controller
 
         $paymentMethodsQuery = PaymentMethod::active();
 
-        // If any product is in a bank transfer category, restrict to bank transfer payment methods only
-        $hasBankTransferCategoryProduct = $cartItems->contains(function ($item) {
-            return $item->product->categories->contains('is_bank_transfer', true);
-        });
-
-        if ($hasBankTransferCategoryProduct) {
-            $paymentMethodsQuery->bankTransfer();
-        } else {
-            // Check if any product in cart does not support installments
-            $allSupportInstallment = $cartItems->every(function ($item) {
-                return $item->product->supportsInstallment();
-            });
-            $allSupportMadfu = $cartItems->every(function ($item) {
-                return $item->product->supportsMadfu();
-            });
-
-            $paymentMethodsQuery->where(function ($q) use ($allSupportInstallment, $allSupportMadfu) {
-                $q->where('is_installment', false);
-                if ($allSupportMadfu) {
-                    $q->orWhere('is_madfu', true);
-                }
-                if ($allSupportInstallment) {
-                    $q->orWhere('is_installment', true);
-                }
-            });
+        // Every department offers every active method; Madfu is unavailable for
+        // the phones subtree, so a cart containing one of those drops it.
+        if ($cartItems->contains(fn ($item) => $item->product->excludesMadfu())) {
+            $paymentMethodsQuery->where('is_madfu', false);
         }
 
         $paymentMethods = $paymentMethodsQuery->get();
@@ -110,6 +89,8 @@ class CartController extends Controller
                         'image' => $method->image ? asset('storage/'.$method->image) : null,
                         'is_bank_transfer' => (bool) $method->is_bank_transfer,
                         'is_installment' => (bool) $method->is_installment,
+                        'is_madfu' => (bool) $method->is_madfu,
+                        'discount_percentage' => (float) $method->discount_percentage,
                         'gateway' => $method->gateway ?? null,
                     ];
                 }),

@@ -17,14 +17,17 @@ class CategoryFactory extends Factory
             'image' => null,
             'icon' => null,
             'parent_id' => null,
-            'is_bank_transfer' => false,
+            'excludes_madfu' => false,
         ];
     }
 
-    public function bankTransfer(): static
+    /**
+     * A department where Madfu is not offered (the phones subtree).
+     */
+    public function excludesMadfu(): static
     {
         return $this->state(fn (array $attributes) => [
-            'is_bank_transfer' => true,
+            'excludes_madfu' => true,
         ]);
     }
 }
