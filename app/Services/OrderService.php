@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Service class for handling order creation and management
@@ -88,7 +89,7 @@ class OrderService
      */
     protected function createOrder(array $orderData): Order
     {
-        return Order::create([
+        $attributes = [
             'user_id' => $orderData['user_id'] ?? Auth::id(),
             'notes' => $orderData['notes'] ?? null,
             'location_id' => $orderData['location_id'] ?? null,
@@ -103,11 +104,18 @@ class OrderService
             'shipping' => $orderData['shipping'] ?? 0,
             'tax' => $orderData['tax'] ?? 0,
             'points_discount' => $orderData['points_discount'] ?? 0,
-            'payment_discount' => $orderData['payment_discount'] ?? 0,
             'total' => $orderData['total'],
             'status' => $orderData['status'] ?? Order::STATUS_PENDING,
             'shipping_company_id' => $orderData['shipping_company_id'] ?? null,
-        ]);
+        ];
+
+        // Only written once its migration has run, so this code is safe to
+        // deploy before the column exists.
+        if (Schema::hasColumn('orders', 'payment_discount')) {
+            $attributes['payment_discount'] = $orderData['payment_discount'] ?? 0;
+        }
+
+        return Order::create($attributes);
     }
 
     /**
