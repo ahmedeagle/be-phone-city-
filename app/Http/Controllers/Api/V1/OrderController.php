@@ -212,6 +212,8 @@ class OrderController extends Controller
             $order = $result['order'];
             $paymentData = $result['paymentData'];
 
+            app(\App\Services\TikTokService::class)->capture($order, $request);
+
             // Prepare response with order and payment data
             $responseData = [
                 'order' => new OrderResource($order->fresh(['paymentMethod', 'location', 'branch', 'items'])),

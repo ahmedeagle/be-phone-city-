@@ -35,6 +35,11 @@ class OrderObserver
      */
     public function updated(Order $order): void
     {
+        if ($order->isDirty('payment_status') && $order->payment_status === Order::PAYMENT_STATUS_PAID) {
+            \Illuminate\Support\Facades\DB::afterCommit(function () use ($order) {
+                app(\App\Services\TikTokService::class)->recordPaid($order);
+            });
+        }
         $statusChangedByUs = false;
 
         // Check if payment status changed to PAID

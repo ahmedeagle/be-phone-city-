@@ -8,6 +8,8 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+Schedule::command('tiktok:send-purchases')->everyMinute()->withoutOverlapping();
+
 // Sync OTO shipment statuses every 15 minutes
 Schedule::command('oto:sync-shipments')->everyFifteenMinutes();
 

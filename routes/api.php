@@ -214,6 +214,8 @@ Route::prefix('v1')->namespace('App\Http\Controllers\Api\V1')->group(function ()
         });
 
         // Orders routes
+        Route::delete('marketing/tiktok/consent', [\App\Http\Controllers\Api\V1\MarketingConsentController::class, 'destroy']);
+
         Route::prefix('orders')->group(function () {
             Route::get('/', [OrderController::class, 'index']);
             Route::post('/preview', [OrderController::class, 'preview']);
