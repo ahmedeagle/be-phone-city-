@@ -31,6 +31,24 @@ class TikTokPurchaseTest extends TestCase
         (require database_path('migrations/2026_10_05_000001_create_tiktok_purchases_table.php'))->up();
     }
 
+    public function test_model_queries_the_table_created_by_the_migration(): void
+    {
+        $this->assertSame('tiktok_purchases', (new TikTokPurchase)->getTable());
+        $this->assertTrue(Schema::hasTable((new TikTokPurchase)->getTable()));
+        $this->assertSame(0, TikTokPurchase::count());
+    }
+
+    public function test_server_test_code_is_included_in_purchase_payload(): void
+    {
+        config(['tiktok.test_event_code' => 'TEST03207']);
+        Http::fake(['*' => Http::response(['code' => 0])]);
+        $service = app(TikTokService::class);
+        $service->capture($this->order('paid'), $this->request());
+        $this->assertTrue($service->send(TikTokPurchase::firstOrFail()));
+        Http::assertSent(fn ($request) => $request['test_event_code'] === 'TEST03207'
+            && $request['data'][0]['event'] === 'Purchase');
+    }
+
     private function order(string $payment = 'pending', string $status = 'pending'): Order
     {
         $id = DB::table('orders')->insertGetId(['user_id' => 1, 'status' => $status,
