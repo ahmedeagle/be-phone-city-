@@ -31,6 +31,12 @@ class SendAbandonedProductViewOffers extends Command
      */
     public function handle()
     {
+        if (!config('services.whatsapp.enabled', false)) {
+            $this->info('WhatsApp is disabled; no offers queued.');
+
+            return Command::SUCCESS;
+        }
+
         $hours = (int) $this->option('hours');
         $dryRun = $this->option('dry-run');
 

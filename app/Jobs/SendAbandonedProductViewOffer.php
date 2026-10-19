@@ -32,6 +32,11 @@ class SendAbandonedProductViewOffer implements ShouldQueue
      */
     public function handle(WhatsAppService $whatsAppService): void
     {
+        // Also skip reminders queued before WhatsApp was disabled.
+        if (!config('services.whatsapp.enabled', false)) {
+            return;
+        }
+
         // Check if view still exists and hasn't been purchased
         $productView = $this->productView->fresh(['user', 'product']);
 

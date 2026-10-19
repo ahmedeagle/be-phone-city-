@@ -19,6 +19,10 @@ class WhatsAppService
      */
     public function sendMessage(User $user, string $message): bool
     {
+        if (!config('services.whatsapp.enabled', false)) {
+            return false;
+        }
+
         // Get full phone number with country code for chatId
         $phoneData = $this->formatPhoneNumberForHypersender($user->phone);
 
@@ -110,6 +114,10 @@ class WhatsAppService
      */
     public function sendProductOffer(User $user, Product $product, ?Offer $offer = null): bool
     {
+        if (!config('services.whatsapp.enabled', false)) {
+            return false;
+        }
+
         $message = $this->buildOfferMessage($user, $product, $offer);
         return $this->sendMessage($user, $message);
     }
@@ -337,6 +345,10 @@ class WhatsAppService
      */
     public function checkQueuedRequestStatus(string $queuedRequestLink, string $apiToken): ?array
     {
+        if (!config('services.whatsapp.enabled', false)) {
+            return null;
+        }
+
         try {
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $apiToken,

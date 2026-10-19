@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Send abandoned product view offers every hour
         // Checks for views older than 1-2 hours and sends WhatsApp offers
         $schedule->command('product-views:send-offers --hours=1')
+            ->when(fn () => (bool) config('services.whatsapp.enabled', false))
             ->hourly()
             ->withoutOverlapping()
             ->runInBackground();
