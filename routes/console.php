@@ -10,6 +10,9 @@ Artisan::command('inspire', function () {
 
 Schedule::command('tiktok:send-purchases')->everyMinute()->withoutOverlapping();
 
+Schedule::command('tiktok:generate-catalog')->hourly()->withoutOverlapping()
+    ->when(fn () => (bool) config('tiktok.catalog_enabled'));
+
 // Sync OTO shipment statuses every 15 minutes
 Schedule::command('oto:sync-shipments')->everyFifteenMinutes();
 

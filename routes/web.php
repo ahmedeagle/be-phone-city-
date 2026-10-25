@@ -76,6 +76,20 @@ Route::get('/assets/{path}', function ($path) {
     ]);
 })->where('path', '.*');
 
+// Public product data only. Served from an atomic snapshot, not a database query per download.
+Route::get('/feeds/tiktok-products.csv', function () {
+    abort_unless(config('tiktok.catalog_enabled'), 404);
+    $path = storage_path('app/tiktok-catalog/products.csv');
+    abort_unless(is_file($path), 503, 'Catalog not generated yet.');
+    abort_if(filemtime($path) < now()->subDay()->timestamp, 503, 'Catalog refresh required.');
+
+    return response()->file($path, [
+        'Content-Type' => 'text/csv; charset=UTF-8',
+        'Cache-Control' => 'no-cache',
+        'X-Content-Type-Options' => 'nosniff',
+    ]);
+})->name('tiktok.catalog');
+
 // Catch-all route for React app (must be last)
 Route::get('/{any}', function () {
     return file_get_contents(public_path('frontend/index.html'));
