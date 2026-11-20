@@ -41,7 +41,7 @@ Route::post('/otp-verify/cancel', [\App\Http\Controllers\Admin\OtpController::cl
     ->name('admin.otp-verify.cancel');
 
 // Dynamic SEO sitemap. Keep this before the React catch-all route.
-Route::get('/sitemap.xml', \\App\\Http\\Controllers\\SitemapController::class)->name('sitemap');
+Route::get('/sitemap.xml', \App\Http\Controllers\SitemapController::class)->name('sitemap');
 
 // Serve static assets from frontend directory
 Route::get('/assets/{path}', function ($path) {
