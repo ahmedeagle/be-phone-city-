@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\Products\Pages;
 
 use App\Filament\Admin\Resources\Products\ProductResource;
+use App\Services\ProductSeoAiService;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -20,6 +21,20 @@ class EditProduct extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('generateSeo')
+                ->label('إنشاء SEO بالذكاء الاصطناعي')
+                ->icon('heroicon-o-sparkles')
+                ->action(function (): void {
+                    try {
+                        $draft = app(ProductSeoAiService::class)->generate($this->record);
+                        $this->record->update($draft);
+                        $this->fillForm();
+                        Notification::make()->title('تم إنشاء بيانات SEO بنجاح')->success()->send();
+                    } catch (\Throwable $exception) {
+                        report($exception);
+                        Notification::make()->title('تعذر إنشاء SEO')->body($exception->getMessage())->danger()->send();
+                    }
+                }),
             Actions\ViewAction::make()
                 ->label('عرض')
                 ->visible(fn () => auth()->user()->can('products.show')),

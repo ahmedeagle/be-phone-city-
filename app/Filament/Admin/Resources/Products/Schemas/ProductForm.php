@@ -554,24 +554,24 @@ class ProductForm
                 ->collapsible()
                 ->collapsed()
                 ->columnSpan(1),
-            Section::make('SEO')
-                ->description('Search metadata used by product pages and social sharing')
+            Section::make('\u{062A}\u{062D}\u{0633}\u{064A}\u{0646} \u{0645}\u{062D}\u{0631}\u{0643}\u{0627}\u{062A} \u{0627}\u{0644}\u{0628}\u{062D}\u{062B} (SEO)')
+                ->description('\u{0628}\u{064A}\u{0627}\u{0646}\u{0627}\u{062A} \u{0638}\u{0647}\u{0648}\u{0631} \u{0627}\u{0644}\u{0645}\u{0646}\u{062A}\u{062C} \u{0641}\u{064A} \u{0645}\u{062D}\u{0631}\u{0643}\u{0627}\u{062A} \u{0627}\u{0644}\u{0628}\u{062D}\u{062B} \u{0648\u{0627}\u{0644}\u{0645}\u{0634}\u{0627}\u{0631}\u{0643}\u{0629}')
                 ->icon('heroicon-o-magnifying-glass')
                 ->schema([
                     Grid::make(2)->schema([
-                        TextInput::make('seo_title_ar')->maxLength(70)->label('Arabic SEO title'),
-                        TextInput::make('seo_title_en')->maxLength(70)->label('English SEO title'),
+                        TextInput::make('seo_title_ar')->maxLength(70)->label('\u{0639}\u{0646}\u{0648}\u{0627}\u{0646} SEO \u{0628}\u{0627}\u{0644}\u{0639}\u{0631}\u{0628}\u{064A}\u{0629}'),
+                        TextInput::make('seo_title_en')->maxLength(70)->label('\u{0639}\u{0646}\u{0648}\u{0627}\u{0646} SEO \u{0628}\u{0627}\u{0644}\u{0625}\u{0646}\u{062C}\u{0644}\u{064A}\u{0632}\u{064A}\u{0629}'),
                     ]),
                     Grid::make(2)->schema([
-                        Textarea::make('seo_description_ar')->rows(3)->maxLength(170)->label('Arabic meta description'),
-                        Textarea::make('seo_description_en')->rows(3)->maxLength(170)->label('English meta description'),
+                        Textarea::make('seo_description_ar')->rows(3)->maxLength(170)->label('\u{0648}\u{0635}\u{0641} \u{0627}\u{0644}\u{0645}\u{064A}\u{062A}\u{0627} \u{0628}\u{0627}\u{0644}\u{0639}\u{0631}\u{0628}\u{064A}\u{0629}'),
+                        Textarea::make('seo_description_en')->rows(3)->maxLength(170)->label('\u{0648}\u{0635}\u{0641} \u{0627}\u{0644}\u{0645}\u{064A}\u{062A}\u{0627} \u{0628}\u{0627}\u{0644}\u{0625}\u{0646}\u{062C}\u{0644}\u{064A}\u{0632}\u{064A}\u{0629}'),
                     ]),
                     Grid::make(2)->schema([
-                        TextInput::make('seo_keywords_ar')->maxLength(255)->label('Arabic focus keywords'),
-                        TextInput::make('seo_keywords_en')->maxLength(255)->label('English focus keywords'),
+                        TextInput::make('seo_keywords_ar')->maxLength(255)->label('\u{0643}\u{0644}\u{0645}\u{0627}\u{062A} \u{0645}\u{0641}\u{062A}\u{0627}\u{062D}\u{064A}\u{0629} \u{0628}\u{0627}\u{0644}\u{0639}\u{0631}\u{0628}\u{064A}\u{0629}'),
+                        TextInput::make('seo_keywords_en')->maxLength(255)->label('\u{0643}\u{0644}\u{0645}\u{0627}\u{062A} \u{0645}\u{0641}\u{062A}\u{0627}\u{062D}\u{064A}\u{0629} \u{0628}\u{0627}\u{0644}\u{0625}\u{0646}\u{062C}\u{0644}\u{064A}\u{0632}\u{064A}\u{0629}'),
                     ]),
-                    TextInput::make('seo_canonical_url')->url()->maxLength(500)->label('Canonical URL'),
-                    Select::make('seo_robots')->options(['index, follow' => 'Index, follow', 'noindex, nofollow' => 'Noindex, nofollow'])->default('index, follow')->label('Robots rule'),
+                    TextInput::make('seo_canonical_url')->url()->maxLength(500)->label('Canonical URL (\u{0631}\u{0627}\u{0628}\u{0637} \u{0623}\u{0633}\u{0627}\u{0633}\u{064A})'),
+                    Select::make('seo_robots')->options(['index, follow' => '\u{0641}\u{0647}\u{0631}\u{0633}\u{0629} \u{0648\u{0645}\u{062A}\u{0627}\u{0628}\u{0639}\u{0629}', 'noindex, nofollow' => '\u{0645}\u{0646}\u{0639} \u{0627}\u{0644}\u{0641}\u{0647}\u{0631}\u{0633}\u{0629}'])->default('index, follow')->label('\u{062A}\u{0639}\u{0644}\u{064A}\u{0645}\u{0627}\u{062A} \u{0627}\u{0644}\u{0641}\u{0647}\u{0631}\u{0633}\u{0629}'),
                 ])
                 ->collapsible()
                 ->collapsed(),
