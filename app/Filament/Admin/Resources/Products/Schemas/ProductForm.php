@@ -555,7 +555,7 @@ class ProductForm
                 ->collapsed()
                 ->columnSpan(1),
             Section::make('تحسين محركات البحث (SEO)')
-                ->description('بيانات ظهور المنتج في محركات البحث \u{0648المشاركة')
+                ->description('بيانات ظهور المنتج في محركات البحث والمشاركة')
                 ->icon('heroicon-o-magnifying-glass')
                 ->schema([
                     Grid::make(2)->schema([
@@ -571,7 +571,7 @@ class ProductForm
                         TextInput::make('seo_keywords_en')->maxLength(255)->label('كلمات مفتاحية بالإنجليزية'),
                     ]),
                     TextInput::make('seo_canonical_url')->url()->maxLength(500)->label('Canonical URL (رابط أساسي)'),
-                    Select::make('seo_robots')->options(['index, follow' => 'فهرسة \u{0648متابعة', 'noindex, nofollow' => 'منع الفهرسة'])->default('index, follow')->label('تعليمات الفهرسة'),
+                    Select::make('seo_robots')->options(['index, follow' => 'فهرسة ومتابعة', 'noindex, nofollow' => 'منع الفهرسة'])->default('index, follow')->label('تعليمات الفهرسة'),
                 ])
                 ->collapsible()
                 ->collapsed(),
