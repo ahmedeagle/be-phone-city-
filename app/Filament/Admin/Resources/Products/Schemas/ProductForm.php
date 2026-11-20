@@ -554,6 +554,27 @@ class ProductForm
                 ->collapsible()
                 ->collapsed()
                 ->columnSpan(1),
+            Section::make('SEO')
+                ->description('Search metadata used by product pages and social sharing')
+                ->icon('heroicon-o-magnifying-glass')
+                ->schema([
+                    Grid::make(2)->schema([
+                        TextInput::make('seo_title_ar')->maxLength(70)->label('Arabic SEO title'),
+                        TextInput::make('seo_title_en')->maxLength(70)->label('English SEO title'),
+                    ]),
+                    Grid::make(2)->schema([
+                        Textarea::make('seo_description_ar')->rows(3)->maxLength(170)->label('Arabic meta description'),
+                        Textarea::make('seo_description_en')->rows(3)->maxLength(170)->label('English meta description'),
+                    ]),
+                    Grid::make(2)->schema([
+                        TextInput::make('seo_keywords_ar')->maxLength(255)->label('Arabic focus keywords'),
+                        TextInput::make('seo_keywords_en')->maxLength(255)->label('English focus keywords'),
+                    ]),
+                    TextInput::make('seo_canonical_url')->url()->maxLength(500)->label('Canonical URL'),
+                    Select::make('seo_robots')->options(['index, follow' => 'Index, follow', 'noindex, nofollow' => 'Noindex, nofollow'])->default('index, follow')->label('Robots rule'),
+                ])
+                ->collapsible()
+                ->collapsed(),
         ]);
     }
 }

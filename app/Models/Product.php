@@ -33,6 +33,14 @@ class Product extends Model
         'is_new_arrival',
         'is_featured',
         'is_installment',
+        'seo_title_ar',
+        'seo_title_en',
+        'seo_description_ar',
+        'seo_description_en',
+        'seo_keywords_ar',
+        'seo_keywords_en',
+        'seo_canonical_url',
+        'seo_robots',
     ];
 
     protected $casts = [
