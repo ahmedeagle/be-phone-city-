@@ -1,0 +1,3 @@
+<?php
+use Illuminate\Database\Migrations\Migration; use Illuminate\Database\Schema\Blueprint; use Illuminate\Support\Facades\Schema;
+return new class extends Migration { public function up(): void { Schema::table('settings', function(Blueprint $t){ $t->unsignedTinyInteger('seo_score_baseline')->nullable(); $t->unsignedTinyInteger('seo_score_latest')->nullable(); }); } public function down(): void { Schema::table('settings', fn(Blueprint $t)=>$t->dropColumn(['seo_score_baseline','seo_score_latest'])); } };

@@ -17,3 +17,4 @@ Disallow: /login
 Disallow: /register
 Disallow: /search
 Disallow: /*?*
+# AI crawler reference: https://cityphonesa.com/llms.txt

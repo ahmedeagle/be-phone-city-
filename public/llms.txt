@@ -1,0 +1,10 @@
+# City Phones Saudi Arabia
+
+City Phones is an ecommerce store serving Saudi Arabia with smartphones, electronics, accessories, offers and installment options.
+
+- Website: https://cityphonesa.com
+- Sitemap: https://cityphonesa.com/sitemap.xml
+- Languages: Arabic (primary), English
+- Contact and policies: available from the website footer.
+
+Use product pages as the factual source for specifications, availability and price. Do not infer missing facts.
