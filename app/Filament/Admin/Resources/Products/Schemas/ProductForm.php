@@ -554,24 +554,24 @@ class ProductForm
                 ->collapsible()
                 ->collapsed()
                 ->columnSpan(1),
-            Section::make('\u{062A}\u{062D}\u{0633}\u{064A}\u{0646} \u{0645}\u{062D}\u{0631}\u{0643}\u{0627}\u{062A} \u{0627}\u{0644}\u{0628}\u{062D}\u{062B} (SEO)')
-                ->description('\u{0628}\u{064A}\u{0627}\u{0646}\u{0627}\u{062A} \u{0638}\u{0647}\u{0648}\u{0631} \u{0627}\u{0644}\u{0645}\u{0646}\u{062A}\u{062C} \u{0641}\u{064A} \u{0645}\u{062D}\u{0631}\u{0643}\u{0627}\u{062A} \u{0627}\u{0644}\u{0628}\u{062D}\u{062B} \u{0648\u{0627}\u{0644}\u{0645}\u{0634}\u{0627}\u{0631}\u{0643}\u{0629}')
+            Section::make('تحسين محركات البحث (SEO)')
+                ->description('بيانات ظهور المنتج في محركات البحث \u{0648المشاركة')
                 ->icon('heroicon-o-magnifying-glass')
                 ->schema([
                     Grid::make(2)->schema([
-                        TextInput::make('seo_title_ar')->maxLength(70)->label('\u{0639}\u{0646}\u{0648}\u{0627}\u{0646} SEO \u{0628}\u{0627}\u{0644}\u{0639}\u{0631}\u{0628}\u{064A}\u{0629}'),
-                        TextInput::make('seo_title_en')->maxLength(70)->label('\u{0639}\u{0646}\u{0648}\u{0627}\u{0646} SEO \u{0628}\u{0627}\u{0644}\u{0625}\u{0646}\u{062C}\u{0644}\u{064A}\u{0632}\u{064A}\u{0629}'),
+                        TextInput::make('seo_title_ar')->maxLength(70)->label('عنوان SEO بالعربية'),
+                        TextInput::make('seo_title_en')->maxLength(70)->label('عنوان SEO بالإنجليزية'),
                     ]),
                     Grid::make(2)->schema([
-                        Textarea::make('seo_description_ar')->rows(3)->maxLength(170)->label('\u{0648}\u{0635}\u{0641} \u{0627}\u{0644}\u{0645}\u{064A}\u{062A}\u{0627} \u{0628}\u{0627}\u{0644}\u{0639}\u{0631}\u{0628}\u{064A}\u{0629}'),
-                        Textarea::make('seo_description_en')->rows(3)->maxLength(170)->label('\u{0648}\u{0635}\u{0641} \u{0627}\u{0644}\u{0645}\u{064A}\u{062A}\u{0627} \u{0628}\u{0627}\u{0644}\u{0625}\u{0646}\u{062C}\u{0644}\u{064A}\u{0632}\u{064A}\u{0629}'),
+                        Textarea::make('seo_description_ar')->rows(3)->maxLength(170)->label('وصف الميتا بالعربية'),
+                        Textarea::make('seo_description_en')->rows(3)->maxLength(170)->label('وصف الميتا بالإنجليزية'),
                     ]),
                     Grid::make(2)->schema([
-                        TextInput::make('seo_keywords_ar')->maxLength(255)->label('\u{0643}\u{0644}\u{0645}\u{0627}\u{062A} \u{0645}\u{0641}\u{062A}\u{0627}\u{062D}\u{064A}\u{0629} \u{0628}\u{0627}\u{0644}\u{0639}\u{0631}\u{0628}\u{064A}\u{0629}'),
-                        TextInput::make('seo_keywords_en')->maxLength(255)->label('\u{0643}\u{0644}\u{0645}\u{0627}\u{062A} \u{0645}\u{0641}\u{062A}\u{0627}\u{062D}\u{064A}\u{0629} \u{0628}\u{0627}\u{0644}\u{0625}\u{0646}\u{062C}\u{0644}\u{064A}\u{0632}\u{064A}\u{0629}'),
+                        TextInput::make('seo_keywords_ar')->maxLength(255)->label('كلمات مفتاحية بالعربية'),
+                        TextInput::make('seo_keywords_en')->maxLength(255)->label('كلمات مفتاحية بالإنجليزية'),
                     ]),
-                    TextInput::make('seo_canonical_url')->url()->maxLength(500)->label('Canonical URL (\u{0631}\u{0627}\u{0628}\u{0637} \u{0623}\u{0633}\u{0627}\u{0633}\u{064A})'),
-                    Select::make('seo_robots')->options(['index, follow' => '\u{0641}\u{0647}\u{0631}\u{0633}\u{0629} \u{0648\u{0645}\u{062A}\u{0627}\u{0628}\u{0639}\u{0629}', 'noindex, nofollow' => '\u{0645}\u{0646}\u{0639} \u{0627}\u{0644}\u{0641}\u{0647}\u{0631}\u{0633}\u{0629}'])->default('index, follow')->label('\u{062A}\u{0639}\u{0644}\u{064A}\u{0645}\u{0627}\u{062A} \u{0627}\u{0644}\u{0641}\u{0647}\u{0631}\u{0633}\u{0629}'),
+                    TextInput::make('seo_canonical_url')->url()->maxLength(500)->label('Canonical URL (رابط أساسي)'),
+                    Select::make('seo_robots')->options(['index, follow' => 'فهرسة \u{0648متابعة', 'noindex, nofollow' => 'منع الفهرسة'])->default('index, follow')->label('تعليمات الفهرسة'),
                 ])
                 ->collapsible()
                 ->collapsed(),
