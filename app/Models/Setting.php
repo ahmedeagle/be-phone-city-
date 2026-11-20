@@ -35,6 +35,9 @@ class Setting extends Model
         'featured_count',
         // Order Confirmation Settings
         'auto_confirm_electronic_payments',
+        'seo_home_title_ar', 'seo_home_title_en', 'seo_home_description_ar', 'seo_home_description_en',
+        'seo_home_keywords_ar', 'seo_home_keywords_en', 'seo_og_image', 'seo_business_name_ar', 'seo_business_name_en',
+        'seo_facebook_url', 'seo_instagram_url', 'seo_x_url',
     ];
 
     protected $casts = [
