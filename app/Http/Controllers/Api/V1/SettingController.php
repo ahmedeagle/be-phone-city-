@@ -65,6 +65,22 @@ class SettingController extends Controller
         );
     }
 
+    /** Public homepage SEO settings. */
+    public function seo()
+    {
+        $settings = Setting::getSettings();
+        return Response::success('SEO settings fetched successfully', [
+            'seo_home_title_ar' => $settings->seo_home_title_ar,
+            'seo_home_title_en' => $settings->seo_home_title_en,
+            'seo_home_description_ar' => $settings->seo_home_description_ar,
+            'seo_home_description_en' => $settings->seo_home_description_en,
+            'seo_home_keywords_ar' => $settings->seo_home_keywords_ar,
+            'seo_home_keywords_en' => $settings->seo_home_keywords_en,
+            'seo_og_image' => $settings->seo_og_image ? asset('storage/' . $settings->seo_og_image) : null,
+            'seo_business_name_ar' => $settings->seo_business_name_ar,
+            'seo_business_name_en' => $settings->seo_business_name_en,
+        ]);
+    }
     /**
      * Get shipping and tax settings
      */

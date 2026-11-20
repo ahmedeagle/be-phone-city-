@@ -104,6 +104,7 @@ Route::prefix('v1')->namespace('App\Http\Controllers\Api\V1')->group(function ()
     Route::get('sliders', [SliderController::class, 'index']);
     Route::get('sliders/{id}', [SliderController::class, 'show']);
 
+    Route::get('settings/seo', [SettingController::class, 'seo']);
     Route::get('home-page', [HomePageController::class, 'show']);
 
     // Settings routes (specific routes must come before dynamic {key} route)
