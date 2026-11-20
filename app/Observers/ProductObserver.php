@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Jobs\GenerateProductSeoJob;
 use App\Models\Product;
 use App\Models\StockNotification;
 use App\Notifications\BackInStockNotification;
@@ -11,6 +12,17 @@ use Illuminate\Support\Facades\Storage;
 
 class ProductObserver
 {
+    /** Queue Arabic and English AI metadata for newly created products. */
+    public function created(Product $product): void
+    {
+        if (! config('openai.seo_auto_generate', true)) {
+            return;
+        }
+
+        GenerateProductSeoJob::dispatch($product->id)
+            ->delay(now()->addSeconds(10))
+            ->afterCommit();
+    }
     /**
      * Clean up related data before product is deleted.
      */

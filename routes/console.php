@@ -16,5 +16,8 @@ Schedule::command('tiktok:generate-catalog')->hourly()->withoutOverlapping()
 // Sync OTO shipment statuses every 15 minutes
 Schedule::command('oto:sync-shipments')->everyFifteenMinutes();
 
+// Fill metadata for imported legacy products without overwriting admin edits.
+Schedule::command('seo:fill-missing --limit=40')->dailyAt('03:30')->withoutOverlapping();
+
 // Check for delayed shipments daily at 9 AM
 Schedule::command('oto:check-delayed')->dailyAt('09:00');

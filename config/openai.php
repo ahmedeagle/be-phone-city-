@@ -61,5 +61,6 @@ return [
     */
 
     'chatbot_model' => env('OPENAI_CHATBOT_MODEL', 'gpt-3.5-turbo'),
+    'seo_auto_generate' => env('OPENAI_SEO_AUTO_GENERATE', true),
     'seo_model' => env('OPENAI_SEO_MODEL', 'gpt-4o-mini'),
 ];
